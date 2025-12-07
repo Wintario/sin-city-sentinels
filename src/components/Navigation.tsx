@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface NavigationProps {
   onHover: (isHovering: boolean) => void;
@@ -9,10 +10,9 @@ const Navigation = ({ onHover }: NavigationProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    { label: 'О нас', href: '#about' },
-    { label: 'Состав', href: '#members' },
-    { label: 'Новости', href: '#news' },
-    { label: 'Достижения', href: '#achievements' },
+    { label: 'О нас', href: '#about', isExternal: false },
+    { label: 'Новости', href: '#news', isExternal: false },
+    { label: 'Состав клана', href: '/members', isExternal: true },
   ];
 
   const handleMouseEnter = () => onHover(true);
@@ -29,15 +29,27 @@ const Navigation = ({ onHover }: NavigationProps) => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-2">
             {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="nav-btn"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                {item.label}
-              </a>
+              item.isExternal ? (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className="nav-btn"
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="nav-btn"
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {item.label}
+                </a>
+              )
             ))}
           </div>
 
@@ -54,14 +66,25 @@ const Navigation = ({ onHover }: NavigationProps) => {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border">
             {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="block py-3 px-4 font-heading uppercase tracking-wider text-foreground hover:text-primary hover:bg-secondary transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                {item.label}
-              </a>
+              item.isExternal ? (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className="block py-3 px-4 font-heading uppercase tracking-wider text-foreground hover:text-primary hover:bg-secondary transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="block py-3 px-4 font-heading uppercase tracking-wider text-foreground hover:text-primary hover:bg-secondary transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </a>
+              )
             ))}
           </div>
         )}
