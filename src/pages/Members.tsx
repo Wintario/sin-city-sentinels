@@ -8,7 +8,7 @@ import heroRabbit from '@/assets/hero-rabbit.png';
 
 // Mock data for 30 members
 const mockMembers = [
-  { id: 1, name: 'легион86', role: 'Глава клана', profile_url: 'https://apeha.ru', avatar_url: null },
+  { id: 1, name: 'легион86', role: 'Глава клана', profile_url: 'https://kovcheg2.apeha.ru/info.html?user=201617408', avatar_url: null },
   ...Array.from({ length: 29 }, (_, i) => ({
     id: i + 2,
     name: `Участник ${i + 2}`,
