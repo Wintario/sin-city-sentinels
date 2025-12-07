@@ -1,6 +1,8 @@
+import { Link } from 'react-router-dom';
+
 const Footer = () => {
   return (
-    <footer className="relative py-12 px-4 bg-background border-t border-border">
+    <footer className="relative z-20 py-12 px-4 bg-background/90 border-t border-border">
       <div className="container mx-auto text-center">
         {/* Main Copyright */}
         <p className="font-body text-muted-foreground mb-4">
@@ -21,6 +23,16 @@ const Footer = () => {
         >
           Вернуться в АРЕНУ →
         </a>
+
+        {/* Admin Link */}
+        <div className="mt-6">
+          <Link 
+            to="/admin/login"
+            className="font-body text-xs text-muted-foreground/40 hover:text-primary transition-colors duration-300"
+          >
+            admin
+          </Link>
+        </div>
 
         {/* Decorative Elements */}
         <div className="mt-8 flex justify-center items-center gap-4">

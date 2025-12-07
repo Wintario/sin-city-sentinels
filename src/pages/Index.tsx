@@ -2,12 +2,11 @@ import { useState, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import AboutSection from '@/components/AboutSection';
-import MembersSection from '@/components/MembersSection';
 import NewsSection from '@/components/NewsSection';
-import AchievementsSection from '@/components/AchievementsSection';
 import Footer from '@/components/Footer';
 import RainEffect from '@/components/RainEffect';
 import FilmGrain from '@/components/FilmGrain';
+import heroRabbit from '@/assets/hero-rabbit.png';
 
 const Index = () => {
   const [rainIntensity, setRainIntensity] = useState(1);
@@ -17,7 +16,19 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground relative">
+      {/* Fixed Background */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0"
+        style={{ 
+          backgroundImage: `url(${heroRabbit})`,
+          filter: 'contrast(1.2) brightness(0.5)',
+        }}
+      />
+      
+      {/* Dark Overlay */}
+      <div className="fixed inset-0 bg-background/70 z-0" />
+
       {/* Rain Effect */}
       <RainEffect intensity={rainIntensity} />
       
@@ -31,9 +42,7 @@ const Index = () => {
       <main className="relative z-20">
         <HeroSection />
         <AboutSection />
-        <MembersSection />
         <NewsSection />
-        <AchievementsSection />
       </main>
 
       {/* Footer */}
