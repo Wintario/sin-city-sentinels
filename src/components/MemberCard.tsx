@@ -1,4 +1,4 @@
-import { ExternalLink, User } from 'lucide-react';
+import { User } from 'lucide-react';
 
 interface Member {
   id: number;
@@ -14,9 +14,10 @@ interface MemberCardProps {
 
 const MemberCard = ({ member }: MemberCardProps) => {
   const isLeader = member.name === 'легион86' || member.id === 1;
+  const hasLink = !!member.profile_url;
 
-  return (
-    <div className={`member-card ${isLeader ? 'member-card-leader' : ''}`}>
+  const CardContent = (
+    <>
       {/* Avatar */}
       <div className="aspect-square bg-secondary flex items-center justify-center mb-3 overflow-hidden">
         {member.avatar_url ? (
@@ -44,19 +45,26 @@ const MemberCard = ({ member }: MemberCardProps) => {
             ★ ГЛАВА КЛАНА ★
           </div>
         )}
-
-        {member.profile_url && (
-          <a 
-            href={member.profile_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-2 text-muted-foreground hover:text-primary transition-colors"
-          >
-            <ExternalLink size={14} />
-            <span className="text-xs">Профиль</span>
-          </a>
-        )}
       </div>
+    </>
+  );
+
+  if (hasLink) {
+    return (
+      <a 
+        href={member.profile_url!}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`member-card block cursor-pointer ${isLeader ? 'member-card-leader' : ''}`}
+      >
+        {CardContent}
+      </a>
+    );
+  }
+
+  return (
+    <div className={`member-card ${isLeader ? 'member-card-leader' : ''}`}>
+      {CardContent}
     </div>
   );
 };
