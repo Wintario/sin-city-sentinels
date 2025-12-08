@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 
 // Mock news data
@@ -44,6 +45,7 @@ const mockNews = [
 const NewsSection = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -61,6 +63,10 @@ const NewsSection = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  const handleNewsClick = (newsId: number) => {
+    navigate(`/news/${newsId}`);
+  };
 
   return (
     <section 
@@ -92,8 +98,9 @@ const NewsSection = () => {
                 key={news.id}
                 className="news-item break-inside-avoid mb-6 bg-transparent"
                 style={{ transitionDelay: `${index * 100}ms` }}
+                onClick={() => handleNewsClick(news.id)}
               >
-                <h3 className="news-title font-heading text-xl font-bold text-noir-dark leading-tight mb-2 cursor-pointer">
+                <h3 className="news-title font-heading text-xl font-bold text-noir-dark leading-tight mb-2 transition-colors duration-200">
                   {news.title}
                 </h3>
                 <p className="font-body text-sm text-noir-gray leading-relaxed mb-2">

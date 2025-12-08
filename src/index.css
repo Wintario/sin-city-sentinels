@@ -161,14 +161,14 @@
   .member-card {
     @apply relative bg-card p-4;
     border: 2px solid hsl(var(--noir-light) / 0.3);
-    transition: all 0.3s ease;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .member-card:hover {
-    transform: rotateZ(1deg) scale(1.02);
+    transform: rotateZ(0.5deg) scale(1.05);
     border-color: hsl(var(--blood-red));
-    box-shadow: 0 0 20px hsl(0 100% 50% / 0.3);
-    animation: jitter 0.1s ease-in-out infinite;
+    box-shadow: 0 0 25px hsl(0 100% 50% / 0.4);
+    animation: jitter 0.8s ease-in-out infinite;
   }
 
   .member-card-leader {
@@ -195,17 +195,15 @@
     @apply relative p-4;
     border-bottom: 1px solid hsl(0 0% 30%);
     transition: all 0.3s ease;
+    cursor: pointer;
   }
 
   .news-item:hover {
-    background: hsl(0 0% 90%);
-    animation: flicker 0.5s ease;
+    background: hsl(0 0% 88%);
   }
 
   .news-item:hover .news-title {
-    text-decoration: underline;
-    text-decoration-color: hsl(var(--blood-red));
-    text-decoration-thickness: 3px;
+    color: hsl(var(--blood-red));
   }
 
   /* Speech Bubble */
@@ -291,10 +289,10 @@
 }
 
 @keyframes jitter {
-  0%, 100% { transform: rotateZ(1deg) scale(1.02); }
-  25% { transform: rotateZ(1.5deg) scale(1.02) translateX(1px); }
-  50% { transform: rotateZ(0.5deg) scale(1.02) translateY(1px); }
-  75% { transform: rotateZ(1.2deg) scale(1.02) translateX(-1px); }
+  0%, 100% { transform: rotateZ(0.5deg) scale(1.05) translateY(0); }
+  25% { transform: rotateZ(0.8deg) scale(1.05) translateY(-4px); }
+  50% { transform: rotateZ(0.3deg) scale(1.05) translateY(-8px); }
+  75% { transform: rotateZ(0.6deg) scale(1.05) translateY(-4px); }
 }
 
 @keyframes flicker {
