@@ -68,6 +68,12 @@ const NewsDetail = () => {
     );
   }
 
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       {/* Fixed Background */}
@@ -91,9 +97,12 @@ const NewsDetail = () => {
       {/* Navigation */}
       <Navigation onHover={() => {}} />
 
-      {/* Main Content */}
-      <main className="relative z-20 pt-32 pb-24 px-4">
-        <div className="container mx-auto max-w-3xl">
+      {/* Main Content - Clickable Overlay */}
+      <main 
+        className="relative z-20 pt-32 pb-24 px-4 min-h-screen cursor-pointer"
+        onClick={handleOverlayClick}
+      >
+        <div className="container mx-auto max-w-3xl" onClick={(e) => e.stopPropagation()}>
           {/* Back Button */}
           <button
             onClick={() => navigate('/')}
@@ -104,7 +113,7 @@ const NewsDetail = () => {
           </button>
 
           {/* News Content */}
-          <article className="newspaper-bg p-8 md:p-12 shadow-noir">
+          <article className="newspaper-bg p-8 md:p-12 shadow-noir cursor-default">
             <header className="border-b-2 border-noir-dark pb-6 mb-6">
               <h1 className="font-display text-3xl md:text-4xl lg:text-5xl text-noir-dark leading-tight mb-4">
                 {news.title}
