@@ -1,21 +1,8 @@
-import heroRabbit from '@/assets/hero-rabbit.png';
 import playboylLogo from '@/assets/playboy-logo.png';
 
 const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ 
-          backgroundImage: `url(${heroRabbit})`,
-          filter: 'contrast(1.2) brightness(0.7)',
-        }}
-      />
-      
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background" />
-
       {/* Content */}
       <div className="relative z-20 text-center px-4">
         {/* Logo and Title */}
@@ -24,7 +11,7 @@ const HeroSection = () => {
           <img 
             src={playboylLogo} 
             alt="Логотип клана"
-            className="h-24 md:h-28 lg:h-32 w-auto rounded-full border-4 border-primary transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)]"
+            className="h-24 md:h-28 lg:h-32 w-auto border-4 border-primary transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)]"
             style={{ 
               boxShadow: '0 0 15px rgba(255, 0, 0, 0.5)',
             }}
