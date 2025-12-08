@@ -33,15 +33,6 @@ const HeroSection = () => {
           МЫ ВЕЛИЧАЙШИЕ. МЫ БОГИ.
         </p>
         
-        {/* Scroll Indicator */}
-        <div 
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce"
-          style={{ animationDelay: '1s' }}
-        >
-          <div className="w-6 h-10 border-2 border-foreground/50 rounded-full flex justify-center pt-2">
-            <div className="w-1 h-3 bg-primary rounded-full animate-pulse" />
-          </div>
-        </div>
       </div>
     </section>
   );
