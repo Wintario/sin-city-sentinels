@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import Navigation from '@/components/Navigation';
@@ -51,6 +52,11 @@ const NewsDetail = () => {
   const navigate = useNavigate();
   
   const news = mockNews.find(n => n.id === Number(id));
+
+  // Scroll to top when opening news detail
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   if (!news) {
     return (

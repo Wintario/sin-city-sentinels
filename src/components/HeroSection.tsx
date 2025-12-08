@@ -8,14 +8,18 @@ const HeroSection = () => {
         {/* Logo and Title */}
         <div className="flex items-center justify-center gap-6 mb-4">
           {/* Playboy Logo */}
-          <img 
-            src={playboylLogo} 
-            alt="Логотип клана"
-            className="h-24 md:h-28 lg:h-32 w-auto border-4 border-primary transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)]"
+          <div 
+            className="w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)]"
             style={{ 
               boxShadow: '0 0 15px rgba(255, 0, 0, 0.5)',
             }}
-          />
+          >
+            <img 
+              src={playboylLogo} 
+              alt="Логотип клана"
+              className="w-full h-full object-contain p-2"
+            />
+          </div>
           
           <div>
             <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up">

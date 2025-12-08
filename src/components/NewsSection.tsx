@@ -64,7 +64,17 @@ const NewsSection = () => {
     return () => observer.disconnect();
   }, []);
 
+  // Restore scroll position when returning from news detail
+  useEffect(() => {
+    const savedPosition = sessionStorage.getItem('newsScrollPosition');
+    if (savedPosition) {
+      window.scrollTo(0, parseInt(savedPosition));
+      sessionStorage.removeItem('newsScrollPosition');
+    }
+  }, []);
+
   const handleNewsClick = (newsId: number) => {
+    sessionStorage.setItem('newsScrollPosition', window.scrollY.toString());
     navigate(`/news/${newsId}`);
   };
 
