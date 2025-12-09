@@ -4,7 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { membersAPI, Member } from '@/lib/api';
-import { Trash2, Edit, Plus, Star, Upload, CheckCircle, Sparkles, AlertCircle } from 'lucide-react';
+import { Trash2, Edit, Plus, Star, Upload, CheckCircle, Sparkles, AlertCircle, Crown } from 'lucide-react';
 import MemberForm from './MemberForm';
 
 interface ImportResult {
@@ -66,6 +66,18 @@ const MembersAdmin = () => {
       loadMembers();
     } catch (error) {
       toast.error('Ошибка удаления');
+    }
+  };
+
+  const handleSetLeader = async (id: number, name: string) => {
+    if (!confirm(`Назначить "${name}" главой клана?`)) return;
+    
+    try {
+      await membersAPI.setLeader(id);
+      toast.success(`${name} назначен главой клана`);
+      loadMembers();
+    } catch (error) {
+      toast.error('Ошибка назначения главы');
     }
   };
 
@@ -347,6 +359,16 @@ const MembersAdmin = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  {!leader && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSetLeader(member.id, member.name)}
+                      title="Назначить главой клана"
+                    >
+                      <Crown className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

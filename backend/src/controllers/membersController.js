@@ -117,6 +117,25 @@ export const reorderMember = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/members/:id/leader
+ * Назначить участника главой клана
+ */
+export const setLeader = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const memberId = parseInt(id, 10);
+  
+  // Проверяем существование
+  const existingMember = MembersModel.getMemberById(memberId);
+  if (!existingMember) {
+    throw new ApiError(404, 'Member not found');
+  }
+  
+  const member = MembersModel.setLeader(memberId);
+  logger.info(`Leader set: ${member.name}`, { id: memberId });
+  res.json(member);
+});
+
+/**
  * POST /api/members/import
  * Массовый импорт участников из JSON
  */
@@ -161,5 +180,6 @@ export default {
   updateMember,
   deleteMember,
   reorderMember,
+  setLeader,
   importMembers
 };

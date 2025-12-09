@@ -42,6 +42,9 @@ app.use(cors({
 // Парсинг JSON тела запросов
 app.use(express.json({ limit: '10mb' }));
 
+// Выдача статических файлов (аватарки членов клана)
+app.use('/avatars', express.static(join(__dirname, '../public/Avatars')));
+
 // Rate limiting для всех API запросов
 app.use('/api/', apiLimiter);
 
