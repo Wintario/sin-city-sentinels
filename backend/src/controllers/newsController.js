@@ -1,6 +1,7 @@
 import * as NewsModel from '../models/news.js';
 import { validateNewsInput } from '../middleware/validate.js';
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
+import logger from '../utils/logger.js';
 
 /**
  * GET /api/news
@@ -55,6 +56,8 @@ export const getNewsById = asyncHandler(async (req, res) => {
  * Создать новую новость
  */
 export const createNews = asyncHandler(async (req, res) => {
+  logger.request(req, 'Create news request');
+  
   // Валидация
   const validatedData = validateNewsInput(req.body);
   
@@ -74,6 +77,8 @@ export const createNews = asyncHandler(async (req, res) => {
 export const updateNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
+  
+  logger.request(req, `Update news request for ID ${newsId}`);
   
   // Проверяем существование
   const existingNews = NewsModel.getNewsById(newsId);
@@ -137,35 +142,45 @@ export const restoreNews = asyncHandler(async (req, res) => {
 });
 
 /**
- * PATCH /api/news/:id/publish
+ * PUT /api/news/:id/publish
  * Опубликовать новость (установить published_at)
+ * НЕ ТРЕБУЕТ title/content - обновляет только published_at
  */
 export const publishNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
   
+  logger.info(`Publish news request for ID ${newsId}`, { user: req.user?.username });
+  
   const existingNews = NewsModel.getNewsById(newsId);
   if (!existingNews) {
+    logger.error(`News not found for publish: ${newsId}`);
     throw new ApiError(404, 'News not found');
   }
   
   // Проверяем права: админ может всё, автор — только свои
   if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
+    logger.error(`Unauthorized publish attempt for news ${newsId}`, { user: req.user });
     throw new ApiError(403, 'You can only publish your own news');
   }
   
-  // Обновляем только published_at
-  const news = NewsModel.updateNews(newsId, { published_at: new Date().toISOString() });
+  // Используем специальный метод для публикации
+  const news = NewsModel.publishNews(newsId);
+  
+  logger.info(`News published successfully: ${newsId}`, { title: news.title });
+  
   res.json(news);
 });
 
 /**
- * PATCH /api/news/:id/archive
+ * PUT /api/news/:id/archive
  * Архивировать новость
  */
 export const archiveNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
+  
+  logger.info(`Archive news request for ID ${newsId}`);
   
   const existingNews = NewsModel.getNewsById(newsId);
   if (!existingNews) {
@@ -182,12 +197,14 @@ export const archiveNews = asyncHandler(async (req, res) => {
 });
 
 /**
- * PATCH /api/news/:id/unarchive
+ * PUT /api/news/:id/unarchive
  * Разархивировать новость
  */
 export const unarchiveNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
+  
+  logger.info(`Unarchive news request for ID ${newsId}`);
   
   const existingNews = NewsModel.getNewsById(newsId);
   if (!existingNews) {
