@@ -111,9 +111,9 @@ export interface News {
 export interface NewsCreateInput {
   title: string;
   content: string;
-  excerpt?: string;
-  image_url?: string;
-  published_at?: string;
+  excerpt?: string | null;
+  image_url?: string | null;
+  published_at?: string | null;
 }
 
 // News API
@@ -128,12 +128,24 @@ export const newsAPI = {
   create: (data: NewsCreateInput) => 
     apiCall<News>('/news', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        title: data.title,
+        content: data.content,
+        excerpt: data.excerpt || null,
+        image_url: data.image_url || null,
+        published_at: data.published_at || null,
+      }),
     }),
   update: (id: number, data: Partial<NewsCreateInput>) =>
     apiCall<News>(`/news/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        title: data.title,
+        content: data.content,
+        excerpt: data.excerpt || null,
+        image_url: data.image_url || null,
+        published_at: data.published_at || null,
+      }),
     }),
   delete: (id: number) =>
     apiCall<{ success: boolean; message: string }>(`/news/${id}`, {
@@ -161,28 +173,42 @@ export interface Member {
 export interface MemberCreateInput {
   name: string;
   role: string;
-  profile_url?: string;
+  profile_url?: string | null;
   status?: string;
-  avatar_url?: string;
-  order_index?: number;
+  avatar_url?: string | null;
+  order_index?: number | null;
 }
 
 // Members API
 export const membersAPI = {
-  // Public endpoints
+  // Public endpoints - only active members
   getAll: () => apiCall<Member[]>('/members'),
   getById: (id: number) => apiCall<Member>(`/members/${id}`),
   
-  // Admin endpoints
+  // Admin endpoints - all members
+  getAdminList: () => apiCall<Member[]>('/members'),
+  
   create: (data: MemberCreateInput) =>
     apiCall<Member>('/members', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        name: data.name,
+        role: data.role,
+        status: data.status || 'active',
+        profile_url: data.profile_url || null,
+        avatar_url: data.avatar_url || null,
+        order_index: data.order_index ?? null,
+      }),
     }),
   update: (id: number, data: Partial<MemberCreateInput>) =>
     apiCall<Member>(`/members/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        name: data.name,
+        avatar_url: data.avatar_url || null,
+        profile_url: data.profile_url || null,
+        order_index: data.order_index ?? null,
+      }),
     }),
   delete: (id: number) =>
     apiCall<{ success: boolean; message: string }>(`/members/${id}`, {
@@ -193,4 +219,53 @@ export const membersAPI = {
       method: 'PATCH',
       body: JSON.stringify({ order_index: orderIndex }),
     }),
+};
+
+// User/Admin types
+export interface User {
+  id: number;
+  username: string;
+  role: 'admin' | 'author';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCreateInput {
+  username: string;
+  password: string;
+  role: 'admin' | 'author';
+}
+
+// Users API
+export const usersAPI = {
+  getList: () => apiCall<User[]>('/users'),
+  getById: (id: number) => apiCall<User>(`/users/${id}`),
+  create: (data: UserCreateInput) =>
+    apiCall<User>('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: { password?: string; role?: 'admin' | 'author' }) =>
+    apiCall<User>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: number) =>
+    apiCall<{ success: boolean; message: string }>(`/users/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// Background settings (localStorage)
+export const backgroundAPI = {
+  get: () => ({
+    bgImageUrl: localStorage.getItem('clan_bgImageUrl') || '',
+    bgColor: localStorage.getItem('clan_bgColor') || '#1a1a1a',
+    bgOpacity: parseFloat(localStorage.getItem('clan_bgOpacity') || '0.7'),
+  }),
+  save: (data: { bgImageUrl: string; bgColor: string; bgOpacity: number }) => {
+    localStorage.setItem('clan_bgImageUrl', data.bgImageUrl);
+    localStorage.setItem('clan_bgColor', data.bgColor);
+    localStorage.setItem('clan_bgOpacity', data.bgOpacity.toString());
+  },
 };

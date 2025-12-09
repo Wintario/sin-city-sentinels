@@ -1,25 +1,36 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import MemberCard from '@/components/MemberCard';
 import RainEffect from '@/components/RainEffect';
 import FilmGrain from '@/components/FilmGrain';
 import heroRabbit from '@/assets/hero-rabbit.png';
-
-// Mock data for 30 members
-const mockMembers = [
-  { id: 1, name: 'легион86', role: 'Глава клана', profile_url: 'https://kovcheg2.apeha.ru/info.html?user=201617408', avatar_url: null },
-  ...Array.from({ length: 29 }, (_, i) => ({
-    id: i + 2,
-    name: `Участник ${i + 2}`,
-    role: 'Член клана',
-    profile_url: null,
-    avatar_url: null,
-  })),
-];
+import { membersAPI, Member } from '@/lib/api';
 
 const Members = () => {
   const [rainIntensity, setRainIntensity] = useState(1);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        // Публичный API возвращает только active участников
+        const data = await membersAPI.getAll();
+        setMembers(data);
+      } catch (error) {
+        console.error('Failed to load members:', error);
+        // Fallback to mock data if API fails
+        setMembers([
+          { id: 1, name: 'легион86', role: 'Глава клана', profile_url: 'https://kovcheg2.apeha.ru/info.html?user=201617408', avatar_url: null, status: 'active', created_at: '', updated_at: '' },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, []);
 
   const handleBackHover = useCallback((isHovering: boolean) => {
     setRainIntensity(isHovering ? 2 : 1);
@@ -77,17 +88,27 @@ const Members = () => {
           </div>
 
           {/* Members Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {mockMembers.map((member, index) => (
-              <div
-                key={member.id}
-                className="animate-fade-up"
-                style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
-              >
-                <MemberCard member={member} />
-              </div>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center text-muted-foreground py-12">
+              Загрузка состава...
+            </div>
+          ) : members.length === 0 ? (
+            <div className="text-center text-muted-foreground py-12">
+              Участников пока нет
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {members.map((member, index) => (
+                <div
+                  key={member.id}
+                  className="animate-fade-up"
+                  style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
+                >
+                  <MemberCard member={member} />
+                </div>
+              ))}
+            </div>
+          )}
         </main>
 
         {/* Footer */}

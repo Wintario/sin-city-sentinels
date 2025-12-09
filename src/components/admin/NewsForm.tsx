@@ -19,7 +19,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
     content: news?.content || '',
     excerpt: news?.excerpt || '',
     image_url: news?.image_url || '',
-    published_at: news?.published_at || '',
+    published_at: news?.published_at || null,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -30,25 +30,42 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
   const handleSubmit = async (e: React.FormEvent, publish: boolean = false) => {
     e.preventDefault();
     
-    if (!formData.title.trim() || !formData.content.trim()) {
-      toast.error('Заголовок и содержание обязательны');
+    // Валидация согласно backend требованиям
+    if (!formData.title.trim() || formData.title.length < 3) {
+      toast.error('Заголовок должен быть минимум 3 символа');
+      return;
+    }
+    
+    if (!formData.content.trim() || formData.content.length < 10) {
+      toast.error('Содержание должно быть минимум 10 символов');
+      return;
+    }
+
+    if (formData.excerpt && formData.excerpt.length > 500) {
+      toast.error('Краткое описание не должно превышать 500 символов');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const dataToSend = {
-        ...formData,
-        published_at: publish ? new Date().toISOString() : formData.published_at || null,
+      // Подготовка данных для отправки
+      const dataToSend: NewsCreateInput = {
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        excerpt: formData.excerpt?.trim() || null,
+        image_url: formData.image_url?.trim() || null,
+        // Если publish=true, ставим текущую дату
+        // Если publish=false и есть существующая дата - оставляем null (черновик)
+        published_at: publish ? new Date().toISOString() : null,
       };
 
       if (news) {
         await newsAPI.update(news.id, dataToSend);
-        toast.success('Новость обновлена');
+        toast.success(publish ? 'Новость опубликована' : 'Новость сохранена как черновик');
       } else {
         await newsAPI.create(dataToSend);
-        toast.success('Новость создана');
+        toast.success(publish ? 'Новость создана и опубликована' : 'Черновик создан');
       }
       onSuccess();
     } catch (error) {
@@ -76,7 +93,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
       <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-muted-foreground mb-1">
-            Заголовок *
+            Заголовок * (мин. 3 символа)
           </label>
           <Input
             id="title"
@@ -85,25 +102,28 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
             onChange={handleChange}
             placeholder="Введите заголовок"
             required
+            minLength={3}
+            maxLength={200}
           />
         </div>
 
         <div>
           <label htmlFor="excerpt" className="block text-sm font-medium text-muted-foreground mb-1">
-            Краткое описание
+            Краткое описание (макс. 500 символов)
           </label>
           <Input
             id="excerpt"
             name="excerpt"
-            value={formData.excerpt}
+            value={formData.excerpt || ''}
             onChange={handleChange}
             placeholder="Краткое описание для превью"
+            maxLength={500}
           />
         </div>
 
         <div>
           <label htmlFor="content" className="block text-sm font-medium text-muted-foreground mb-1">
-            Содержание *
+            Содержание * (мин. 10 символов)
           </label>
           <Textarea
             id="content"
@@ -113,6 +133,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
             placeholder="Полный текст новости"
             rows={10}
             required
+            minLength={10}
           />
         </div>
 
@@ -123,25 +144,32 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
           <Input
             id="image_url"
             name="image_url"
-            value={formData.image_url}
+            value={formData.image_url || ''}
             onChange={handleChange}
             placeholder="https://example.com/image.jpg"
           />
         </div>
 
+        {news?.published_at && (
+          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <p className="text-sm text-green-500">
+              Опубликовано: {new Date(news.published_at).toLocaleString('ru-RU')}
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" variant="outline" disabled={isLoading}>
             {isLoading ? 'Сохранение...' : 'Сохранить как черновик'}
           </Button>
           <Button 
             type="button" 
-            variant="secondary"
             disabled={isLoading}
             onClick={(e) => handleSubmit(e, true)}
           >
             {isLoading ? 'Публикация...' : 'Опубликовать'}
           </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="ghost" onClick={onCancel}>
             Отмена
           </Button>
         </div>
