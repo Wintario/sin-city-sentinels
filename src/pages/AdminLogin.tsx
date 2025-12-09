@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { authAPI } from '@/lib/api';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -10,21 +11,22 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Hardcoded credentials for demo
-    setTimeout(() => {
-      if (username === 'admin' && password === 'admin') {
-        localStorage.setItem('isAdminLoggedIn', 'true');
-        toast.success('Вход выполнен успешно');
-        navigate('/admin');
-      } else {
-        toast.error('Неверный логин или пароль');
-      }
+    try {
+      await authAPI.login(username, password);
+      toast.success('Вход выполнен успешно');
+      navigate('/admin');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Ошибка входа';
+      toast.error(message === 'Invalid username or password' 
+        ? 'Неверный логин или пароль' 
+        : message);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
