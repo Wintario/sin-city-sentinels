@@ -10,6 +10,9 @@ import { apiLimiter } from './src/middleware/rateLimiter.js';
 import authRoutes from './src/routes/authRoutes.js';
 import newsRoutes from './src/routes/newsRoutes.js';
 import membersRoutes from './src/routes/membersRoutes.js';
+import usersRoutes from './src/routes/usersRoutes.js';
+import settingsRoutes from './src/routes/settingsRoutes.js';
+import aboutCardsRoutes from './src/routes/aboutCardsRoutes.js';
 import { initDatabase } from './src/db/db.js';
 
 // Загрузка переменных окружения
@@ -46,6 +49,9 @@ app.use('/api/', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/members', membersRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/about-cards', aboutCardsRoutes);
 
 // Health check эндпоинт
 app.get('/health', (req, res) => {

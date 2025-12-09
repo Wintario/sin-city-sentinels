@@ -85,6 +85,31 @@ db.exec(`
 `);
 console.log('  ✅ Table "members" created');
 
+// Таблица settings
+db.exec(`
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+console.log('  ✅ Table "settings" created');
+
+// Таблица about_cards
+db.exec(`
+  CREATE TABLE IF NOT EXISTS about_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    image_url TEXT,
+    style_type TEXT NOT NULL DEFAULT 'comic-thick-frame',
+    order_index INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+console.log('  ✅ Table "about_cards" created');
+
 // ============================================
 // Создание индексов
 // ============================================
