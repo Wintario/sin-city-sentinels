@@ -1,6 +1,4 @@
 // API configuration and utilities
-// In production on VPS, API is proxied via Nginx to /api
-// For Lovable preview or local dev, set VITE_API_URL environment variable
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Get auth token from localStorage
@@ -66,7 +64,44 @@ export const apiCall = async <T>(
   const data = await response.json();
   
   if (!response.ok) {
-    throw new Error(data.error || 'API Error');
+    throw new Error(data.error || data.message || 'API Error');
+  }
+  
+  return data as T;
+};
+
+// File upload helper
+export const apiUpload = async <T>(
+  endpoint: string,
+  file: File,
+  fieldName: string = 'file'
+): Promise<T> => {
+  const token = getToken();
+  
+  const formData = new FormData();
+  formData.append(fieldName, file);
+  
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  
+  if (response.status === 401) {
+    clearToken();
+    window.location.href = '/admin/login';
+    throw new Error('Unauthorized');
+  }
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Upload Error');
   }
   
   return data as T;
@@ -144,7 +179,7 @@ export const newsAPI = {
         content: data.content,
         excerpt: data.excerpt || null,
         image_url: data.image_url || null,
-        published_at: data.published_at || null,
+        published_at: data.published_at,
       }),
     }),
   delete: (id: number) =>
@@ -154,6 +189,11 @@ export const newsAPI = {
   restore: (id: number) =>
     apiCall<News>(`/news/${id}/restore`, {
       method: 'PATCH',
+    }),
+  publish: (id: number) =>
+    apiCall<News>(`/news/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ published_at: new Date().toISOString() }),
     }),
 };
 
@@ -172,7 +212,7 @@ export interface Member {
 
 export interface MemberCreateInput {
   name: string;
-  role: string;
+  role?: string;
   profile_url?: string | null;
   status?: string;
   avatar_url?: string | null;
@@ -181,11 +221,11 @@ export interface MemberCreateInput {
 
 // Members API
 export const membersAPI = {
-  // Public endpoints - only active members
+  // Public endpoints
   getAll: () => apiCall<Member[]>('/members'),
   getById: (id: number) => apiCall<Member>(`/members/${id}`),
   
-  // Admin endpoints - all members
+  // Admin endpoints
   getAdminList: () => apiCall<Member[]>('/members'),
   
   create: (data: MemberCreateInput) =>
@@ -193,11 +233,10 @@ export const membersAPI = {
       method: 'POST',
       body: JSON.stringify({
         name: data.name,
-        role: data.role,
+        role: data.role || 'Боец',
         status: data.status || 'active',
         profile_url: data.profile_url || null,
         avatar_url: data.avatar_url || null,
-        order_index: data.order_index ?? null,
       }),
     }),
   update: (id: number, data: Partial<MemberCreateInput>) =>
@@ -207,17 +246,11 @@ export const membersAPI = {
         name: data.name,
         avatar_url: data.avatar_url || null,
         profile_url: data.profile_url || null,
-        order_index: data.order_index ?? null,
       }),
     }),
   delete: (id: number) =>
     apiCall<{ success: boolean; message: string }>(`/members/${id}`, {
       method: 'DELETE',
-    }),
-  reorder: (id: number, orderIndex: number) =>
-    apiCall<Member>(`/members/${id}/reorder`, {
-      method: 'PATCH',
-      body: JSON.stringify({ order_index: orderIndex }),
     }),
 };
 
@@ -256,16 +289,77 @@ export const usersAPI = {
     }),
 };
 
-// Background settings (localStorage)
+// Background settings types
+export interface BackgroundSettings {
+  image_url?: string;
+  color?: string;
+  opacity?: number;
+}
+
+// Background API
 export const backgroundAPI = {
-  get: () => ({
-    bgImageUrl: localStorage.getItem('clan_bgImageUrl') || '',
-    bgColor: localStorage.getItem('clan_bgColor') || '#1a1a1a',
-    bgOpacity: parseFloat(localStorage.getItem('clan_bgOpacity') || '0.7'),
-  }),
-  save: (data: { bgImageUrl: string; bgColor: string; bgOpacity: number }) => {
-    localStorage.setItem('clan_bgImageUrl', data.bgImageUrl);
-    localStorage.setItem('clan_bgColor', data.bgColor);
-    localStorage.setItem('clan_bgOpacity', data.bgOpacity.toString());
+  get: async (): Promise<BackgroundSettings> => {
+    try {
+      return await apiCall<BackgroundSettings>('/settings/background');
+    } catch (error) {
+      // Fallback to localStorage if API fails
+      return {
+        image_url: localStorage.getItem('clan_bgImageUrl') || '',
+        color: localStorage.getItem('clan_bgColor') || '#1a1a1a',
+        opacity: parseFloat(localStorage.getItem('clan_bgOpacity') || '0.7'),
+      };
+    }
   },
+  upload: (file: File) => 
+    apiUpload<{ image_url: string }>('/settings/background', file, 'file'),
+  updateSettings: (data: { color?: string; opacity?: number }) =>
+    apiCall<BackgroundSettings>('/settings/background', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
+// About Cards types
+export interface AboutCard {
+  id: number;
+  title: string;
+  description: string;
+  image_url?: string;
+  style_type: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AboutCardInput {
+  title: string;
+  description: string;
+  image_url?: string | null;
+  style_type: string;
+  order_index?: number;
+}
+
+// About Cards API
+export const aboutCardsAPI = {
+  getAll: () => apiCall<AboutCard[]>('/about-cards'),
+  getById: (id: number) => apiCall<AboutCard>(`/about-cards/${id}`),
+  create: (data: AboutCardInput) =>
+    apiCall<AboutCard>('/about-cards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: Partial<AboutCardInput>) =>
+    apiCall<AboutCard>(`/about-cards/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: number) =>
+    apiCall<{ success: boolean }>(`/about-cards/${id}`, {
+      method: 'DELETE',
+    }),
+  reorder: (id: number, newIndex: number) =>
+    apiCall<AboutCard>(`/about-cards/${id}/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ order_index: newIndex }),
+    }),
 };

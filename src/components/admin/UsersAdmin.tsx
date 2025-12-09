@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { usersAPI, User } from '@/lib/api';
-import { Trash2, Edit, Plus, ArrowLeft, Shield, PenTool } from 'lucide-react';
+import { Trash2, Edit, Plus, ArrowLeft, Shield, PenTool, Loader2 } from 'lucide-react';
 
 const UsersAdmin = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -17,15 +17,21 @@ const UsersAdmin = () => {
     role: 'author' as 'admin' | 'author',
   });
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadUsers = async () => {
     try {
       setIsLoading(true);
       const data = await usersAPI.getList();
       setUsers(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading users:', err);
-      toast.error('Ошибка загрузки администраторов');
+      // Показываем более понятную ошибку
+      if (err.message?.includes('404')) {
+        toast.error('Endpoint /api/users не найден. Проверьте backend.');
+      } else {
+        toast.error(err.message || 'Ошибка загрузки администраторов');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -39,29 +45,34 @@ const UsersAdmin = () => {
     e.preventDefault();
     setError('');
 
+    // Валидация
+    if (!editingUser) {
+      if (!formData.username || formData.username.length < 2) {
+        setError('Имя пользователя должно быть минимум 2 символа');
+        return;
+      }
+      if (!formData.password || formData.password.length < 4) {
+        setError('Пароль должен быть минимум 4 символа');
+        return;
+      }
+    }
+
+    setIsSaving(true);
     try {
       if (editingUser) {
-        // Обновление - отправляем только роль если пароль пустой
+        // Обновление
         const updateData: { password?: string; role?: 'admin' | 'author' } = { 
           role: formData.role 
         };
-        if (formData.password) {
+        if (formData.password && formData.password.length >= 4) {
           updateData.password = formData.password;
         }
         await usersAPI.update(editingUser.id, updateData);
         toast.success('Администратор обновлён');
       } else {
-        // Создание - требуется пароль
-        if (!formData.password || formData.password.length < 4) {
-          setError('Пароль должен быть минимум 4 символа');
-          return;
-        }
-        if (!formData.username || formData.username.length < 2) {
-          setError('Имя пользователя должно быть минимум 2 символа');
-          return;
-        }
+        // Создание
         await usersAPI.create({
-          username: formData.username,
+          username: formData.username.trim(),
           password: formData.password,
           role: formData.role,
         });
@@ -73,7 +84,16 @@ const UsersAdmin = () => {
       setEditingUser(null);
       await loadUsers();
     } catch (err: any) {
-      setError(err.message || 'Ошибка при сохранении');
+      // Понятные ошибки
+      let message = err.message || 'Ошибка при сохранении';
+      if (message.includes('already exists') || message.includes('UNIQUE')) {
+        message = 'Пользователь с таким именем уже существует';
+      } else if (message.includes('404')) {
+        message = 'Endpoint не найден. Проверьте backend.';
+      }
+      setError(message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -84,6 +104,7 @@ const UsersAdmin = () => {
       password: '',
       role: user.role,
     });
+    setError('');
     setShowForm(true);
   };
 
@@ -111,6 +132,13 @@ const UsersAdmin = () => {
     setEditingUser(null);
     setFormData({ username: '', password: '', role: 'author' });
     setError('');
+  };
+
+  // Проверка можно ли удалить пользователя
+  const canDelete = (user: User) => {
+    if (user.role !== 'admin') return true;
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    return adminCount > 1;
   };
 
   if (showForm) {
@@ -166,7 +194,7 @@ const UsersAdmin = () => {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder={editingUser ? 'Новый пароль (опционально)' : 'Пароль'}
               required={!editingUser}
-              minLength={4}
+              minLength={editingUser ? 0 : 4}
               maxLength={100}
             />
           </div>
@@ -200,7 +228,8 @@ const UsersAdmin = () => {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit">
+            <Button type="submit" disabled={isSaving}>
+              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingUser ? 'Сохранить' : 'Создать'}
             </Button>
             <Button type="button" variant="outline" onClick={handleCancel}>
@@ -224,11 +253,13 @@ const UsersAdmin = () => {
 
       <div className="mb-4 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
         <p>💡 <strong>Admin</strong> - полный доступ ко всем разделам</p>
-        <p>💡 <strong>Author</strong> - может редактировать только новости и участников</p>
+        <p>💡 <strong>Author</strong> - может редактировать новости и участников</p>
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground">Загрузка...</p>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
       ) : users.length === 0 ? (
         <p className="text-muted-foreground">Администраторов нет</p>
       ) : (
@@ -282,6 +313,8 @@ const UsersAdmin = () => {
                   variant="destructive"
                   size="sm"
                   onClick={() => handleDelete(user)}
+                  disabled={!canDelete(user)}
+                  title={!canDelete(user) ? 'Нельзя удалить последнего админа' : undefined}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { newsAPI, News } from '@/lib/api';
-import { Trash2, Edit, Plus, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, EyeOff, RotateCcw, Send, Loader2 } from 'lucide-react';
 import NewsForm from './NewsForm';
 
 const NewsAdmin = () => {
@@ -10,6 +10,7 @@ const NewsAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingNews, setEditingNews] = useState<News | null>(null);
+  const [publishingId, setPublishingId] = useState<number | null>(null);
 
   const loadNews = async () => {
     try {
@@ -49,6 +50,25 @@ const NewsAdmin = () => {
     }
   };
 
+  const handlePublish = async (item: News) => {
+    setPublishingId(item.id);
+    try {
+      await newsAPI.update(item.id, {
+        title: item.title,
+        content: item.content,
+        excerpt: item.excerpt,
+        image_url: item.image_url,
+        published_at: new Date().toISOString(),
+      });
+      toast.success('Новость опубликована');
+      loadNews();
+    } catch (error) {
+      toast.error('Ошибка публикации');
+    } finally {
+      setPublishingId(null);
+    }
+  };
+
   const handleEdit = (newsItem: News) => {
     setEditingNews(newsItem);
     setShowForm(true);
@@ -85,7 +105,9 @@ const NewsAdmin = () => {
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground">Загрузка...</p>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
       ) : news.length === 0 ? (
         <p className="text-muted-foreground">Новостей пока нет</p>
       ) : (
@@ -96,7 +118,9 @@ const NewsAdmin = () => {
               className={`flex items-center justify-between p-4 rounded-lg border ${
                 item.is_deleted 
                   ? 'bg-destructive/10 border-destructive/30' 
-                  : 'bg-muted/50 border-border'
+                  : item.published_at
+                    ? 'bg-green-500/5 border-green-500/20'
+                    : 'bg-muted/50 border-border'
               }`}
             >
               <div className="flex-1 min-w-0">
@@ -105,16 +129,26 @@ const NewsAdmin = () => {
                     {item.title}
                   </h3>
                   {item.published_at ? (
-                    <Eye className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-600">
+                      <Eye className="w-3 h-3" />
+                      Опубликовано
+                    </span>
                   ) : (
-                    <EyeOff className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                      <EyeOff className="w-3 h-3" />
+                      Черновик
+                    </span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {item.excerpt || item.content?.substring(0, 100)}...
+                <p className="text-sm text-muted-foreground mt-1 truncate">
+                  {item.excerpt || item.content?.substring(0, 100)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(item.created_at).toLocaleDateString('ru-RU')} • {item.author || 'Автор неизвестен'}
+                  {item.published_at 
+                    ? `Опубликовано: ${new Date(item.published_at).toLocaleDateString('ru-RU')}`
+                    : `Создано: ${new Date(item.created_at).toLocaleDateString('ru-RU')}`
+                  }
+                  {item.author && ` • ${item.author}`}
                 </p>
               </div>
               
@@ -129,6 +163,21 @@ const NewsAdmin = () => {
                   </Button>
                 ) : (
                   <>
+                    {!item.published_at && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePublish(item)}
+                        disabled={publishingId === item.id}
+                        className="text-green-600 border-green-600/30 hover:bg-green-500/10"
+                      >
+                        {publishingId === item.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
