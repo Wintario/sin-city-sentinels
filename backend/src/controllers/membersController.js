@@ -1,6 +1,7 @@
 import * as MembersModel from '../models/members.js';
 import { validateMemberInput } from '../middleware/validate.js';
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
+import logger from '../utils/logger.js';
 
 /**
  * GET /api/members
@@ -115,6 +116,43 @@ export const reorderMember = asyncHandler(async (req, res) => {
   res.json(member);
 });
 
+/**
+ * POST /api/members/import
+ * Массовый импорт участников из JSON
+ */
+export const importMembers = asyncHandler(async (req, res) => {
+  logger.request(req, 'Members import request');
+  
+  const { members } = req.body;
+  
+  // Валидация структуры JSON
+  if (!members || !Array.isArray(members)) {
+    throw new ApiError(400, 'Invalid JSON structure: members array is required');
+  }
+  
+  if (members.length === 0) {
+    throw new ApiError(400, 'Members array is empty');
+  }
+  
+  // Проверяем каждого члена на наличие обязательных полей
+  for (let i = 0; i < members.length; i++) {
+    const m = members[i];
+    if (!m.user_id || !m.nickname || !m.filename) {
+      throw new ApiError(400, `Invalid member at index ${i}: user_id, nickname, and filename are required`);
+    }
+  }
+  
+  // Выполняем массовое обновление/создание
+  const results = MembersModel.bulkUpsertMembers(members);
+  
+  res.json({
+    success: true,
+    updated: results.updated,
+    created: results.created,
+    processed: results.processed
+  });
+});
+
 export default {
   getActiveMembers,
   getMemberById,
@@ -122,5 +160,6 @@ export default {
   createMember,
   updateMember,
   deleteMember,
-  reorderMember
+  reorderMember,
+  importMembers
 };

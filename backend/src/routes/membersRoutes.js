@@ -6,7 +6,8 @@ import {
   createMember,
   updateMember,
   deleteMember,
-  reorderMember
+  reorderMember,
+  importMembers
 } from '../controllers/membersController.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { writeLimiter } from '../middleware/rateLimiter.js';
@@ -26,6 +27,9 @@ router.get('/', getActiveMembers);
 
 // GET /api/members/admin/list - Все участники для админки
 router.get('/admin/list', authenticate, requireRole(['admin', 'author']), getAllMembersAdmin);
+
+// POST /api/members/import - Массовый импорт участников (только admin)
+router.post('/import', authenticate, requireRole(['admin']), writeLimiter, importMembers);
 
 // POST /api/members - Создать участника
 router.post('/', authenticate, requireRole(['admin', 'author']), writeLimiter, createMember);

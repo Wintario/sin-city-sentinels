@@ -228,6 +228,14 @@ export interface MemberCreateInput {
   order_index?: number | null;
 }
 
+// Import result type
+export interface ImportResult {
+  success: boolean;
+  updated: number;
+  created: number;
+  processed: Array<{ name: string; action: string; error?: string }>;
+}
+
 // Members API
 export const membersAPI = {
   // Public endpoints
@@ -260,6 +268,11 @@ export const membersAPI = {
   delete: (id: number) =>
     apiCall<{ success: boolean; message: string }>(`/members/${id}`, {
       method: 'DELETE',
+    }),
+  import: (data: { members: Array<{ user_id: string; nickname: string; filename: string; avatar_url?: string }> }) =>
+    apiCall<ImportResult>('/members/import', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 };
 

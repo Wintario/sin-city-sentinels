@@ -1,4 +1,5 @@
 import { getDatabase } from '../db/db.js';
+import logger from '../utils/logger.js';
 
 /**
  * Генерация slug из заголовка
@@ -127,6 +128,7 @@ export function createNews({ title, content, excerpt, image_url, published_at, a
   `);
   
   const result = stmt.run(title, slug, content, excerpt || null, image_url || null, published_at || null, author_id);
+  logger.info(`News created: ${title}`, { id: result.lastInsertRowid, published: !!published_at });
   return getNewsById(result.lastInsertRowid);
 }
 
@@ -167,6 +169,32 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
     id
   );
   
+  logger.info(`News updated: ${current.title}`, { id });
+  
+  return getNewsById(id);
+}
+
+/**
+ * Опубликовать новость (установить published_at)
+ */
+export function publishNews(id) {
+  const db = getDatabase();
+  
+  const current = getNewsById(id);
+  if (!current) return null;
+  
+  const publishedAt = new Date().toISOString();
+  
+  const stmt = db.prepare(`
+    UPDATE news 
+    SET published_at = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  
+  stmt.run(publishedAt, id);
+  
+  logger.info(`News published: ${current.title}`, { id, published_at: publishedAt });
+  
   return getNewsById(id);
 }
 
@@ -175,12 +203,14 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
  */
 export function deleteNews(id) {
   const db = getDatabase();
+  const current = getNewsById(id);
   const stmt = db.prepare(`
     UPDATE news 
     SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `);
   stmt.run(id);
+  logger.info(`News deleted: ${current?.title}`, { id });
   return { success: true, message: 'News deleted' };
 }
 
@@ -195,6 +225,7 @@ export function restoreNews(id) {
     WHERE id = ?
   `);
   stmt.run(id);
+  logger.info(`News restored`, { id });
   return getNewsById(id);
 }
 
@@ -203,12 +234,14 @@ export function restoreNews(id) {
  */
 export function archiveNews(id) {
   const db = getDatabase();
+  const current = getNewsById(id);
   const stmt = db.prepare(`
     UPDATE news 
     SET is_archived = 1, updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `);
   stmt.run(id);
+  logger.info(`News archived: ${current?.title}`, { id });
   return getNewsById(id);
 }
 
@@ -223,6 +256,7 @@ export function unarchiveNews(id) {
     WHERE id = ?
   `);
   stmt.run(id);
+  logger.info(`News unarchived`, { id });
   return getNewsById(id);
 }
 
@@ -234,6 +268,7 @@ export default {
   getNewsById,
   createNews,
   updateNews,
+  publishNews,
   deleteNews,
   restoreNews,
   archiveNews,
