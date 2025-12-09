@@ -110,7 +110,7 @@ const Members = () => {
                   className="animate-fade-up"
                   style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
                 >
-                  <MemberCard member={member} isLeader={index === 0} />
+                  <MemberCard member={member} />
                 </div>
               ))}
             </div>

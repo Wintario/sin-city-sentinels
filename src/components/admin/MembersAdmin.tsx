@@ -70,8 +70,8 @@ const MembersAdmin = () => {
     loadMembers();
   };
 
-  // Определяем главу клана (первый в списке от backend)
-  const isLeader = (member: Member, index: number) => index === 0;
+  // Определяем главу клана по полю is_leader
+  const isLeader = (member: Member) => !!member.is_leader;
 
   if (showForm) {
     return (
@@ -117,8 +117,8 @@ const MembersAdmin = () => {
         <p className="text-muted-foreground">Участников пока нет</p>
       ) : (
         <div className="space-y-3">
-          {members.map((member, index) => {
-            const leader = isLeader(member, index);
+          {members.map((member) => {
+            const leader = isLeader(member);
             
             return (
               <div

@@ -137,6 +137,7 @@ export interface News {
   image_url?: string;
   published_at?: string;
   is_deleted?: number;
+  is_archived?: number;
   created_at: string;
   updated_at: string;
   author?: string;
@@ -195,6 +196,14 @@ export const newsAPI = {
       method: 'PUT',
       body: JSON.stringify({ published_at: new Date().toISOString() }),
     }),
+  archive: (id: number) =>
+    apiCall<News>(`/news/${id}/archive`, {
+      method: 'PUT',
+    }),
+  unarchive: (id: number) =>
+    apiCall<News>(`/news/${id}/unarchive`, {
+      method: 'PUT',
+    }),
 };
 
 // Member types
@@ -206,6 +215,7 @@ export interface Member {
   status: string;
   avatar_url?: string;
   order_index?: number;
+  is_leader?: number;
   created_at: string;
   updated_at: string;
 }
