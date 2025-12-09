@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Star } from 'lucide-react';
 import MemberCard from '@/components/MemberCard';
 import RainEffect from '@/components/RainEffect';
 import FilmGrain from '@/components/FilmGrain';
@@ -12,18 +12,21 @@ const Members = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Загрузка и применение масштаба из localStorage
+  useEffect(() => {
+    const scale = localStorage.getItem('clan_member_scale') || '100';
+    document.documentElement.style.setProperty('--member-scale', `${parseInt(scale, 10) / 100}`);
+  }, []);
+
   useEffect(() => {
     const loadMembers = async () => {
       try {
-        // Публичный API возвращает только active участников
         const data = await membersAPI.getAll();
+        // Backend возвращает в правильном порядке: глава первый, остальные по алфавиту
         setMembers(data);
       } catch (error) {
         console.error('Failed to load members:', error);
-        // Fallback to mock data if API fails
-        setMembers([
-          { id: 1, name: 'легион86', role: 'Глава клана', profile_url: 'https://kovcheg2.apeha.ru/info.html?user=201617408', avatar_url: null, status: 'active', created_at: '', updated_at: '' },
-        ]);
+        setMembers([]);
       } finally {
         setIsLoading(false);
       }
@@ -97,14 +100,17 @@ const Members = () => {
               Участников пока нет
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div 
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+              style={{ transform: `scale(var(--member-scale, 1))`, transformOrigin: 'top left' }}
+            >
               {members.map((member, index) => (
                 <div
                   key={member.id}
                   className="animate-fade-up"
                   style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
                 >
-                  <MemberCard member={member} />
+                  <MemberCard member={member} isLeader={index === 0} />
                 </div>
               ))}
             </div>

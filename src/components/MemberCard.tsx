@@ -1,19 +1,19 @@
-import { User } from 'lucide-react';
+import { User, Star } from 'lucide-react';
 
 interface Member {
   id: number;
   name: string;
-  role: string;
+  role?: string;
   profile_url?: string | null;
   avatar_url?: string | null;
 }
 
 interface MemberCardProps {
   member: Member;
+  isLeader?: boolean;
 }
 
-const MemberCard = ({ member }: MemberCardProps) => {
-  const isLeader = member.name === 'легион86' || member.id === 1;
+const MemberCard = ({ member, isLeader = false }: MemberCardProps) => {
   const hasLink = !!member.profile_url;
 
   const CardContent = (
@@ -33,21 +33,25 @@ const MemberCard = ({ member }: MemberCardProps) => {
 
       {/* Info */}
       <div className="text-center">
-        <h3 className={`font-heading text-lg uppercase tracking-wide ${isLeader ? 'text-primary' : 'text-foreground'}`}>
+        <h3 className={`font-heading text-lg uppercase tracking-wide ${isLeader ? 'text-yellow-400' : 'text-foreground'}`}>
           {member.name}
         </h3>
-        <p className="font-body text-sm text-muted-foreground mt-1">
-          {member.role}
-        </p>
         
         {isLeader && (
-          <div className="mt-2 text-primary font-display text-xs tracking-widest">
-            ★ ГЛАВА КЛАНА ★
+          <div className="mt-2 flex items-center justify-center gap-1 text-yellow-400 font-display text-xs tracking-widest">
+            <Star className="w-3 h-3 fill-yellow-400" />
+            ГЛАВА КЛАНА
+            <Star className="w-3 h-3 fill-yellow-400" />
           </div>
         )}
       </div>
     </>
   );
+
+  // Стили для главы клана - золотая рамка
+  const leaderStyles = isLeader 
+    ? 'border-2 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.4)]' 
+    : '';
 
   if (hasLink) {
     return (
@@ -55,7 +59,7 @@ const MemberCard = ({ member }: MemberCardProps) => {
         href={member.profile_url!}
         target="_blank"
         rel="noopener noreferrer"
-        className={`member-card block cursor-pointer ${isLeader ? 'member-card-leader' : ''}`}
+        className={`member-card block cursor-pointer ${leaderStyles}`}
       >
         {CardContent}
       </a>
@@ -63,7 +67,7 @@ const MemberCard = ({ member }: MemberCardProps) => {
   }
 
   return (
-    <div className={`member-card ${isLeader ? 'member-card-leader' : ''}`}>
+    <div className={`member-card ${leaderStyles}`}>
       {CardContent}
     </div>
   );

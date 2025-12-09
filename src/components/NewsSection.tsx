@@ -1,50 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { newsAPI, News } from '@/lib/api';
 
-// Mock news data
-const mockNews = [
-  {
-    id: 1,
-    title: 'Великая Осада: Свирепые Кролики захватили легендарный замок противника',
-    body: 'После трёхдневной осады наши воины прорвали оборону и водрузили знамя клана над главной башней.',
-    created_at: '2025-01-05',
-  },
-  {
-    id: 2,
-    title: 'Турнирный триумф: наша команда заняла первое место в Королевском Турнире',
-    body: 'Сокрушительная победа над всеми претендентами. Кубок снова у нас.',
-    created_at: '2025-01-03',
-  },
-  {
-    id: 3,
-    title: 'Зарубежная экспедиция: наши воины достигли 100 побед подряд в Адской Башне',
-    body: 'Невероятный рекорд, который вряд ли когда-нибудь будет побит.',
-    created_at: '2024-12-28',
-  },
-  {
-    id: 4,
-    title: 'Рекордная серия: 7 дней боёв без поражений',
-    body: 'Ни одного проигранного сражения за целую неделю непрерывных битв.',
-    created_at: '2024-12-20',
-  },
-  {
-    id: 5,
-    title: 'Легендарная дуэль: один бой длился ровно 3 часа',
-    body: 'Эпическое противостояние вошло в историю АРЕНЫ как самое продолжительное.',
-    created_at: '2024-12-15',
-  },
-  {
-    id: 6,
-    title: 'Новый союз: заключён пакт о ненападении с кланом Чёрных Волков',
-    body: 'Стратегическое партнёрство укрепляет наши позиции на карте.',
-    created_at: '2024-12-10',
-  },
-];
+const ITEMS_PER_PAGE = 6;
 
 const NewsSection = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [news, setNews] = useState<News[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +30,24 @@ const NewsSection = () => {
     return () => observer.disconnect();
   }, []);
 
+  // Загрузка новостей с API
+  useEffect(() => {
+    const loadNews = async () => {
+      try {
+        const data = await newsAPI.getAll();
+        // API возвращает только опубликованные новости, отсортированные по published_at DESC
+        setNews(data);
+      } catch (error) {
+        console.error('Failed to load news:', error);
+        setNews([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadNews();
+  }, []);
+
   // Restore scroll position when returning from news detail
   useEffect(() => {
     const savedPosition = sessionStorage.getItem('newsScrollPosition');
@@ -76,6 +60,17 @@ const NewsSection = () => {
   const handleNewsClick = (newsId: number) => {
     sessionStorage.setItem('newsScrollPosition', window.scrollY.toString());
     navigate(`/news/${newsId}`);
+  };
+
+  // Пагинация
+  const totalPages = Math.ceil(news.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentNews = news.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   return (
@@ -102,29 +97,79 @@ const NewsSection = () => {
           </div>
 
           {/* News Articles */}
-          <div className="columns-1 md:columns-2 gap-8">
-            {mockNews.map((news, index) => (
-              <div 
-                key={news.id}
-                className="news-item break-inside-avoid mb-6 bg-transparent"
-                style={{ transitionDelay: `${index * 100}ms` }}
-                onClick={() => handleNewsClick(news.id)}
-              >
-                <h3 className="news-title font-heading text-xl font-bold text-noir-dark leading-tight mb-2 transition-colors duration-200">
-                  {news.title}
-                </h3>
-                <p className="font-body text-sm text-noir-gray leading-relaxed mb-2">
-                  {news.body}
-                </p>
-                <div className="flex items-center gap-2 text-noir-gray/70">
-                  <Calendar size={12} />
-                  <span className="font-body text-xs">
-                    {new Date(news.created_at).toLocaleDateString('ru-RU')}
-                  </span>
+          {isLoading ? (
+            <div className="text-center py-8 text-noir-gray">
+              Загрузка новостей...
+            </div>
+          ) : currentNews.length === 0 ? (
+            <div className="text-center py-8 text-noir-gray">
+              Новостей пока нет
+            </div>
+          ) : (
+            <div className="columns-1 md:columns-2 gap-8">
+              {currentNews.map((item, index) => (
+                <div 
+                  key={item.id}
+                  className="news-item break-inside-avoid mb-6 bg-transparent"
+                  style={{ transitionDelay: `${index * 100}ms` }}
+                  onClick={() => handleNewsClick(item.id)}
+                >
+                  <h3 className="news-title font-heading text-xl font-bold text-noir-dark leading-tight mb-2 transition-colors duration-200">
+                    {item.title}
+                  </h3>
+                  <p className="font-body text-sm text-noir-gray leading-relaxed mb-2">
+                    {item.excerpt || item.content?.substring(0, 150)}
+                  </p>
+                  <div className="flex items-center gap-2 text-noir-gray/70">
+                    <Calendar size={12} />
+                    <span className="font-body text-xs">
+                      {item.published_at 
+                        ? new Date(item.published_at).toLocaleDateString('ru-RU')
+                        : new Date(item.created_at).toLocaleDateString('ru-RU')
+                      }
+                    </span>
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-8 pt-4 border-t border-noir-gray/30">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 text-noir-dark hover:text-noir-gray disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`w-8 h-8 font-display text-lg transition-colors ${
+                      currentPage === page
+                        ? 'bg-noir-dark text-white'
+                        : 'text-noir-dark hover:bg-noir-gray/20'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+              
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 text-noir-dark hover:text-noir-gray disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+          )}
 
           {/* Newspaper Footer */}
           <div className="text-center border-t-2 border-noir-gray/30 pt-4 mt-8">

@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Newspaper, Users, Image, Shield } from 'lucide-react';
+import { LogOut, Newspaper, Users, Image, Shield, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { isAuthenticated, authAPI, getStoredUser } from '@/lib/api';
 import NewsAdmin from '@/components/admin/NewsAdmin';
 import MembersAdmin from '@/components/admin/MembersAdmin';
+import AboutAdmin from '@/components/admin/AboutAdmin';
 import BackgroundAdmin from '@/components/admin/BackgroundAdmin';
 import UsersAdmin from '@/components/admin/UsersAdmin';
 
@@ -60,7 +61,7 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="news" className="w-full">
-          <TabsList className={`grid w-full mb-8 ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full mb-8 ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="news" className="flex items-center gap-2">
               <Newspaper className="w-4 h-4" />
               Новости
@@ -68,6 +69,10 @@ const Admin = () => {
             <TabsTrigger value="members" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Состав
+            </TabsTrigger>
+            <TabsTrigger value="about" className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              О нас
             </TabsTrigger>
             <TabsTrigger value="background" className="flex items-center gap-2">
               <Image className="w-4 h-4" />
@@ -87,6 +92,10 @@ const Admin = () => {
 
           <TabsContent value="members" className="bg-background rounded-lg p-6 border border-border">
             <MembersAdmin />
+          </TabsContent>
+
+          <TabsContent value="about" className="bg-background rounded-lg p-6 border border-border">
+            <AboutAdmin />
           </TabsContent>
 
           <TabsContent value="background" className="bg-background rounded-lg p-6 border border-border">

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { membersAPI, Member } from '@/lib/api';
-import { Trash2, Edit, Plus } from 'lucide-react';
+import { Trash2, Edit, Plus, Star } from 'lucide-react';
 import MemberForm from './MemberForm';
 
 const MembersAdmin = () => {
@@ -10,11 +11,25 @@ const MembersAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [cardScale, setCardScale] = useState(100);
+
+  // Загрузка масштаба из localStorage
+  useEffect(() => {
+    const savedScale = localStorage.getItem('clan_member_scale');
+    if (savedScale) {
+      setCardScale(parseInt(savedScale, 10));
+    }
+  }, []);
+
+  // Сохранение масштаба в localStorage и применение CSS переменной
+  useEffect(() => {
+    localStorage.setItem('clan_member_scale', cardScale.toString());
+    document.documentElement.style.setProperty('--member-scale', `${cardScale / 100}`);
+  }, [cardScale]);
 
   const loadMembers = async () => {
     try {
       setIsLoading(true);
-      // Загружаем всех участников для админки
       const data = await membersAPI.getAdminList();
       setMembers(data);
     } catch (error) {
@@ -28,8 +43,8 @@ const MembersAdmin = () => {
     loadMembers();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Удалить этого участника?')) return;
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Удалить участника "${name}"?`)) return;
     
     try {
       await membersAPI.delete(id);
@@ -55,25 +70,8 @@ const MembersAdmin = () => {
     loadMembers();
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'Глава клана': return 'bg-red-500/20 text-red-500 border-red-500/30';
-      case 'Офицер': return 'bg-purple-500/20 text-purple-500 border-purple-500/30';
-      case 'Ветеран': return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
-      case 'Боец': return 'bg-green-500/20 text-green-500 border-green-500/30';
-      case 'Новобранец': return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
-      default: return 'bg-muted text-muted-foreground border-border';
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active': return { className: 'bg-green-500/20 text-green-500', label: 'Активен' };
-      case 'inactive': return { className: 'bg-gray-500/20 text-gray-500', label: 'Неактивен' };
-      case 'reserve': return { className: 'bg-yellow-500/20 text-yellow-500', label: 'В резерве' };
-      default: return { className: 'bg-muted text-muted-foreground', label: status };
-    }
-  };
+  // Определяем главу клана (первый в списке от backend)
+  const isLeader = (member: Member, index: number) => index === 0;
 
   if (showForm) {
     return (
@@ -95,9 +93,22 @@ const MembersAdmin = () => {
         </Button>
       </div>
 
-      <div className="mb-4 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-        <p>💡 На сайте отображаются только участники со статусом "Активен"</p>
-        <p>💡 При редактировании можно менять только имя, аватар, профиль и порядок</p>
+      {/* Ползунок масштабирования */}
+      <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+        <label className="block text-sm font-medium text-muted-foreground mb-3">
+          Размер карточек на сайте: {cardScale}%
+        </label>
+        <Slider
+          value={[cardScale]}
+          onValueChange={(value) => setCardScale(value[0])}
+          min={50}
+          max={150}
+          step={5}
+          className="w-full max-w-md"
+        />
+        <p className="text-xs text-muted-foreground mt-2">
+          Применяется на сайте и в админке
+        </p>
       </div>
 
       {isLoading ? (
@@ -106,19 +117,16 @@ const MembersAdmin = () => {
         <p className="text-muted-foreground">Участников пока нет</p>
       ) : (
         <div className="space-y-3">
-          {members.map((member) => {
-            const statusInfo = getStatusBadge(member.status);
-            const isLeader = member.name === 'легион86' || member.role === 'Глава клана';
+          {members.map((member, index) => {
+            const leader = isLeader(member, index);
             
             return (
               <div
                 key={member.id}
                 className={`flex items-center justify-between p-4 rounded-lg border ${
-                  isLeader 
-                    ? 'bg-red-500/10 border-red-500/30' 
-                    : member.status !== 'active'
-                      ? 'bg-muted/30 border-border/50'
-                      : 'bg-muted/50 border-border'
+                  leader 
+                    ? 'bg-yellow-500/10 border-yellow-500/50' 
+                    : 'bg-muted/50 border-border'
                 }`}
               >
                 <div className="flex items-center gap-4">
@@ -130,28 +138,23 @@ const MembersAdmin = () => {
                     />
                   ) : (
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      isLeader ? 'bg-red-500/20' : 'bg-muted'
+                      leader ? 'bg-yellow-500/20' : 'bg-muted'
                     }`}>
-                      <span className={`text-sm ${isLeader ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
+                      <span className={`text-sm ${leader ? 'text-yellow-500 font-bold' : 'text-muted-foreground'}`}>
                         {member.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
                   
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className={`font-medium ${isLeader ? 'text-red-500' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      <h3 className={`font-medium ${leader ? 'text-yellow-500' : ''}`}>
                         {member.name}
                       </h3>
-                      <span className={`text-xs px-2 py-0.5 rounded border ${getRoleBadgeColor(member.role)}`}>
-                        {member.role}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${statusInfo.className}`}>
-                        {statusInfo.label}
-                      </span>
-                      {member.order_index !== undefined && (
-                        <span className="text-xs text-muted-foreground">
-                          #{member.order_index}
+                      {leader && (
+                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                          <Star className="w-3 h-3" />
+                          Глава клана
                         </span>
                       )}
                     </div>
@@ -179,7 +182,7 @@ const MembersAdmin = () => {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDelete(member.id)}
+                    onClick={() => handleDelete(member.id, member.name)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

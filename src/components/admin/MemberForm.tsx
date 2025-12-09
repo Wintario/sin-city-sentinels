@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { membersAPI, Member, MemberCreateInput } from '@/lib/api';
+import { membersAPI, Member } from '@/lib/api';
 import { ArrowLeft } from 'lucide-react';
 
 interface MemberFormProps {
@@ -12,35 +11,19 @@ interface MemberFormProps {
   onSuccess: () => void;
 }
 
-// Роли согласно backend валидации
-const ROLES = ['Глава клана', 'Офицер', 'Ветеран', 'Боец', 'Новобранец'];
-const STATUSES = ['active', 'inactive', 'reserve'];
-
 const MemberForm = ({ member, onCancel, onSuccess }: MemberFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!member;
   
-  // Для редактирования - только базовые поля
-  // Для создания - все поля включая role и status
-  const [formData, setFormData] = useState<MemberCreateInput>({
+  // Только 3 поля: name, avatar_url, profile_url
+  const [formData, setFormData] = useState({
     name: member?.name || '',
-    role: member?.role || 'Боец',
-    profile_url: member?.profile_url || '',
-    status: member?.status || 'active',
     avatar_url: member?.avatar_url || '',
-    order_index: member?.order_index ?? undefined,
+    profile_url: member?.profile_url || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name === 'order_index') {
-      setFormData(prev => ({ ...prev, [name]: value ? parseInt(value, 10) : undefined }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -52,33 +35,24 @@ const MemberForm = ({ member, onCancel, onSuccess }: MemberFormProps) => {
       toast.error('Имя должно быть минимум 2 символа');
       return;
     }
-    
-    if (!isEditing && !ROLES.includes(formData.role)) {
-      toast.error('Выберите корректную роль');
-      return;
-    }
 
     setIsLoading(true);
 
     try {
       if (isEditing) {
-        // При редактировании отправляем только: name, avatar_url, profile_url, order_index
         await membersAPI.update(member.id, {
-          name: formData.name,
-          avatar_url: formData.avatar_url || null,
-          profile_url: formData.profile_url || null,
-          order_index: formData.order_index ?? null,
+          name: formData.name.trim(),
+          avatar_url: formData.avatar_url?.trim() || null,
+          profile_url: formData.profile_url?.trim() || null,
         });
         toast.success('Участник обновлён');
       } else {
-        // При создании отправляем все поля
         await membersAPI.create({
-          name: formData.name,
-          role: formData.role,
-          status: formData.status || 'active',
-          avatar_url: formData.avatar_url || null,
-          profile_url: formData.profile_url || null,
-          order_index: formData.order_index ?? null,
+          name: formData.name.trim(),
+          role: 'Боец', // Дефолтная роль для backend
+          status: 'active',
+          avatar_url: formData.avatar_url?.trim() || null,
+          profile_url: formData.profile_url?.trim() || null,
         });
         toast.success('Участник добавлен');
       }
@@ -122,53 +96,30 @@ const MemberForm = ({ member, onCancel, onSuccess }: MemberFormProps) => {
           />
         </div>
 
-        {/* Роль и статус только при создании */}
-        {!isEditing && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Роль *
-              </label>
-              <Select 
-                value={formData.role} 
-                onValueChange={(value) => handleSelectChange('role', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите роль" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map(role => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div>
+          <label htmlFor="avatar_url" className="block text-sm font-medium text-muted-foreground mb-1">
+            URL аватара
+          </label>
+          <Input
+            id="avatar_url"
+            name="avatar_url"
+            value={formData.avatar_url}
+            onChange={handleChange}
+            placeholder="https://example.com/avatar.jpg"
+          />
+          {formData.avatar_url && (
+            <div className="mt-2">
+              <img 
+                src={formData.avatar_url} 
+                alt="Preview" 
+                className="w-16 h-16 rounded-full object-cover border border-border"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Статус
-              </label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => handleSelectChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map(status => (
-                    <SelectItem key={status} value={status}>
-                      {status === 'active' ? 'Активен' : status === 'inactive' ? 'Неактивен' : 'В резерве'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Только активные участники отображаются на сайте
-              </p>
-            </div>
-          </>
-        )}
+          )}
+        </div>
 
         <div>
           <label htmlFor="profile_url" className="block text-sm font-medium text-muted-foreground mb-1">
@@ -177,37 +128,9 @@ const MemberForm = ({ member, onCancel, onSuccess }: MemberFormProps) => {
           <Input
             id="profile_url"
             name="profile_url"
-            value={formData.profile_url || ''}
+            value={formData.profile_url}
             onChange={handleChange}
             placeholder="https://kovcheg2.apeha.ru/info.html?user=..."
-          />
-        </div>
-
-        <div>
-          <label htmlFor="avatar_url" className="block text-sm font-medium text-muted-foreground mb-1">
-            URL аватара
-          </label>
-          <Input
-            id="avatar_url"
-            name="avatar_url"
-            value={formData.avatar_url || ''}
-            onChange={handleChange}
-            placeholder="https://example.com/avatar.jpg"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="order_index" className="block text-sm font-medium text-muted-foreground mb-1">
-            Порядок на сайте
-          </label>
-          <Input
-            id="order_index"
-            name="order_index"
-            type="number"
-            value={formData.order_index ?? ''}
-            onChange={handleChange}
-            placeholder="0"
-            min="0"
           />
         </div>
 
