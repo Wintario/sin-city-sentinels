@@ -8,6 +8,7 @@ import {
   updateNews,
   deleteNews,
   restoreNews,
+  publishNews,
   archiveNews,
   unarchiveNews
 } from '../controllers/newsController.js';
@@ -38,6 +39,9 @@ router.post('/', authenticate, requireRole(['admin', 'author']), writeLimiter, c
 
 // PUT /api/news/:id - Обновить новость
 router.put('/:id', authenticate, requireRole(['admin', 'author']), writeLimiter, updateNews);
+
+// PUT /api/news/:id/publish - Опубликовать новость
+router.put('/:id/publish', authenticate, requireRole(['admin', 'author']), publishNews);
 
 // PUT /api/news/:id/archive - Архивировать новость
 router.put('/:id/archive', authenticate, requireRole(['admin', 'author']), archiveNews);
