@@ -6,14 +6,16 @@ interface Member {
   role?: string;
   profile_url?: string | null;
   avatar_url?: string | null;
+  is_leader?: number;
 }
 
 interface MemberCardProps {
   member: Member;
-  isLeader?: boolean;
 }
 
-const MemberCard = ({ member, isLeader = false }: MemberCardProps) => {
+const MemberCard = ({ member }: MemberCardProps) => {
+  // Используем is_leader из данных участника
+  const isLeader = !!member.is_leader;
   const hasLink = !!member.profile_url;
 
   const CardContent = (

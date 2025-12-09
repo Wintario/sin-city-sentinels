@@ -136,6 +136,50 @@ export const restoreNews = asyncHandler(async (req, res) => {
   res.json(news);
 });
 
+/**
+ * PATCH /api/news/:id/archive
+ * Архивировать новость
+ */
+export const archiveNews = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const newsId = parseInt(id, 10);
+  
+  const existingNews = NewsModel.getNewsById(newsId);
+  if (!existingNews) {
+    throw new ApiError(404, 'News not found');
+  }
+  
+  // Проверяем права: админ может всё, автор — только свои
+  if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
+    throw new ApiError(403, 'You can only archive your own news');
+  }
+  
+  const news = NewsModel.archiveNews(newsId);
+  res.json(news);
+});
+
+/**
+ * PATCH /api/news/:id/unarchive
+ * Разархивировать новость
+ */
+export const unarchiveNews = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const newsId = parseInt(id, 10);
+  
+  const existingNews = NewsModel.getNewsById(newsId);
+  if (!existingNews) {
+    throw new ApiError(404, 'News not found');
+  }
+  
+  // Проверяем права: админ может всё, автор — только свои
+  if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
+    throw new ApiError(403, 'You can only unarchive your own news');
+  }
+  
+  const news = NewsModel.unarchiveNews(newsId);
+  res.json(news);
+});
+
 export default {
   getPublishedNews,
   getPublishedNewsById,
@@ -144,5 +188,7 @@ export default {
   createNews,
   updateNews,
   deleteNews,
-  restoreNews
+  restoreNews,
+  archiveNews,
+  unarchiveNews
 };

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { newsAPI, News } from '@/lib/api';
-import { Trash2, Edit, Plus, Eye, EyeOff, RotateCcw, Send, Loader2 } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, EyeOff, RotateCcw, Send, Loader2, Archive, ArchiveRestore } from 'lucide-react';
 import NewsForm from './NewsForm';
+
+type TabType = 'active' | 'archived';
 
 const NewsAdmin = () => {
   const [news, setNews] = useState<News[]>([]);
@@ -11,6 +13,7 @@ const NewsAdmin = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingNews, setEditingNews] = useState<News | null>(null);
   const [publishingId, setPublishingId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('active');
 
   const loadNews = async () => {
     try {
@@ -28,8 +31,13 @@ const NewsAdmin = () => {
     loadNews();
   }, []);
 
+  // Фильтрация по вкладкам
+  const activeNews = news.filter(n => !n.is_archived && !n.is_deleted);
+  const archivedNews = news.filter(n => n.is_archived && !n.is_deleted);
+  const currentNews = activeTab === 'active' ? activeNews : archivedNews;
+
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить эту новость?')) return;
+    if (!confirm('Удалить эту новость навсегда?')) return;
     
     try {
       await newsAPI.delete(id);
@@ -40,10 +48,20 @@ const NewsAdmin = () => {
     }
   };
 
-  const handleRestore = async (id: number) => {
+  const handleArchive = async (id: number) => {
     try {
-      await newsAPI.restore(id);
-      toast.success('Новость восстановлена');
+      await newsAPI.archive(id);
+      toast.success('Новость архивирована');
+      loadNews();
+    } catch (error) {
+      toast.error('Ошибка архивации');
+    }
+  };
+
+  const handleUnarchive = async (id: number) => {
+    try {
+      await newsAPI.unarchive(id);
+      toast.success('Новость восстановлена из архива');
       loadNews();
     } catch (error) {
       toast.error('Ошибка восстановления');
@@ -104,20 +122,46 @@ const NewsAdmin = () => {
         </Button>
       </div>
 
+      {/* Вкладки */}
+      <div className="flex gap-2 mb-6 border-b border-border">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'active'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Активные ({activeNews.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('archived')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'archived'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Архив ({archivedNews.length})
+        </button>
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
-      ) : news.length === 0 ? (
-        <p className="text-muted-foreground">Новостей пока нет</p>
+      ) : currentNews.length === 0 ? (
+        <p className="text-muted-foreground">
+          {activeTab === 'active' ? 'Активных новостей нет' : 'Архив пуст'}
+        </p>
       ) : (
         <div className="space-y-3">
-          {news.map((item) => (
+          {currentNews.map((item) => (
             <div
               key={item.id}
               className={`flex items-center justify-between p-4 rounded-lg border ${
-                item.is_deleted 
-                  ? 'bg-destructive/10 border-destructive/30' 
+                item.is_archived
+                  ? 'bg-muted/30 border-border'
                   : item.published_at
                     ? 'bg-green-500/5 border-green-500/20'
                     : 'bg-muted/50 border-border'
@@ -125,7 +169,7 @@ const NewsAdmin = () => {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className={`font-medium truncate ${item.is_deleted ? 'line-through text-muted-foreground' : ''}`}>
+                  <h3 className="font-medium truncate">
                     {item.title}
                   </h3>
                   {item.published_at ? (
@@ -137,6 +181,12 @@ const NewsAdmin = () => {
                     <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
                       <EyeOff className="w-3 h-3" />
                       Черновик
+                    </span>
+                  )}
+                  {item.is_archived && (
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-600">
+                      <Archive className="w-3 h-3" />
+                      Архив
                     </span>
                   )}
                 </div>
@@ -153,15 +203,28 @@ const NewsAdmin = () => {
               </div>
               
               <div className="flex items-center gap-2 ml-4">
-                {item.is_deleted ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRestore(item.id)}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
+                {activeTab === 'archived' ? (
+                  // Кнопки для архивных новостей
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUnarchive(item.id)}
+                      title="Восстановить из архива"
+                    >
+                      <ArchiveRestore className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(item.id)}
+                      title="Удалить навсегда"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
                 ) : (
+                  // Кнопки для активных новостей
                   <>
                     {!item.published_at && (
                       <Button
@@ -170,6 +233,7 @@ const NewsAdmin = () => {
                         onClick={() => handlePublish(item)}
                         disabled={publishingId === item.id}
                         className="text-green-600 border-green-600/30 hover:bg-green-500/10"
+                        title="Опубликовать"
                       >
                         {publishingId === item.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -182,15 +246,17 @@ const NewsAdmin = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(item)}
+                      title="Редактировать"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(item.id)}
+                      onClick={() => handleArchive(item.id)}
+                      title="В архив"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Archive className="w-4 h-4" />
                     </Button>
                   </>
                 )}
