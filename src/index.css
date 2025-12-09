@@ -2,6 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   ABOUT CARDS STYLES - Comic Book Effects
+   ============================================ */
+
+/* comic-thick-frame: жирная рамка + небольшой поворот */
+.about-card.comic-thick-frame {
+  border: 5px solid hsl(var(--foreground));
+  transform: rotate(-1deg);
+  box-shadow: 4px 5px 0 rgba(0,0,0,0.3);
+}
+
+/* comic-speech-bubble: облачко как в комиксах */
+.about-card.comic-speech-bubble {
+  border-radius: 20px;
+  border: 3px solid hsl(var(--foreground));
+  position: relative;
+}
+.about-card.comic-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 30px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 15px solid hsl(var(--card));
+}
+.about-card.comic-speech-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -18px;
+  left: 28px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 18px solid hsl(var(--foreground));
+}
+
+/* comic-burst: взрыв эффект */
+.about-card.comic-burst {
+  border: 4px solid hsl(var(--primary));
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.1) 100%);
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+}
+
+/* comic-rays: лучи из центра */
+.about-card.comic-rays {
+  border: 3px solid hsl(var(--foreground));
+  position: relative;
+  background: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      hsl(var(--foreground) / 0.05) 10px,
+      hsl(var(--foreground) / 0.05) 20px
+    ),
+    hsl(var(--card));
+}
+
+/* comic-shadow: тень и глубина */
+.about-card.comic-shadow {
+  border: 2px solid hsl(var(--foreground));
+  box-shadow: 
+    -3px -3px 0 hsl(var(--foreground) / 0.15),
+    -6px -6px 0 hsl(var(--foreground) / 0.1),
+    -9px -9px 0 hsl(var(--foreground) / 0.05);
+}
+
+/* comic-tilt: просто поворот */
+.about-card.comic-tilt {
+  border: 3px solid hsl(var(--foreground));
+  transform: rotate(2deg);
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap');
 
 @layer base {

@@ -2,14 +2,17 @@ import { getDatabase } from '../db/db.js';
 
 /**
  * Получить всех активных участников (публичный эндпоинт)
+ * Сортировка: is_leader DESC (глава первый), затем по имени A-Z
  */
 export function getActiveMembers() {
   const db = getDatabase();
   const stmt = db.prepare(`
-    SELECT id, name, role, profile_url, status, avatar_url, order_index
+    SELECT id, name, role, profile_url, status, avatar_url, order_index, is_leader
     FROM members
     WHERE status != 'deleted'
-    ORDER BY order_index ASC, id ASC
+    ORDER BY 
+      CASE WHEN is_leader = 1 THEN 0 ELSE 1 END,
+      name COLLATE NOCASE ASC
   `);
   return stmt.all();
 }
@@ -27,12 +30,15 @@ export function getMemberById(id) {
 
 /**
  * Получить всех участников для админки
+ * Сортировка: is_leader DESC (глава первый), затем по имени A-Z
  */
 export function getAllMembersAdmin() {
   const db = getDatabase();
   const stmt = db.prepare(`
     SELECT * FROM members
-    ORDER BY order_index ASC, id ASC
+    ORDER BY 
+      CASE WHEN is_leader = 1 THEN 0 ELSE 1 END,
+      name COLLATE NOCASE ASC
   `);
   return stmt.all();
 }
@@ -53,17 +59,16 @@ function getMaxOrderIndex() {
 export function createMember({ name, role, profile_url, status, avatar_url, order_index }) {
   const db = getDatabase();
   
-  // Если order_index не указан, добавляем в конец
   const finalOrderIndex = order_index ?? (getMaxOrderIndex() + 1);
   
   const stmt = db.prepare(`
-    INSERT INTO members (name, role, profile_url, status, avatar_url, order_index)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO members (name, role, profile_url, status, avatar_url, order_index, is_leader)
+    VALUES (?, ?, ?, ?, ?, ?, 0)
   `);
   
   const result = stmt.run(
     name,
-    role,
+    role || 'Боец',
     profile_url || null,
     status || 'active',
     avatar_url || null,
@@ -74,9 +79,9 @@ export function createMember({ name, role, profile_url, status, avatar_url, orde
 }
 
 /**
- * Обновить участника
+ * Обновить участника (только name, avatar_url, profile_url)
  */
-export function updateMember(id, { name, role, profile_url, status, avatar_url, order_index }) {
+export function updateMember(id, { name, avatar_url, profile_url }) {
   const db = getDatabase();
   
   const current = getMemberById(id);
@@ -86,22 +91,16 @@ export function updateMember(id, { name, role, profile_url, status, avatar_url, 
     UPDATE members 
     SET 
       name = COALESCE(?, name),
-      role = COALESCE(?, role),
-      profile_url = COALESCE(?, profile_url),
-      status = COALESCE(?, status),
-      avatar_url = COALESCE(?, avatar_url),
-      order_index = COALESCE(?, order_index),
+      avatar_url = ?,
+      profile_url = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `);
   
   stmt.run(
     name || null,
-    role || null,
-    profile_url,
-    status || null,
-    avatar_url,
-    order_index ?? null,
+    avatar_url !== undefined ? avatar_url : current.avatar_url,
+    profile_url !== undefined ? profile_url : current.profile_url,
     id
   );
   
@@ -132,6 +131,21 @@ export function reorderMember(id, newOrderIndex) {
   return getMemberById(id);
 }
 
+/**
+ * Установить лидера клана
+ */
+export function setLeader(id) {
+  const db = getDatabase();
+  
+  // Сначала убираем is_leader у всех
+  db.prepare('UPDATE members SET is_leader = 0').run();
+  
+  // Устанавливаем нового лидера
+  db.prepare('UPDATE members SET is_leader = 1 WHERE id = ?').run(id);
+  
+  return getMemberById(id);
+}
+
 export default {
   getActiveMembers,
   getMemberById,
@@ -139,5 +153,6 @@ export default {
   createMember,
   updateMember,
   deleteMember,
-  reorderMember
+  reorderMember,
+  setLeader
 };
