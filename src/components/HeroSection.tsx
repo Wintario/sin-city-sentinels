@@ -17,7 +17,7 @@ const HeroSection = () => {
             <img 
               src={playboylLogo} 
               alt="Логотип клана"
-              className="w-full h-full object-contain p-2"
+              className="w-full h-full object-contain"
             />
           </div>
           
