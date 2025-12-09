@@ -1,5 +1,7 @@
 // API configuration and utilities
-const API_URL = '/api';
+// In production on VPS, API is proxied via Nginx to /api
+// For Lovable preview or local dev, set VITE_API_URL environment variable
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Get auth token from localStorage
 const getToken = (): string | null => {
