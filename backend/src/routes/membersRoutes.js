@@ -7,6 +7,7 @@ import {
   updateMember,
   deleteMember,
   reorderMember,
+  setLeader,
   importMembers
 } from '../controllers/membersController.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
@@ -36,6 +37,9 @@ router.post('/', authenticate, requireRole(['admin', 'author']), writeLimiter, c
 
 // PUT /api/members/:id - Обновить участника
 router.put('/:id', authenticate, requireRole(['admin', 'author']), writeLimiter, updateMember);
+
+// PUT /api/members/:id/leader - Назначить главой клана (только admin)
+router.put('/:id/leader', authenticate, requireRole(['admin']), setLeader);
 
 // DELETE /api/members/:id - Удалить участника
 router.delete('/:id', authenticate, requireRole(['admin', 'author']), deleteMember);

@@ -243,7 +243,7 @@ export const membersAPI = {
   getById: (id: number) => apiCall<Member>(`/members/${id}`),
   
   // Admin endpoints
-  getAdminList: () => apiCall<Member[]>('/members'),
+  getAdminList: () => apiCall<Member[]>('/members/admin/list'),
   
   create: (data: MemberCreateInput) =>
     apiCall<Member>('/members', {
@@ -268,6 +268,10 @@ export const membersAPI = {
   delete: (id: number) =>
     apiCall<{ success: boolean; message: string }>(`/members/${id}`, {
       method: 'DELETE',
+    }),
+  setLeader: (id: number) =>
+    apiCall<Member>(`/members/${id}/leader`, {
+      method: 'PUT',
     }),
   import: (data: { members: Array<{ user_id: string; nickname: string; filename: string; avatar_url?: string }> }) =>
     apiCall<ImportResult>('/members/import', {

@@ -94,7 +94,7 @@ export function getAllNewsAdmin() {
       n.author_id, u.username as author
     FROM news n
     LEFT JOIN users u ON n.author_id = u.id
-    WHERE n.is_deleted = 0 AND n.is_archived = 0
+    WHERE n.is_deleted = 0
     ORDER BY COALESCE(n.published_at, n.created_at) DESC
   `);
   return stmt.all();
