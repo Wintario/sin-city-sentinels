@@ -192,9 +192,8 @@ export const newsAPI = {
       method: 'PATCH',
     }),
   publish: (id: number) =>
-    apiCall<News>(`/news/${id}`, {
+    apiCall<News>(`/news/${id}/publish`, {
       method: 'PUT',
-      body: JSON.stringify({ published_at: new Date().toISOString() }),
     }),
   archive: (id: number) =>
     apiCall<News>(`/news/${id}/archive`, {

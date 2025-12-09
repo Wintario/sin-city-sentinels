@@ -137,6 +137,29 @@ export const restoreNews = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PATCH /api/news/:id/publish
+ * Опубликовать новость (установить published_at)
+ */
+export const publishNews = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const newsId = parseInt(id, 10);
+  
+  const existingNews = NewsModel.getNewsById(newsId);
+  if (!existingNews) {
+    throw new ApiError(404, 'News not found');
+  }
+  
+  // Проверяем права: админ может всё, автор — только свои
+  if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
+    throw new ApiError(403, 'You can only publish your own news');
+  }
+  
+  // Обновляем только published_at
+  const news = NewsModel.updateNews(newsId, { published_at: new Date().toISOString() });
+  res.json(news);
+});
+
+/**
  * PATCH /api/news/:id/archive
  * Архивировать новость
  */
@@ -189,6 +212,7 @@ export default {
   updateNews,
   deleteNews,
   restoreNews,
+  publishNews,
   archiveNews,
   unarchiveNews
 };
