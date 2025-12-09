@@ -159,7 +159,7 @@ export const newsAPI = {
   getById: (id: number) => apiCall<News>(`/news/${id}`),
   
   // Admin endpoints
-  getAdminList: () => apiCall<News[]>('/news/admin/list'),
+  getAdminList: () => apiCall<News[]>('/news'),
   getAdminById: (id: number) => apiCall<News>(`/news/admin/${id}`),
   create: (data: NewsCreateInput) => 
     apiCall<News>('/news', {
