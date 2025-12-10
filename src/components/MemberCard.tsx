@@ -34,16 +34,26 @@ const MemberCard = ({ member }: MemberCardProps) => {
       </div>
 
       {/* Info */}
-      <div className="text-center">
-        <h3 className={`font-heading text-lg uppercase tracking-wide ${isLeader ? 'text-yellow-400' : 'text-foreground'}`}>
+      <div className="text-center overflow-hidden">
+        <h3 className={`font-heading uppercase tracking-wide line-clamp-2 ${
+          isLeader ? 'text-yellow-400' : 'text-foreground'
+        }`}
+        style={{
+          fontSize: 'clamp(0.75rem, 2.5vw, 1rem)',
+          lineHeight: '1.2'
+        }}
+        >
           {member.name}
         </h3>
         
         {isLeader && (
-          <div className="mt-2 flex items-center justify-center gap-1 text-yellow-400 font-display text-xs tracking-widest">
-            <Star className="w-3 h-3 fill-yellow-400" />
+          <div className="mt-2 flex items-center justify-center gap-1 text-yellow-400 font-display tracking-widest" 
+          style={{
+            fontSize: 'clamp(0.5rem, 1.5vw, 0.75rem)'
+          }}>
+            <Star className="w-3 h-3 fill-yellow-400" style={{ minWidth: '0.75rem' }} />
             ГЛАВА КЛАНА
-            <Star className="w-3 h-3 fill-yellow-400" />
+            <Star className="w-3 h-3 fill-yellow-400" style={{ minWidth: '0.75rem' }} />
           </div>
         )}
       </div>
