@@ -11,10 +11,15 @@ const Members = () => {
   const [rainIntensity, setRainIntensity] = useState(1);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cardSize, setCardSize] = useState(120);
 
   useEffect(() => {
     const scale = localStorage.getItem('clan_member_scale') || '100';
-    document.documentElement.style.setProperty('--member-scale', `${parseInt(scale, 10) / 100}`);
+    const scaleNum = parseInt(scale, 10);
+    // Base size is ~120px, scale it
+    const newSize = Math.round((120 * scaleNum) / 100);
+    setCardSize(newSize);
+    document.documentElement.style.setProperty('--member-card-size', `${newSize}px`);
   }, []);
 
   useEffect(() => {
@@ -92,10 +97,8 @@ const Members = () => {
             <div 
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(max(100px, min(150px, 100%/4)), 1fr))',
+                gridTemplateColumns: `repeat(auto-fill, minmax(var(--member-card-size, 120px), 1fr))`,
                 gap: '1rem',
-                transform: `scale(var(--member-scale, 1))`,
-                transformOrigin: 'top left'
               }}
             >
               {members.map((member, index) => (
