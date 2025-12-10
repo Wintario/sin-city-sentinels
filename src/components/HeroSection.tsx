@@ -45,7 +45,7 @@ const HeroSection = () => {
         
       </div>
 
-      {/* Scroll Down Arrow - Absolute positioned */}
+      {/* Scroll Down Arrow */}
       <button
         onClick={handleScroll}
         className="absolute bottom-8 md:bottom-12 left-1/2 transform -translate-x-1/2 z-20 flex items-center justify-center transition-all duration-300 hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-2 animate-bounce"
