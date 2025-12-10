@@ -241,7 +241,7 @@ export const membersAPI = {
       method: 'POST',
       body: JSON.stringify({
         name: data.name,
-        role: data.role || 'Боец',
+        role: data.role || 'Boec',
         status: data.status || 'active',
         profile_url: data.profile_url || null,
         avatar_url: data.avatar_url || null,
@@ -303,80 +303,5 @@ export const usersAPI = {
   delete: (id: number) =>
     apiCall<{ success: boolean; message: string }>(`/users/${id}`, {
       method: 'DELETE',
-    }),
-};
-
-// Background settings types
-export interface BackgroundSettings {
-  image_url?: string;
-  color?: string;
-  opacity?: number;
-}
-
-// Background API
-export const backgroundAPI = {
-  get: async (): Promise<BackgroundSettings> => {
-    try {
-      return await apiCall<BackgroundSettings>('/settings/background');
-    } catch (error) {
-      // Fallback to localStorage if API fails
-      return {
-        image_url: localStorage.getItem('clan_bgImageUrl') || '',
-        color: localStorage.getItem('clan_bgColor') || '#1a1a1a',
-        opacity: parseFloat(localStorage.getItem('clan_bgOpacity') || '0.7'),
-      };
-    }
-  },
-  upload: (file: File) => 
-    apiUpload<{ image_url: string }>('/settings/background', file, 'file'),
-  updateSettings: (data: { color?: string; opacity?: number }) =>
-    apiCall<BackgroundSettings>('/settings/background', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-};
-
-// About Cards types
-export interface AboutCard {
-  id: number;
-  title: string;
-  description: string;
-  image_url?: string;
-  style_type: string;
-  order_index: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AboutCardInput {
-  title: string;
-  description: string;
-  image_url?: string | null;
-  style_type: string;
-  order_index?: number;
-}
-
-// About Cards API
-export const aboutCardsAPI = {
-  getAll: () => apiCall<AboutCard[]>('/about-cards'),
-  getById: (id: number) => apiCall<AboutCard>(`/about-cards/${id}`),
-  create: (data: AboutCardInput) =>
-    apiCall<AboutCard>('/about-cards', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  update: (id: number, data: Partial<AboutCardInput>) =>
-    apiCall<AboutCard>(`/about-cards/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  delete: (id: number) =>
-    apiCall<{ success: boolean }>(`/about-cards/${id}`, {
-      method: 'DELETE',
-    }),
-  reorder: (id: number, newIndex: number) =>
-    apiCall<AboutCard>(`/about-cards/${id}/reorder`, {
-      method: 'PATCH',
-      body: JSON.stringify({ order_index: newIndex }),
     }),
 };
