@@ -17,14 +17,17 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
   const [formData, setFormData] = useState<NewsCreateInput>({
     title: news?.title || '',
     content: news?.content || '',
-    excerpt: news?.excerpt || '',
-    image_url: news?.image_url || '',
+    excerpt: news?.excerpt || null,
+    image_url: news?.image_url || null,
     published_at: news?.published_at || null,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: value || null 
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent, publish: boolean = false) => {
@@ -56,7 +59,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
         excerpt: formData.excerpt?.trim() || null,
         image_url: formData.image_url?.trim() || null,
         // Если publish=true, ставим текущую дату
-        // Если publish=false и есть существующая дата - оставляем null (черновик)
+        // Если publish=false - ставим null (черновик)
         published_at: publish ? new Date().toISOString() : null,
       };
 
@@ -70,6 +73,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
       onSuccess();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Ошибка сохранения';
+      console.error('Submit error:', error);
       toast.error(message);
     } finally {
       setIsLoading(false);
