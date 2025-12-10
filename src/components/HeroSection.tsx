@@ -9,40 +9,35 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Content */}
+      {/* Logo - Positioned Left */}
+      <div 
+        className="w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)] -mr-0 md:-mr-4 lg:-mr-8 flex-shrink-0"
+        style={{ 
+          boxShadow: '0 0 15px rgba(255, 0, 0, 0.5)',
+          transform: 'translateY(-20px)'
+        }}
+      >
+        <img 
+          src={playboylLogo} 
+          alt="Логотип клана"
+          className="w-full h-full object-contain"
+        />
+      </div>
+      
+      {/* Text Block - Centered */}
       <div className="relative z-20 text-center px-4">
-        {/* Logo and Title */}
-        <div className="flex items-center justify-center gap-6 mb-4">
-          {/* Playboy Logo */}
-          <div 
-            className="w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)]"
-            style={{ 
-              boxShadow: '0 0 15px rgba(255, 0, 0, 0.5)',
-            }}
-          >
-            <img 
-              src={playboylLogo} 
-              alt="Логотип клана"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          
-          <div>
-            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up">
-              СВИРЕПЫЕ
-            </h1>
-            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up" style={{ animationDelay: '0.1s' }}>
-              КРОЛИКИ
-            </h1>
-          </div>
-        </div>
+        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up">
+          СВИРЕПЫЕ
+        </h1>
+        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up" style={{ animationDelay: '0.1s' }}>
+          КРОЛИКИ
+        </h1>
         <p 
-          className="font-display text-2xl md:text-3xl lg:text-4xl tracking-widest text-primary text-shadow-red animate-fade-up"
+          className="font-display text-2xl md:text-3xl lg:text-4xl tracking-widest text-primary text-shadow-red animate-fade-up mt-6"
           style={{ animationDelay: '0.2s' }}
         >
           МЫ ВЕЛИЧАЙШИЕ. МЫ БОГИ.
         </p>
-        
       </div>
 
       {/* Scroll Down Arrow */}
