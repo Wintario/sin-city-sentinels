@@ -35,16 +35,16 @@ const AboutSection = () => {
           }`}
         >
           <h2 className="font-display text-4xl md:text-6xl text-foreground mb-8 tracking-wider">
-            O <span className="text-primary">HAS</span>
+            О <span className="text-primary">НАС</span>
           </h2>
           
           <div className="grid md:grid-cols-2 gap-8">
             {/* Speech Bubble 1 */}
             <div className="speech-bubble transform rotate-1">
               <p className="font-body text-lg leading-relaxed text-foreground/90">
-                <span className="text-primary font-bold">Svirepenye Kroliki</span> — eto ne prosto klan. 
-                Eto <span className="text-primary">legenda</span>, napisannaya krov'yu vragov na stranicah istorii ARENY. 
-                My — <span className="text-primary">elite elit</span>, te, kto perepisyvaet pravila igry.
+                <span className="text-primary font-bold">Свирепые кролики</span> — это не просто клан. 
+                Это <span className="text-primary">легенда</span>, написанная кровью врагов на страницах истории АРЕНЫ. 
+                Мы — <span className="text-primary">элита элит</span>, те, кто переписывает правила игры.
               </p>
             </div>
 
@@ -54,9 +54,9 @@ const AboutSection = () => {
               style={{ transitionDelay: '0.2s' }}
             >
               <p className="font-body text-lg leading-relaxed text-foreground/90">
-                Kazhdyj uchastnik — <span className="text-primary">voploshchenie sovershenstva</span>. 
-                My ne ishchem slavy — <span className="text-primary">slava ishchet nas</span>. 
-                Vragi trepeshchat, soyuzniki voskishchayutsya. My — <span className="text-primary">bozhestvenuy</span>.
+                Каждый участник — <span className="text-primary">воплощение совершенства</span>. 
+                Мы не ищем славы — <span className="text-primary">слава ищет нас</span>. 
+                Враги трепещут, союзники восхищаются. Мы — <span className="text-primary">божественны</span>.
               </p>
             </div>
           </div>
@@ -64,7 +64,7 @@ const AboutSection = () => {
           {/* Red Banner */}
           <div className="mt-10 flex justify-center">
             <div className="red-banner text-xl md:text-2xl">
-              PRISOEDINITSHSYA — ZNACHIT VOJTI V KLUB IZBRANNYCH
+              ПРИСОЕДИНИТЬСЯ — ЗНАЧИТ ВОЙТИ В КЛУБ ИЗБРАННЫХ
             </div>
           </div>
         </div>
@@ -76,8 +76,8 @@ const AboutSection = () => {
           }`}
         >
           <p className="font-heading text-xl text-center text-foreground/90 italic">
-            "Kogda my vyhodim na arenu, <span className="text-primary">nebesa zamolkayut</span>, 
-            a vragi nachinayut molit'sya svoim bogam. No ih bogi — <span className="text-primary">eto my</span>."
+            "Когда мы выходим на арену, <span className="text-primary">небеса замолкают</span>, 
+            а враги начинают молиться своим богам. Но их боги — <span className="text-primary">это мы</span>."
           </p>
         </div>
       </div>
