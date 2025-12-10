@@ -3,10 +3,10 @@
 set -e
 
 # ============================================================================
-# SIN CITY SENTINELS - PRODUCTION DEPLOYMENT SCRIPT v2.2
+# SIN CITY SENTINELS - PRODUCTION DEPLOYMENT SCRIPT v2.3
 # ============================================================================
 # Complete fresh deployment for Ubuntu VPS (Beget, Racknerd, etc.)
-# Includes: Node.js 20 LTS setup, GitHub clone, frontend build, backend config, PM2, Nginx
+# Includes: Node.js 20 LTS, GitHub clone, frontend build, backend config, PM2, Nginx with avatars
 #
 # Usage:
 #   bash rabbits-deploy-v2.sh
@@ -22,8 +22,8 @@ set -e
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════════════╗"
-echo "║  🐰 SIN CITY SENTINELS - PRODUCTION DEPLOYMENT v2.2               ║"
-echo "║  Beget/Ubuntu VPS Edition (Node.js 20 LTS)                       ║"
+echo "║  🐰 SIN CITY SENTINELS - PRODUCTION DEPLOYMENT v2.3               ║"
+echo "║  Beget/Ubuntu VPS Edition (Node.js 20 LTS + Avatars)             ║"
 echo "╚════════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -37,88 +37,88 @@ NC='\033[0m' # No Color
 # ============================================================================
 # STEP 1: KILL ALL EXISTING PROCESSES & CLEANUP
 # ============================================================================
-echo -e "${BLUE}[1/10]${NC} Stopping all existing processes..."
+echo -e "${BLUE}[1/11]${NC} Stopping all existing processes..."
 pm2 kill 2>/dev/null || true
 sudo pkill -9 node 2>/dev/null || true
 sudo pkill -9 npm 2>/dev/null || true
 sleep 2
 
-echo -e "${BLUE}[1/10]${NC} Removing old installation..."
+echo -e "${BLUE}[1/11]${NC} Removing old installation..."
 sudo rm -rf /var/www/rabbits 2>/dev/null || true
 sleep 1
 
 # ============================================================================
 # STEP 2: CREATE /var/www DIRECTORY
 # ============================================================================
-echo -e "${BLUE}[2/10]${NC} Creating /var/www directory..."
+echo -e "${BLUE}[2/11]${NC} Creating /var/www directory..."
 sudo mkdir -p /var/www
 sudo chmod 755 /var/www
-echo -e "${GREEN}[2/10]${NC} /var/www created ✓"
+echo -e "${GREEN}[2/11]${NC} /var/www created ✓"
 
 # ============================================================================
 # STEP 3: SYSTEM DEPENDENCIES (Node.js 20 LTS)
 # ============================================================================
-echo -e "${BLUE}[3/10]${NC} Checking system dependencies..."
+echo -e "${BLUE}[3/11]${NC} Checking system dependencies..."
 
 if ! command -v node &> /dev/null; then
-    echo -e "${YELLOW}[3/10]${NC} Installing Node.js 20 LTS (supported until April 2026)..."
+    echo -e "${YELLOW}[3/11]${NC} Installing Node.js 20 LTS (supported until April 2026)..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
 else
     NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
     if [ "$NODE_VERSION" -lt 20 ]; then
-        echo -e "${YELLOW}[3/10]${NC} Upgrading Node.js from $NODE_VERSION to 20 LTS..."
+        echo -e "${YELLOW}[3/11]${NC} Upgrading Node.js from $NODE_VERSION to 20 LTS..."
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
         sudo apt-get install -y --only-upgrade nodejs
     else
-        echo -e "${GREEN}[3/10]${NC} Node.js already at version $(node --version)"
+        echo -e "${GREEN}[3/11]${NC} Node.js already at version $(node --version)"
     fi
 fi
 
 if ! command -v pm2 &> /dev/null; then
-    echo -e "${YELLOW}[3/10]${NC} Installing PM2..."
+    echo -e "${YELLOW}[3/11]${NC} Installing PM2..."
     sudo npm install -g pm2
 else
-    echo -e "${GREEN}[3/10]${NC} PM2 already installed: $(pm2 --version)"
+    echo -e "${GREEN}[3/11]${NC} PM2 already installed: $(pm2 --version)"
 fi
 
-echo -e "${GREEN}[3/10]${NC} Node.js: $(node --version) ✓"
-echo -e "${GREEN}[3/10]${NC} npm: $(npm --version) ✓"
+echo -e "${GREEN}[3/11]${NC} Node.js: $(node --version) ✓"
+echo -e "${GREEN}[3/11]${NC} npm: $(npm --version) ✓"
 
 # ============================================================================
 # STEP 4: CLONE FROM GITHUB
 # ============================================================================
 echo ""
-echo -e "${BLUE}[4/10]${NC} Cloning from GitHub..."
+echo -e "${BLUE}[4/11]${NC} Cloning from GitHub..."
 cd /var/www
 git clone https://github.com/Wintario/sin-city-sentinels.git rabbits
 cd /var/www/rabbits
 
 if [ ! -d "backend" ]; then
-    echo -e "${RED}[4/10]${NC} ERROR: backend folder not found!"
+    echo -e "${RED}[4/11]${NC} ERROR: backend folder not found!"
     exit 1
 fi
-echo -e "${GREEN}[4/10]${NC} Repository cloned successfully ✓"
+echo -e "${GREEN}[4/11]${NC} Repository cloned successfully ✓"
 
 # ============================================================================
 # STEP 5: BUILD FRONTEND (React + Vite)
 # ============================================================================
 echo ""
-echo -e "${BLUE}[5/10]${NC} Building frontend (React + Vite)..."
+echo -e "${BLUE}[5/11]${NC} Building frontend (React + Vite)..."
 npm install 2>&1 | grep -E "added|found" | tail -3 || true
 npm run build 2>&1 | tail -5 || true
 
 if [ ! -d "dist" ]; then
-    echo -e "${RED}[5/10]${NC} ERROR: Frontend build failed!"
+    echo -e "${RED}[5/11]${NC} ERROR: Frontend build failed!"
     exit 1
 fi
-echo -e "${GREEN}[5/10]${NC} Frontend built successfully ✓"
+echo -e "${GREEN}[5/11]${NC} Frontend built successfully ✓"
 
 # ============================================================================
 # STEP 6: SETUP BACKEND (Node.js + Express + SQLite)
 # ============================================================================
 echo ""
-echo -e "${BLUE}[6/10]${NC} Setting up backend..."
+echo -e "${BLUE}[6/11]${NC} Setting up backend..."
 cd /var/www/rabbits/backend
 npm install 2>&1 | grep -E "added|found" | tail -3 || true
 
@@ -127,7 +127,7 @@ mkdir -p data
 
 # Create .env file with secure JWT secret
 if [ ! -f ".env" ]; then
-    echo -e "${YELLOW}[6/10]${NC} Creating .env file..."
+    echo -e "${YELLOW}[6/11]${NC} Creating .env file..."
     cat > .env << 'ENVEOF'
 NODE_ENV=production
 PORT=3000
@@ -141,25 +141,31 @@ ENVEOF
     # Generate secure JWT secret
     JWT_SECRET=$(openssl rand -base64 32)
     sed -i "s/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/" .env
-    echo -e "${GREEN}[6/10]${NC} .env created with secure JWT_SECRET ✓"
+    echo -e "${GREEN}[6/11]${NC} .env created with secure JWT_SECRET ✓"
 else
-    echo -e "${GREEN}[6/10]${NC} .env already exists, preserving..."
+    echo -e "${GREEN}[6/11]${NC} .env already exists, preserving..."
 fi
 
-echo -e "${BLUE}[6/10]${NC} Running database migrations..."
+echo -e "${BLUE}[6/11]${NC} Running database migrations..."
 npm run migrate 2>&1 | tail -10 || true
-echo -e "${GREEN}[6/10]${NC} Backend setup complete ✓"
+echo -e "${GREEN}[6/11]${NC} Backend setup complete ✓"
 
 # ============================================================================
 # STEP 7: FIX KNOWN ISSUES IN server.js
 # ============================================================================
 echo ""
-echo -e "${BLUE}[7/10]${NC} Verifying server.js configuration..."
+echo -e "${BLUE}[7/11]${NC} Verifying server.js configuration..."
 
 # Fix: fdfort typo (if exists from cloning)
 if grep -q "fdfort" server.js 2>/dev/null; then
     sed -i 's/fdfort/import/g' server.js
-    echo -e "${YELLOW}[7/10]${NC} Fixed fdfort typo ✓"
+    echo -e "${YELLOW}[7/11]${NC} Fixed fdfort typo ✓"
+fi
+
+# Fix: Remove stray 'n' character that breaks syntax
+if grep -q "^n//" server.js 2>/dev/null; then
+    sed -i 's/^n//' server.js
+    echo -e "${YELLOW}[7/11]${NC} Fixed syntax error (stray 'n' character) ✓"
 fi
 
 # Ensure /api/health endpoint exists BEFORE the /api/* catchall
@@ -168,17 +174,27 @@ if ! grep -q "app.get.*api/health" server.js; then
     LINE_NUM=$(grep -n "app.use('/api/\*'" server.js 2>/dev/null | head -1 | cut -d: -f1)
     if [ -n "$LINE_NUM" ]; then
         sed -i "${LINE_NUM}i\\n// API Health check endpoint\napp.get('/api/health', (req, res) => {\n  res.json({\n    status: 'ok',\n    timestamp: new Date().toISOString(),\n    service: 'Sin City Sentinels API'\n  });\n});\n" server.js
-        echo -e "${YELLOW}[7/10]${NC} Added /api/health endpoint ✓"
+        echo -e "${YELLOW}[7/11]${NC} Added /api/health endpoint (before 404 handler) ✓"
     fi
 fi
 
-echo -e "${GREEN}[7/10]${NC} server.js verification complete ✓"
+echo -e "${GREEN}[7/11]${NC} server.js verification complete ✓"
 
 # ============================================================================
-# STEP 8: START BACKEND WITH PM2
+# STEP 8: CREATE AVATARS DIRECTORY
 # ============================================================================
 echo ""
-echo -e "${BLUE}[8/10]${NC} Starting backend with PM2..."
+echo -e "${BLUE}[8/11]${NC} Creating avatars directory..."
+sudo mkdir -p /var/www/rabbits/public/avatars
+sudo chmod 755 /var/www/rabbits/public/avatars
+echo -e "${GREEN}[8/11]${NC} Avatars directory ready at /var/www/rabbits/public/avatars ✓"
+
+# ============================================================================
+# STEP 9: START BACKEND WITH PM2
+# ============================================================================
+echo ""
+echo -e "${BLUE}[9/11]${NC} Starting backend with PM2..."
+cd /var/www/rabbits/backend
 pm2 kill 2>/dev/null || true
 sleep 1
 
@@ -187,16 +203,16 @@ pm2 save
 
 sleep 3
 
-echo -e "${GREEN}[8/10]${NC} Backend started with PM2 ✓"
+echo -e "${GREEN}[9/11]${NC} Backend started with PM2 ✓"
 
 # ============================================================================
-# STEP 9: SETUP NGINX
+# STEP 10: SETUP NGINX WITH AVATARS SUPPORT
 # ============================================================================
 echo ""
-echo -e "${BLUE}[9/10]${NC} Setting up Nginx..."
+echo -e "${BLUE}[10/11]${NC} Setting up Nginx..."
 
 if ! command -v nginx &> /dev/null; then
-    echo -e "${YELLOW}[9/10]${NC} Installing Nginx..."
+    echo -e "${YELLOW}[10/11]${NC} Installing Nginx..."
     sudo apt-get update
     sudo apt-get install -y nginx
 fi
@@ -207,8 +223,8 @@ if [ -z "$SERVER_IP" ]; then
     SERVER_IP="localhost"
 fi
 
-# Create Nginx config
-echo -e "${YELLOW}[9/10]${NC} Configuring Nginx..."
+# Create Nginx config with avatars support
+echo -e "${YELLOW}[10/11]${NC} Configuring Nginx with avatars..."
 sudo tee /etc/nginx/sites-available/rabbits > /dev/null <<'NGINXEOF'
 server {
     listen 80;
@@ -219,6 +235,13 @@ server {
         root /var/www/rabbits/dist;
         try_files $uri $uri/ /index.html;
         expires 1d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Avatars static files (use alias for correct path resolution)
+    location /avatars/ {
+        alias /var/www/rabbits/public/avatars/;
+        expires 30d;
         add_header Cache-Control "public, immutable";
     }
 
@@ -245,38 +268,38 @@ sudo ln -sf /etc/nginx/sites-available/rabbits /etc/nginx/sites-enabled/rabbits
 sudo nginx -t
 sudo systemctl start nginx
 sudo systemctl enable nginx
-echo -e "${GREEN}[9/10]${NC} Nginx configured and started ✓"
+echo -e "${GREEN}[10/11]${NC} Nginx configured and started ✓"
 
 # ============================================================================
-# STEP 10: VERIFY DEPLOYMENT
+# STEP 11: VERIFY DEPLOYMENT
 # ============================================================================
 echo ""
-echo -e "${BLUE}[10/10]${NC} Verifying deployment..."
+echo -e "${BLUE}[11/11]${NC} Verifying deployment..."
 
 # Check backend is running
 if pm2 status | grep -q "rabbits-backend.*online"; then
-    echo -e "${GREEN}[10/10]${NC} Backend is online ✓"
+    echo -e "${GREEN}[11/11]${NC} Backend is online ✓"
 else
-    echo -e "${RED}[10/10]${NC} WARNING: Backend status unknown, checking logs..."
+    echo -e "${RED}[11/11]${NC} WARNING: Backend status unknown, checking logs..."
     pm2 logs rabbits-backend --lines 20
 fi
 
 # Try health check via API
-echo -e "${BLUE}[10/10]${NC} Testing /api/health endpoint..."
+echo -e "${BLUE}[11/11]${NC} Testing /api/health endpoint..."
 HEALTH_CHECK=$(curl -s http://127.0.0.1:3000/api/health 2>/dev/null || echo "FAIL")
 if echo "$HEALTH_CHECK" | grep -q "ok"; then
-    echo -e "${GREEN}[10/10]${NC} Health check passed ✓"
+    echo -e "${GREEN}[11/11]${NC} Health check passed ✓"
 else
-    echo -e "${YELLOW}[10/10]${NC} Health check failed or slow, check logs: pm2 logs rabbits-backend"
+    echo -e "${YELLOW}[11/11]${NC} Health check failed or slow, check logs: pm2 logs rabbits-backend"
 fi
 
 # Try frontend via Nginx
-echo -e "${BLUE}[10/10]${NC} Testing frontend via Nginx..."
+echo -e "${BLUE}[11/11]${NC} Testing frontend via Nginx..."
 FRONTEND_CHECK=$(curl -s http://127.0.0.1/ 2>/dev/null | grep -o "<!doctype\|<html" | head -1)
 if [ -n "$FRONTEND_CHECK" ]; then
-    echo -e "${GREEN}[10/10]${NC} Frontend is serving ✓"
+    echo -e "${GREEN}[11/11]${NC} Frontend is serving ✓"
 else
-    echo -e "${YELLOW}[10/10]${NC} Frontend check inconclusive, check Nginx logs"
+    echo -e "${YELLOW}[11/11]${NC} Frontend check inconclusive, check Nginx logs"
 fi
 
 # ============================================================================
@@ -291,6 +314,7 @@ echo -e "${GREEN}📍 Access your site:${NC}"
 echo "   🌐 Frontend:   http://$SERVER_IP"
 echo "   💁 Admin:      http://$SERVER_IP/admin"
 echo "   ✅ Health:     http://$SERVER_IP/api/health"
+echo "   🚶 Members:    http://$SERVER_IP/members"
 echo ""
 echo -e "${GREEN}🔐 Default credentials:${NC}"
 echo "   Admin:    admin / admin"
@@ -302,18 +326,19 @@ echo "   View logs:      pm2 logs rabbits-backend"
 echo "   Restart:        pm2 restart rabbits-backend"
 echo "   Stop:           pm2 stop rabbits-backend"
 echo "   Status:         pm2 status"
-echo "   Nginx test:     sudo nginx -t"
 echo "   Nginx reload:   sudo systemctl reload nginx"
 echo ""
 echo -e "${BLUE}📁 Project structure:${NC}"
 echo "   Frontend:  /var/www/rabbits/dist (built React)"
 echo "   Backend:   /var/www/rabbits/backend (Node.js v20 LTS)"
 echo "   Database:  /var/www/rabbits/backend/data/app.db (SQLite)"
+echo "   Avatars:   /var/www/rabbits/public/avatars (static files)"
 echo "   Nginx:     /etc/nginx/sites-available/rabbits"
 echo ""
 echo -e "${BLUE}🚀 Next steps:${NC}"
 echo "   1. Open http://$SERVER_IP in your browser"
-echo "   2. Go to /admin and login with admin/admin"
-echo "   3. Change default passwords immediately"
-echo "   4. Check logs if needed: pm2 logs rabbits-backend"
+echo "   2. Check /members page - avatars should display"
+echo "   3. Go to /admin and login with admin/admin"
+echo "   4. Change default passwords immediately"
+echo "   5. Upload member avatars to /var/www/rabbits/public/avatars/"
 echo ""
