@@ -242,10 +242,10 @@
   }
 
   .member-card:hover {
-    transform: rotateZ(0.5deg) scale(1.05);
+    transform: rotateZ(0.5deg) scale(1.15);
     border-color: hsl(var(--blood-red));
     box-shadow: 0 0 25px hsl(0 100% 50% / 0.4);
-    animation: jitter 0.8s ease-in-out infinite;
+    animation: jitter 1.6s ease-in-out infinite;
   }
 
   .member-card-leader {
@@ -366,10 +366,10 @@
 }
 
 @keyframes jitter {
-  0%, 100% { transform: rotateZ(0.5deg) scale(1.05) translateY(0); }
-  25% { transform: rotateZ(0.8deg) scale(1.05) translateY(-4px); }
-  50% { transform: rotateZ(0.3deg) scale(1.05) translateY(-8px); }
-  75% { transform: rotateZ(0.6deg) scale(1.05) translateY(-4px); }
+  0%, 100% { transform: rotateZ(0.5deg) scale(1.15) translateY(0); }
+  25% { transform: rotateZ(0.8deg) scale(1.15) translateY(-2px); }
+  50% { transform: rotateZ(0.3deg) scale(1.15) translateY(-4px); }
+  75% { transform: rotateZ(0.6deg) scale(1.15) translateY(-2px); }
 }
 
 @keyframes flicker {
