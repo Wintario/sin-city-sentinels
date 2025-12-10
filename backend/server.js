@@ -13,7 +13,6 @@ import membersRoutes from './src/routes/membersRoutes.js';
 import usersRoutes from './src/routes/usersRoutes.js';
 import settingsRoutes from './src/routes/settingsRoutes.js';
 import aboutCardsRoutes from './src/routes/aboutCardsRoutes.js';
-import uploadRoutes from './src/routes/uploadRoutes.js';
 import { initDatabase } from './src/db/db.js';
 
 // Загружка переменных окружения
@@ -46,9 +45,6 @@ app.use(express.json({ limit: '10mb' }));
 // Выдача статических файлов (аватарки членов клана)
 app.use('/avatars', express.static('/var/www/rabbits/public/Avatars'));
 
-// Выдача загруженных изображений
-app.use('/uploads', express.static('/var/www/rabbits/public/uploads'));
-
 // Rate limiting для всех API запросов
 app.use('/api/', apiLimiter);
 
@@ -59,7 +55,6 @@ app.use('/api/members', membersRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/about-cards', aboutCardsRoutes);
-app.use('/api/upload', uploadRoutes);
 
 // Health check эндпоинт
 app.get('/health', (req, res) => {
@@ -78,8 +73,7 @@ app.get('/api', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       news: '/api/news',
-      members: '/api/members',
-      upload: '/api/upload'
+      members: '/api/members'
     }
   });
 });
