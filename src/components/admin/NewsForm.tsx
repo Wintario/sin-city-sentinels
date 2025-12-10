@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { newsAPI, News, NewsCreateInput } from '@/lib/api';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload, X } from 'lucide-react';
 
 interface NewsFormProps {
   news?: News | null;
@@ -14,6 +14,8 @@ interface NewsFormProps {
 
 const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(news?.image_url || null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<NewsCreateInput>({
     title: news?.title || '',
     content: news?.content || '',
@@ -28,6 +30,49 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
       ...prev, 
       [name]: value || null 
     }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      toast.error('Выберите изображение');
+      return;
+    }
+
+    // Проверка размера (макс 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Файл не должен превышать 5MB');
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Предпросмотр
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadImage = async (file: File): Promise<string> => {
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formDataUpload,
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки изображения');
+    }
+
+    const data = await response.json();
+    return data.image_url;
   };
 
   const handleSubmit = async (e: React.FormEvent, publish: boolean = false) => {
@@ -52,12 +97,21 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
     setIsLoading(true);
 
     try {
+      let imageUrl = formData.image_url;
+
+      // Если выбран новый файл - загружаем его
+      if (selectedFile) {
+        toast.loading('Загрузка изображения...');
+        imageUrl = await uploadImage(selectedFile);
+        setSelectedFile(null);
+      }
+
       // Подготовка данных для отправки
       const dataToSend: NewsCreateInput = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         excerpt: formData.excerpt?.trim() || null,
-        image_url: formData.image_url?.trim() || null,
+        image_url: imageUrl,
         // Если publish=true, ставим текущую дату
         // Если publish=false - ставим null (черновик)
         published_at: publish ? new Date().toISOString() : null,
@@ -78,6 +132,12 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearImage = () => {
+    setImagePreview(null);
+    setSelectedFile(null);
+    setFormData(prev => ({ ...prev, image_url: null }));
   };
 
   return (
@@ -141,17 +201,69 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
           />
         </div>
 
-        <div>
-          <label htmlFor="image_url" className="block text-sm font-medium text-muted-foreground mb-1">
-            URL изображения
+        {/* Загрузка изображения */}
+        <div className="border-2 border-dashed border-border rounded-lg p-4">
+          <label htmlFor="image_file" className="block text-sm font-medium text-muted-foreground mb-3">
+            Изображение новости
           </label>
-          <Input
-            id="image_url"
-            name="image_url"
-            value={formData.image_url || ''}
-            onChange={handleChange}
-            placeholder="https://example.com/image.jpg"
-          />
+          
+          {/* Предпросмотр изображения */}
+          {imagePreview && (
+            <div className="relative mb-4 inline-block">
+              <img 
+                src={imagePreview} 
+                alt="Предпросмотр" 
+                className="max-w-xs h-auto rounded-lg max-h-48 object-cover"
+              />
+              <button
+                type="button"
+                onClick={clearImage}
+                className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {!imagePreview && (
+            <div className="mb-3">
+              <label 
+                htmlFor="image_file"
+                className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+              >
+                <Upload size={24} className="text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Выберите изображение или перетащите файл
+                  </p>
+                  <p className="text-xs text-muted-foreground/70">
+                    PNG, JPG, GIF (макс. 5MB)
+                  </p>
+                </div>
+              </label>
+              <input
+                id="image_file"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+          )}
+
+          {/* Альтернатива: URL */}
+          <div>
+            <label htmlFor="image_url" className="block text-xs font-medium text-muted-foreground mb-1">
+              Или используйте URL изображения
+            </label>
+            <Input
+              id="image_url"
+              name="image_url"
+              value={formData.image_url || ''}
+              onChange={handleChange}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
         </div>
 
         {news?.published_at && (
