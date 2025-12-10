@@ -8,10 +8,10 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen md:min-h-screen flex items-center justify-center overflow-hidden py-8 md:py-0">
       {/* Logo - Positioned Left */}
       <div 
-        className="w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)] -mr-0 md:-mr-4 lg:-mr-8 flex-shrink-0"
+        className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)] md:-mr-4 lg:-mr-8 flex-shrink-0"
         style={{ 
           boxShadow: '0 0 15px rgba(255, 0, 0, 0.5)',
           transform: 'translateY(-20px)'
@@ -25,15 +25,15 @@ const HeroSection = () => {
       </div>
       
       {/* Text Block - Centered */}
-      <div className="relative z-20 text-center px-4">
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up">
+      <div className="relative z-20 text-center px-2 sm:px-4 ml-2 sm:ml-0">
+        <h1 className="font-display text-3xl sm:text-4xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up leading-tight">
           СВИРЕПЫЕ
         </h1>
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up" style={{ animationDelay: '0.1s' }}>
+        <h1 className="font-display text-3xl sm:text-4xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up leading-tight" style={{ animationDelay: '0.1s' }}>
           КРОЛИКИ
         </h1>
         <p 
-          className="font-display text-2xl md:text-3xl lg:text-4xl tracking-widest text-primary text-shadow-red animate-fade-up mt-6"
+          className="font-display text-lg sm:text-xl md:text-3xl lg:text-4xl tracking-widest text-primary text-shadow-red animate-fade-up mt-3 sm:mt-4 md:mt-6"
           style={{ animationDelay: '0.2s' }}
         >
           МЫ ВЕЛИЧАЙШИЕ. МЫ БОГИ.
@@ -43,15 +43,15 @@ const HeroSection = () => {
       {/* Scroll Down Arrow */}
       <button
         onClick={handleScroll}
-        className="absolute bottom-8 md:bottom-12 left-1/2 transform -translate-x-1/2 z-20 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-2"
+        className="absolute bottom-4 md:bottom-12 left-1/2 transform -translate-x-1/2 z-20 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-2"
         aria-label="Scroll down to news"
         style={{
           animation: 'smoothBounce 2.5s ease-in-out infinite, smoothFade 2s ease-in-out infinite'
         }}
       >
         <ChevronDown 
-          size={48} 
-          className="text-primary" 
+          size={32}
+          className="md:w-12 md:h-12 text-primary" 
           strokeWidth={4}
           style={{
             animation: 'smoothFade 2s ease-in-out infinite'
