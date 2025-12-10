@@ -172,54 +172,6 @@ export const publishNews = asyncHandler(async (req, res) => {
   res.json(news);
 });
 
-/**
- * PUT /api/news/:id/archive
- * Архивировать новость
- */
-export const archiveNews = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const newsId = parseInt(id, 10);
-  
-  logger.info(`Archive news request for ID ${newsId}`);
-  
-  const existingNews = NewsModel.getNewsById(newsId);
-  if (!existingNews) {
-    throw new ApiError(404, 'News not found');
-  }
-  
-  // Проверяем права: админ может всё, автор — только свои
-  if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
-    throw new ApiError(403, 'You can only archive your own news');
-  }
-  
-  const news = NewsModel.archiveNews(newsId);
-  res.json(news);
-});
-
-/**
- * PUT /api/news/:id/unarchive
- * Разархивировать новость
- */
-export const unarchiveNews = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const newsId = parseInt(id, 10);
-  
-  logger.info(`Unarchive news request for ID ${newsId}`);
-  
-  const existingNews = NewsModel.getNewsById(newsId);
-  if (!existingNews) {
-    throw new ApiError(404, 'News not found');
-  }
-  
-  // Проверяем права: админ может всё, автор — только свои
-  if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
-    throw new ApiError(403, 'You can only unarchive your own news');
-  }
-  
-  const news = NewsModel.unarchiveNews(newsId);
-  res.json(news);
-});
-
 export default {
   getPublishedNews,
   getPublishedNewsById,
@@ -229,7 +181,5 @@ export default {
   updateNews,
   deleteNews,
   restoreNews,
-  publishNews,
-  archiveNews,
-  unarchiveNews
+  publishNews
 };
