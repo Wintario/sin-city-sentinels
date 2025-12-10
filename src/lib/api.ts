@@ -137,7 +137,6 @@ export interface News {
   image_url?: string;
   published_at?: string;
   is_deleted?: number;
-  is_archived?: number;
   created_at: string;
   updated_at: string;
   author?: string;
@@ -159,7 +158,7 @@ export const newsAPI = {
   getById: (id: number) => apiCall<News>(`/news/${id}`),
   
   // Admin endpoints
-  getAdminList: () => apiCall<News[]>('/news'),
+  getAdminList: () => apiCall<News[]>('/news/admin/list'),
   getAdminById: (id: number) => apiCall<News>(`/news/admin/${id}`),
   create: (data: NewsCreateInput) => 
     apiCall<News>('/news', {
@@ -193,14 +192,6 @@ export const newsAPI = {
     }),
   publish: (id: number) =>
     apiCall<News>(`/news/${id}/publish`, {
-      method: 'PUT',
-    }),
-  archive: (id: number) =>
-    apiCall<News>(`/news/${id}/archive`, {
-      method: 'PUT',
-    }),
-  unarchive: (id: number) =>
-    apiCall<News>(`/news/${id}/unarchive`, {
       method: 'PUT',
     }),
 };
