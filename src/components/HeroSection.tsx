@@ -8,13 +8,13 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen md:min-h-screen flex items-center justify-center overflow-hidden py-8 md:py-0">
-      {/* Logo - Positioned Left */}
+    <section className="relative min-h-screen md:min-h-screen flex items-end justify-center overflow-hidden py-8 md:py-0">
+      {/* Logo - Positioned Left - Bottom Third */}
       <div 
-        className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)] md:-mr-4 lg:-mr-8 flex-shrink-0"
+        className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)] md:-mr-4 lg:-mr-8 flex-shrink-0 mb-16 md:mb-20"
         style={{ 
           boxShadow: '0 0 15px rgba(255, 0, 0, 0.5)',
-          transform: 'translateY(-20px)'
+          transform: 'translateY(0)'
         }}
       >
         <img 
@@ -24,8 +24,8 @@ const HeroSection = () => {
         />
       </div>
       
-      {/* Text Block - Centered */}
-      <div className="relative z-20 text-center px-2 sm:px-4 ml-2 sm:ml-0">
+      {/* Text Block - Bottom Third */}
+      <div className="relative z-20 text-center px-2 sm:px-4 ml-2 sm:ml-0 mb-16 md:mb-20">
         <h1 className="font-display text-3xl sm:text-4xl md:text-7xl lg:text-8xl tracking-wider text-foreground text-shadow-noir animate-fade-up leading-tight">
           СВИРЕПЫЕ
         </h1>
