@@ -36,6 +36,7 @@ export function getPublishedNews() {
     LEFT JOIN users u ON n.author_id = u.id
     WHERE n.published_at IS NOT NULL 
       AND n.is_deleted = 0
+      AND n.is_archived = 0
     ORDER BY n.published_at DESC
   `);
   return stmt.all();
@@ -56,6 +57,7 @@ export function getPublishedNewsById(id) {
     WHERE n.id = ? 
       AND n.published_at IS NOT NULL 
       AND n.is_deleted = 0
+      AND n.is_archived = 0
   `);
   return stmt.get(id);
 }
@@ -68,7 +70,7 @@ export function getAllNewsAdmin() {
   const stmt = db.prepare(`
     SELECT 
       n.id, n.title, n.slug, n.excerpt, n.content, n.image_url,
-      n.published_at, n.is_deleted, n.created_at, n.updated_at,
+      n.published_at, n.is_deleted, n.is_archived, n.created_at, n.updated_at,
       n.author_id, u.username as author
     FROM news n
     LEFT JOIN users u ON n.author_id = u.id
@@ -177,6 +179,42 @@ export function publishNews(id) {
 }
 
 /**
+ * Архивировать новость (мягкое удаление в архив)
+ */
+export function archiveNews(id) {
+  const db = getDatabase();
+  const current = getNewsById(id);
+  if (!current) return null;
+  
+  const stmt = db.prepare(`
+    UPDATE news 
+    SET is_archived = 1, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `);
+  stmt.run(id);
+  logger.info(`News archived: ${current.title}`, { id });
+  return getNewsById(id);
+}
+
+/**
+ * Разархивировать новость (восстановить из архива)
+ */
+export function unarchiveNews(id) {
+  const db = getDatabase();
+  const current = getNewsById(id);
+  if (!current) return null;
+  
+  const stmt = db.prepare(`
+    UPDATE news 
+    SET is_archived = 0, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `);
+  stmt.run(id);
+  logger.info(`News unarchived: ${current.title}`, { id });
+  return getNewsById(id);
+}
+
+/**
  * Мягкое удаление новости
  */
 export function deleteNews(id) {
@@ -215,6 +253,8 @@ export default {
   createNews,
   updateNews,
   publishNews,
+  archiveNews,
+  unarchiveNews,
   deleteNews,
   restoreNews
 };
