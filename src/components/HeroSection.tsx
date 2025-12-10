@@ -48,10 +48,10 @@ const HeroSection = () => {
       {/* Scroll Down Arrow */}
       <button
         onClick={handleScroll}
-        className="absolute bottom-8 md:bottom-12 left-1/2 transform -translate-x-1/2 z-20 flex items-center justify-center transition-all duration-300 hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-2 animate-bounce"
+        className="absolute bottom-8 md:bottom-12 left-1/2 transform -translate-x-1/2 z-20 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-2"
         aria-label="Scroll down to news"
         style={{
-          animation: 'bounce 2s infinite, fadeInOut 3s infinite'
+          animation: 'smoothBounce 2.5s ease-in-out infinite, smoothFade 2s ease-in-out infinite'
         }}
       >
         <ChevronDown 
@@ -59,15 +59,19 @@ const HeroSection = () => {
           className="text-primary" 
           strokeWidth={4}
           style={{
-            animation: 'fadeInOut 3s infinite'
+            animation: 'smoothFade 2s ease-in-out infinite'
           }}
         />
       </button>
 
       <style>{`
-        @keyframes fadeInOut {
-          0%, 100% { opacity: 0.4; }
+        @keyframes smoothFade {
+          0%, 100% { opacity: 0.7; }
           50% { opacity: 1; }
+        }
+        @keyframes smoothBounce {
+          0%, 100% { transform: translateX(-50%) translateY(0); }
+          50% { transform: translateX(-50%) translateY(-8px); }
         }
       `}</style>
     </section>
