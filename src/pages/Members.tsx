@@ -64,10 +64,10 @@ const Members = () => {
                 onMouseLeave={() => handleBackHover(false)}
               >
                 <ArrowLeft size={18} />
-                Na glavnuyu
+                На главную
               </Link>
               <h1 className="font-display text-xl md:text-2xl tracking-wider">
-                SVIREPYE <span className="text-primary">KROLIKI</span>
+                СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>
               </h1>
             </div>
           </div>
@@ -76,17 +76,17 @@ const Members = () => {
         <main className="container mx-auto px-4 py-12">
           <div className="comic-panel inline-block bg-card px-8 py-4 mb-12 transform -rotate-1">
             <h2 className="font-display text-4xl md:text-5xl text-foreground tracking-wider">
-              SOSTAV <span className="text-primary">KLANA</span>
+              СОСТАВ <span className="text-primary">КЛАНА</span>
             </h2>
           </div>
 
           {isLoading ? (
             <div className="text-center text-muted-foreground py-12">
-              Zagruzka sostava...
+              Загрузка состава...
             </div>
           ) : members.length === 0 ? (
             <div className="text-center text-muted-foreground py-12">
-              Uchastnikov poka net
+              Участников пока нет
             </div>
           ) : (
             <div 
@@ -114,10 +114,10 @@ const Members = () => {
         <footer className="relative py-12 px-4 bg-background/90 border-t border-border">
           <div className="container mx-auto text-center">
             <p className="font-body text-muted-foreground mb-4">
-              Copyright 2025 Clan. Velichie vechno.
+              © 2025 Клан "Свирепые Кролики". <span className="text-primary">Величие вечно.</span>
             </p>
             <p className="font-body text-sm text-muted-foreground/70 mb-6">
-              Founded: 26.09.2006
+              Основан: 26.09.2006
             </p>
             <a 
               href="https://apeha.ru"
@@ -125,7 +125,7 @@ const Members = () => {
               rel="noopener noreferrer"
               className="inline-block font-body text-sm text-muted-foreground/50 hover:text-primary transition-colors duration-300"
             >
-              Return to ARENA
+              Вернуться в АРЕНУ →
             </a>
             
             <div className="mt-6">
@@ -139,7 +139,7 @@ const Members = () => {
 
             <div className="mt-8 flex justify-center items-center gap-4">
               <div className="h-px w-16 bg-gradient-to-r from-transparent to-border" />
-              <span className="text-primary font-display text-sm tracking-widest">*</span>
+              <span className="text-primary font-display text-sm tracking-widest">★</span>
               <div className="h-px w-16 bg-gradient-to-l from-transparent to-border" />
             </div>
           </div>
