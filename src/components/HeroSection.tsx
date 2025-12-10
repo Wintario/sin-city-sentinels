@@ -1,16 +1,10 @@
 import playboylLogo from '@/assets/playboy-logo.png';
-import { ChevronDown } from 'lucide-react';
 
 const HeroSection = () => {
-  const handleScroll = () => {
-    const newsSection = document.getElementById('news');
-    newsSection?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Content */}
-      <div className="relative z-20 text-center px-4 flex-1 flex items-center justify-center">
+      <div className="relative z-20 text-center px-4">
         {/* Logo and Title */}
         <div className="flex items-center justify-center gap-6 mb-4">
           {/* Playboy Logo */}
@@ -43,21 +37,6 @@ const HeroSection = () => {
           МЫ ВЕЛИЧАЙШИЕ. МЫ БОГИ.
         </p>
         
-      </div>
-
-      {/* Scroll Indicator Arrow */}
-      <div className="relative z-20 pb-8 md:pb-12">
-        <button
-          onClick={handleScroll}
-          className="flex items-center justify-center transition-all duration-300 hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-2 animate-bounce"
-          aria-label="Scroll down to news"
-        >
-          <ChevronDown 
-            size={32} 
-            className="text-primary animate-pulse" 
-            strokeWidth={3}
-          />
-        </button>
       </div>
     </section>
   );
