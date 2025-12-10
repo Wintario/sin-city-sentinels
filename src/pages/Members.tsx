@@ -12,7 +12,6 @@ const Members = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Загрузка и применение масштаба из localStorage
   useEffect(() => {
     const scale = localStorage.getItem('clan_member_scale') || '100';
     document.documentElement.style.setProperty('--member-scale', `${parseInt(scale, 10) / 100}`);
@@ -22,7 +21,6 @@ const Members = () => {
     const loadMembers = async () => {
       try {
         const data = await membersAPI.getAll();
-        // Backend возвращает в правильном порядке: глава первый, остальные по алфавиту
         setMembers(data);
       } catch (error) {
         console.error('Failed to load members:', error);
@@ -41,7 +39,6 @@ const Members = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
-      {/* Fixed Background */}
       <div 
         className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0"
         style={{ 
@@ -50,18 +47,13 @@ const Members = () => {
         }}
       />
       
-      {/* Dark Overlay */}
       <div className="fixed inset-0 bg-background/70 z-0" />
 
-      {/* Rain Effect */}
       <RainEffect intensity={rainIntensity} />
       
-      {/* Film Grain Overlay */}
       <FilmGrain />
 
-      {/* Content */}
       <div className="relative z-20 min-h-screen">
-        {/* Header */}
         <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b border-border z-50">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
@@ -72,37 +64,39 @@ const Members = () => {
                 onMouseLeave={() => handleBackHover(false)}
               >
                 <ArrowLeft size={18} />
-                На главную
+                Na glavnuyu
               </Link>
               <h1 className="font-display text-xl md:text-2xl tracking-wider">
-                СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>
+                SVIREPYE <span className="text-primary">KROLIKI</span>
               </h1>
             </div>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="container mx-auto px-4 py-12">
-          {/* Section Title */}
           <div className="comic-panel inline-block bg-card px-8 py-4 mb-12 transform -rotate-1">
             <h2 className="font-display text-4xl md:text-5xl text-foreground tracking-wider">
-              СОСТАВ <span className="text-primary">КЛАНА</span>
+              SOSTAV <span className="text-primary">KLANA</span>
             </h2>
           </div>
 
-          {/* Members Grid */}
           {isLoading ? (
             <div className="text-center text-muted-foreground py-12">
-              Загрузка состава...
+              Zagruzka sostava...
             </div>
           ) : members.length === 0 ? (
             <div className="text-center text-muted-foreground py-12">
-              Участников пока нет
+              Uchastnikov poka net
             </div>
           ) : (
             <div 
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-              style={{ transform: `scale(var(--member-scale, 1))`, transformOrigin: 'top left' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(max(100px, min(150px, 100%/4)), 1fr))',
+                gap: '1rem',
+                transform: `scale(var(--member-scale, 1))`,
+                transformOrigin: 'top left'
+              }}
             >
               {members.map((member, index) => (
                 <div
@@ -117,14 +111,13 @@ const Members = () => {
           )}
         </main>
 
-        {/* Footer */}
         <footer className="relative py-12 px-4 bg-background/90 border-t border-border">
           <div className="container mx-auto text-center">
             <p className="font-body text-muted-foreground mb-4">
-              © 2025 Клан "Свирепые Кролики". <span className="text-primary">Величие вечно.</span>
+              Copyright 2025 Clan. Velichie vechno.
             </p>
             <p className="font-body text-sm text-muted-foreground/70 mb-6">
-              Основан: 26.09.2006
+              Founded: 26.09.2006
             </p>
             <a 
               href="https://apeha.ru"
@@ -132,10 +125,9 @@ const Members = () => {
               rel="noopener noreferrer"
               className="inline-block font-body text-sm text-muted-foreground/50 hover:text-primary transition-colors duration-300"
             >
-              Вернуться в АРЕНУ →
+              Return to ARENA
             </a>
             
-            {/* Admin Link */}
             <div className="mt-6">
               <Link 
                 to="/admin/login"
@@ -145,10 +137,9 @@ const Members = () => {
               </Link>
             </div>
 
-            {/* Decorative Elements */}
             <div className="mt-8 flex justify-center items-center gap-4">
               <div className="h-px w-16 bg-gradient-to-r from-transparent to-border" />
-              <span className="text-primary font-display text-sm tracking-widest">★</span>
+              <span className="text-primary font-display text-sm tracking-widest">*</span>
               <div className="h-px w-16 bg-gradient-to-l from-transparent to-border" />
             </div>
           </div>
