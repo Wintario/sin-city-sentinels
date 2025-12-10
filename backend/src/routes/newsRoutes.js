@@ -8,9 +8,7 @@ import {
   updateNews,
   deleteNews,
   restoreNews,
-  publishNews,
-  archiveNews,
-  unarchiveNews
+  publishNews
 } from '../controllers/newsController.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { writeLimiter } from '../middleware/rateLimiter.js';
@@ -21,14 +19,14 @@ const router = Router();
 // Публичные эндпоинты (без авторизации)
 // ============================================
 
-// GET /api/news - Все опубликованные новости (не архивированные)
+// GET /api/news - Все опубликованные новости
 router.get('/', getPublishedNews);
 
 // ============================================
 // Админские эндпоинты (требуют авторизации)
 // ============================================
 
-// GET /api/news/admin/list - Новости для админки (?archived=true|false)
+// GET /api/news/admin/list - Новости для админки
 router.get('/admin/list', authenticate, requireRole(['admin', 'author']), getAllNewsAdmin);
 
 // GET /api/news/admin/:id - Одна новость для админки
@@ -42,12 +40,6 @@ router.put('/:id', authenticate, requireRole(['admin', 'author']), writeLimiter,
 
 // PUT /api/news/:id/publish - Опубликовать новость
 router.put('/:id/publish', authenticate, requireRole(['admin', 'author']), publishNews);
-
-// PUT /api/news/:id/archive - Архивировать новость
-router.put('/:id/archive', authenticate, requireRole(['admin', 'author']), archiveNews);
-
-// PUT /api/news/:id/unarchive - Восстановить из архива
-router.put('/:id/unarchive', authenticate, requireRole(['admin', 'author']), unarchiveNews);
 
 // DELETE /api/news/:id - Удалить новость (мягкое удаление)
 router.delete('/:id', authenticate, requireRole(['admin', 'author']), deleteNews);
