@@ -1,6 +1,12 @@
 import playboylLogo from '@/assets/playboy-logo.png';
+import { ChevronDown } from 'lucide-react';
 
 const HeroSection = () => {
+  const handleScroll = () => {
+    const newsSection = document.getElementById('news');
+    newsSection?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Content */}
@@ -38,6 +44,32 @@ const HeroSection = () => {
         </p>
         
       </div>
+
+      {/* Scroll Down Arrow */}
+      <button
+        onClick={handleScroll}
+        className="absolute bottom-8 md:bottom-12 left-1/2 transform -translate-x-1/2 z-20 flex items-center justify-center transition-all duration-300 hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full p-2 animate-bounce"
+        aria-label="Scroll down to news"
+        style={{
+          animation: 'bounce 2s infinite, fadeInOut 3s infinite'
+        }}
+      >
+        <ChevronDown 
+          size={48} 
+          className="text-primary" 
+          strokeWidth={4}
+          style={{
+            animation: 'fadeInOut 3s infinite'
+          }}
+        />
+      </button>
+
+      <style>{`
+        @keyframes fadeInOut {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+      `}</style>
     </section>
   );
 };
