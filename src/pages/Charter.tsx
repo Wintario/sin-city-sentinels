@@ -43,10 +43,10 @@ const Charter = () => {
                 onMouseLeave={() => handleBackHover(false)}
               >
                 <ArrowLeft size={18} />
-                Ha glavnuyu
+                На главную
               </Link>
               <h1 className="font-display text-xl md:text-2xl tracking-wider">
-                SVIREPYE <span className="text-primary">KROLIKI</span>
+                СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>
               </h1>
             </div>
           </div>
@@ -55,59 +55,50 @@ const Charter = () => {
         <main className="container mx-auto px-4 py-12">
           <div className="comic-panel inline-block bg-card px-8 py-4 mb-12 transform -rotate-1">
             <h2 className="font-display text-4xl md:text-5xl text-foreground tracking-wider">
-              USTAV <span className="text-primary">KLANA</span>
+              УСТАВ <span className="text-primary">КЛАНА</span>
             </h2>
           </div>
 
-          <div className="space-y-8">
-            {/* Basic Principles */}
-            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-6">
-              <h3 className="font-display text-2xl text-primary mb-6 pb-3 border-b border-primary/30">
-                Osnovnye polozheniya
-              </h3>
-              <div className="space-y-4">
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Klan yavlyaetsya organizaciey dejstvuyushchey v ramkakh Areny, opiraysya na zakony Areny.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Klan ne yavlyaetsya isklyuchitelno voennoj organizaciey. Vse chleny klana imeyut ravnoe znachenie.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">V klane sostoyat tolko neobhodimye emu lyudi. Lishnikh sredi nas net.</p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Основные положения */}
+            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
+              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Основные положения</h3>
+              <ul className="space-y-2 text-sm text-foreground/80">
+                <li>• Клан действует в рамках Арены, опираясь на её законы</li>
+                <li>• Все члены клана имеют равное значение</li>
+                <li>• В клане только необходимые люди — лишних нет</li>
+              </ul>
             </div>
 
-            {/* Goals */}
-            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-6">
-              <h3 className="font-display text-2xl text-primary mb-6 pb-3 border-b border-primary/30">
-                Celi
-              </h3>
-              <div className="space-y-4">
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Klan ne prinimaet ni odnu iz storon - sveta ili tmi, dobra ili zla, khaosa ili ravnovesiya, - do tekh por, poka v tom net dlya nego vygody.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Klan yavlyaetsya nejtralnym. Vse konflikty, ne zatragivayushchie nashi interesy, ne imeyut dlya nas znacheniya.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Esli klan vmeshivaetsya v konflikt - eto ne znachit, chto on podderzhivaet odnu iz storon. Eto lissh znachit, chto on protivostoit odnoj iz nikh.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Edinstvenno, chem rukovodstvuetsya klan - blagopoluchie klana i ego chlenov. My ponimaniem i prinimaem ponyatiya chesti, sovesti i blagorodstva.</p>
-              </div>
+            {/* Цели */}
+            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
+              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Цели</h3>
+              <ul className="space-y-2 text-sm text-foreground/80">
+                <li>• Клан нейтрален и не принимает ни одну из сторон</li>
+                <li>• Благополучие клана и его членов — главный приоритет</li>
+                <li>• Клан — это семья, и ради неё мы готовы поступиться честью</li>
+              </ul>
             </div>
 
-            {/* Internal Relations */}
-            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-6">
-              <h3 className="font-display text-2xl text-primary mb-6 pb-3 border-b border-primary/30">
-                Vzaimoootnosheniya vnutri klana
-              </h3>
-              <div className="space-y-4">
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Vse chleny klana - bratya. U vsekh odni celi. Poetomu kazhdy novyj chlen dolzhen byt prinyat so vsej blagozhelatelnostyu.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Bojcy klana obyazany po vozmozhnosti pomogat drug drugu.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Boj dlya bojcov klana - sposob sdelat sebya, a znachit, i klan, silnee.</p>
-              </div>
+            {/* Отношения внутри клана */}
+            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
+              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Отношения внутри</h3>
+              <ul className="space-y-2 text-sm text-foreground/80">
+                <li>• Все члены — братья с одними целями</li>
+                <li>• Бойцы помогают друг другу по возможности</li>
+                <li>• Бой — способ стать сильнее, боец может вмешаться в любой бой</li>
+              </ul>
             </div>
 
-            {/* Clan-Fighter Relations */}
-            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-6">
-              <h3 className="font-display text-2xl text-primary mb-6 pb-3 border-b border-primary/30">
-                Vzaimoootnosheniya klana i bojca
-              </h3>
-              <div className="space-y-4">
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Klan - eto vse dlya ego chlena. No klan v svoyu ochered zabotitsya o blagopoluchii kazhdogo bojca v otdelnosti.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Bojc obyzany sledovat ustafu klana. Razresheno vse, chto ne zapreshcheno ustavom.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Bojc imeet pravo poluchat lyubuyu pomoshch ot klana - boevuyu, materialnuyu, moralnuyu.</p>
-                <p className="font-body text-sm md:text-base text-foreground/80 leading-relaxed">Bojc obyzany delat dlya klana vse, chto v ego silakh.</p>
-              </div>
+            {/* Отношения клана и бойца */}
+            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
+              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Клан и боец</h3>
+              <ul className="space-y-2 text-sm text-foreground/80">
+                <li>• Боец следует уставу клана</li>
+                <li>• Клан заботится о каждом члене</li>
+                <li>• Боец может получить любую помощь от клана</li>
+                <li>• Боец делает для клана всё, что в его силах</li>
+              </ul>
             </div>
           </div>
         </main>
@@ -115,15 +106,15 @@ const Charter = () => {
         <footer className="relative py-12 px-4 bg-background/90 border-t border-border">
           <div className="container mx-auto text-center">
             <p className="font-body text-muted-foreground mb-4">
-              Klan -- eto semya. <span className="text-primary">Chest i dostoinstvo kazhdogo chlena -- chest i dostoinstvo klana.</span>
+              Клан — это семья. <span className="text-primary">Честь и достоинство каждого члена — честь и достоинство клана.</span>
             </p>
             <p className="font-body text-sm text-muted-foreground/70">
-              (C) Svirepye Kroliki | Klan Areny
+              © Свирепые Кролики | Клан Арены
             </p>
             
             <div className="mt-8 flex justify-center items-center gap-4">
               <div className="h-px w-16 bg-gradient-to-r from-transparent to-border" />
-              <span className="text-primary font-display text-sm tracking-widest">*</span>
+              <span className="text-primary font-display text-sm tracking-widest">★</span>
               <div className="h-px w-16 bg-gradient-to-l from-transparent to-border" />
             </div>
           </div>
