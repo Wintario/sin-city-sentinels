@@ -13,6 +13,7 @@ import membersRoutes from './src/routes/membersRoutes.js';
 import usersRoutes from './src/routes/usersRoutes.js';
 import settingsRoutes from './src/routes/settingsRoutes.js';
 import aboutCardsRoutes from './src/routes/aboutCardsRoutes.js';
+import statsRoutes from './src/routes/statsRoutes.js';
 import { initDatabase } from './src/db/db.js';
 
 // Загружка переменных окружения
@@ -55,6 +56,7 @@ app.use('/api/members', membersRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/about-cards', aboutCardsRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Health check эндпоинт
 app.get('/health', (req, res) => {
@@ -73,7 +75,8 @@ app.get('/api', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       news: '/api/news',
-      members: '/api/members'
+      members: '/api/members',
+      stats: '/api/stats'
     }
   });
 });
