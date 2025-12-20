@@ -1,5 +1,38 @@
 # Changelog
 
+## [v1.1.1] - 2025-12-20
+
+### 🔒 Security
+- **HttpOnly Cookies** - Session tokens now stored in secure HttpOnly cookies (not accessible via JavaScript)
+- **CSRF Protection** - Cookies use SameSite=strict to prevent cross-site request forgery
+- **Automatic Session Restoration** - Users stay logged in when navigating between pages/refreshing
+- **7-Day Session Expiry** - Sessions automatically expire after 7 days for security
+- **Secure API Calls** - All API requests automatically include cookies via `credentials: 'include'`
+
+### 📈 Backend Changes
+- Added cookie-setting in `POST /api/auth/login` endpoint
+- Added `POST /api/auth/logout` endpoint to clear cookies
+- Updated `POST /api/auth/verify` endpoint for session restoration
+- Improved logging for authentication events
+- Added proper error handling for expired tokens
+
+### 🎨 Frontend Changes
+- Added `authAPI.verify()` call in App.tsx on mount
+- Improved logout flow with async handling
+- Added loading state during logout
+- Better session restoration on page reload
+- Cookies now work across admin <-> homepage navigation
+
+### 📄 Documentation
+- Added comprehensive `SECURITY.md` with cookie security details
+- Documented CORS, rate limiting, and best practices
+- Added incident response guide
+
+### ❌ Breaking Changes
+- None - fully backward compatible
+
+---
+
 ## [v1.1.0] - 2025-12-20
 
 ### ✨ Features
@@ -66,9 +99,9 @@ CREATE INDEX idx_news_display_order ON news(display_order);
 
 ---
 
-## Migration Guide
+## Migration Guides
 
-From v1.0.0 to v1.1.0:
+### From v1.0.0 to v1.1.1
 
 ```bash
 # 1. Pull latest code
@@ -83,7 +116,10 @@ sqlite3 backend/data/app.db "CREATE INDEX idx_news_display_order ON news(display
 npm run build
 pm2 restart rabbits-backend
 
-# Done! Old news maintains default ordering by published_at
+# 4. Test session restoration
+# - Login to admin
+# - Navigate to homepage
+# - You should stay logged in (no re-login needed)
 ```
 
 ---
@@ -93,11 +129,16 @@ pm2 restart rabbits-backend
 - Display order is specific to published news (draft order not customizable)
 - Reordering requires admin role
 - Display order resets to NULL for unpublished news
+- Sessions expire after 7 days (need to re-login)
+- Cookies only work on the same domain
 
 ## Future Improvements
 
+- [ ] Implement refresh token rotation
+- [ ] Add 2FA (two-factor authentication)
 - [ ] Bulk actions (publish, delete multiple)
 - [ ] Advanced search and filtering
 - [ ] News categories/tags
 - [ ] Comment system
 - [ ] Analytics dashboard
+- [ ] Remember me option (14-day sessions)
