@@ -38,6 +38,12 @@ const Charter = () => {
             <div className="flex items-center justify-between">
               <Link 
                 to="/" 
+                className="font-display text-xl md:text-2xl tracking-wider hover:text-primary transition-colors"
+              >
+                СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>
+              </Link>
+              <Link 
+                to="/" 
                 className="nav-btn inline-flex items-center gap-2"
                 onMouseEnter={() => handleBackHover(true)}
                 onMouseLeave={() => handleBackHover(false)}
@@ -45,9 +51,6 @@ const Charter = () => {
                 <ArrowLeft size={18} />
                 На главную
               </Link>
-              <h1 className="font-display text-xl md:text-2xl tracking-wider">
-                СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>
-              </h1>
             </div>
           </div>
         </header>
