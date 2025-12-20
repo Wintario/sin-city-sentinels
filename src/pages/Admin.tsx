@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Newspaper, Users, Shield } from 'lucide-react';
+import { LogOut, Newspaper, Users, Shield, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { isAuthenticated, authAPI, getStoredUser } from '@/lib/api';
 import NewsAdmin from '@/components/admin/NewsAdmin';
 import MembersAdmin from '@/components/admin/MembersAdmin';
 import UsersAdmin from '@/components/admin/UsersAdmin';
+import StatsAdmin from '@/components/admin/StatsAdmin';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -82,7 +83,7 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="news" className="w-full">
-          <TabsList className={`grid w-full mb-8 ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsList className={`grid w-full mb-8 ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="news" className="flex items-center gap-2">
               <Newspaper className="w-4 h-4" />
               Новости
@@ -90,6 +91,10 @@ const Admin = () => {
             <TabsTrigger value="members" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Состав
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Статистика
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="users" className="flex items-center gap-2">
@@ -105,6 +110,10 @@ const Admin = () => {
 
           <TabsContent value="members" className="bg-background rounded-lg p-6 border border-border">
             <MembersAdmin />
+          </TabsContent>
+
+          <TabsContent value="stats" className="bg-background rounded-lg p-6 border border-border">
+            <StatsAdmin />
           </TabsContent>
 
           {isAdmin && (
