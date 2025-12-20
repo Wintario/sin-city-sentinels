@@ -119,25 +119,8 @@ const NewsAdmin = () => {
         const newsIds = newOrder.map(n => n.id);
         console.log('Sending news order:', newsIds);
         
-        const token = localStorage.getItem('token');
-        console.log('Token exists:', !!token);
-        
-        const response = await fetch('/api/news/admin/reorder', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ newsIds })
-        });
-
-        console.log('Response status:', response.status);
-        const responseData = await response.json();
-        console.log('Response data:', responseData);
-
-        if (!response.ok) {
-          throw new Error(responseData.message || 'Reorder failed');
-        }
+        const result = await newsAPI.reorder(newsIds);
+        console.log('Reorder result:', result);
 
         toast.success('Порядок обновлён');
         loadNews();
