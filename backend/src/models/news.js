@@ -24,7 +24,6 @@ function generateSlug(title) {
 
 /**
  * Получить все опубликованные новости (публичный эндпоинт)
- * Только published_at != null, без проверки на будущее время
  */
 export function getPublishedNews() {
   const db = getDatabase();
@@ -112,6 +111,7 @@ export function createNews({ title, content, excerpt, image_url, published_at, a
 
 /**
  * Обновить новость
+ * FIX: Allow setting image_url to null (don't use COALESCE for image_url)
  */
 export function updateNews(id, { title, content, excerpt, image_url, published_at }) {
   const db = getDatabase();
@@ -131,7 +131,7 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
       slug = ?,
       content = COALESCE(?, content),
       excerpt = COALESCE(?, excerpt),
-      image_url = COALESCE(?, image_url),
+      image_url = ?,
       published_at = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
@@ -141,8 +141,8 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
     title || null,
     slug,
     content || null,
-    excerpt,
-    image_url,
+    excerpt || null,
+    image_url !== undefined ? image_url : current.image_url,
     published_at !== undefined ? published_at : current.published_at,
     id
   );
