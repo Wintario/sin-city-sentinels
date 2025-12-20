@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { newsAPI, News } from '@/lib/api';
-import { Trash2, Edit, Plus, Eye, EyeOff, Loader2, Send, GripVertical } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, EyeOff, Loader2, Send, Menu } from 'lucide-react';
 import NewsForm from './NewsForm';
 
 type TabType = 'drafts' | 'published';
@@ -221,8 +221,8 @@ const NewsAdmin = () => {
               >
                 {/* Drag handle для опубликованных новостей */}
                 {activeTab === 'published' && !isReordering && (
-                  <div className="flex items-center gap-2 mr-2">
-                    <GripVertical className="w-5 h-5 text-muted-foreground opacity-50 hover:opacity-100 transition-opacity" />
+                  <div className="flex items-center gap-3 mr-3">
+                    <Menu className="w-5 h-5 text-muted-foreground opacity-70 hover:opacity-100 transition-opacity flex-shrink-0" />
                   </div>
                 )}
                 
