@@ -62,14 +62,14 @@ export function getPublishedNewsById(id) {
 
 /**
  * Получить все новости для админки
- * UPDATED: Сортировка по created_at (дата создания), редактирование не меняет порядок
+ * Сортировка по display_order (для drag-and-drop), потом по published_at
  */
 export function getAllNewsAdmin() {
   const db = getDatabase();
   const stmt = db.prepare(`
     SELECT 
       n.id, n.title, n.slug, n.excerpt, n.content, n.image_url,
-      n.published_at, n.is_deleted, n.created_at, n.updated_at, n.updated_by,
+      n.published_at, n.is_deleted, n.created_at, n.updated_at, n.updated_by, n.display_order,
       n.author_id, 
       u.username as author,
       u2.username as updated_by_username
@@ -77,7 +77,7 @@ export function getAllNewsAdmin() {
     LEFT JOIN users u ON n.author_id = u.id
     LEFT JOIN users u2 ON n.updated_by = u2.id
     WHERE n.is_deleted = 0
-    ORDER BY n.created_at DESC
+    ORDER BY COALESCE(n.display_order, 9999) ASC, n.published_at DESC
   `);
   return stmt.all();
 }
@@ -107,9 +107,13 @@ export function createNews({ title, content, excerpt, image_url, published_at, a
   const db = getDatabase();
   const slug = generateSlug(title);
   
+  // Получаем максимальный display_order
+  const maxOrder = db.prepare('SELECT MAX(display_order) as max FROM news WHERE is_deleted = 0').get();
+  const display_order = (maxOrder.max || 0) + 1;
+  
   const stmt = db.prepare(`
-    INSERT INTO news (title, slug, content, excerpt, image_url, published_at, author_id, updated_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO news (title, slug, content, excerpt, image_url, published_at, author_id, updated_by, display_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
   const result = stmt.run(
@@ -120,16 +124,18 @@ export function createNews({ title, content, excerpt, image_url, published_at, a
     image_url || null, 
     published_at || null, 
     author_id,
-    author_id // updated_by = author при создании
+    author_id,
+    display_order
   );
   
-  logger.info(`News created: ${title}`, { id: result.lastInsertRowid, published: !!published_at });
+  logger.info(`News created: ${title}`, { id: result.lastInsertRowid, published: !!published_at, display_order });
   return getNewsById(result.lastInsertRowid);
 }
 
 /**
  * Обновить новость
- * UPDATED: Теперь сохраняет updated_by (кто последний редактировал)
+ * ВАЖНО: published_at НЕ меняется при редактировании!
+ * Сохраняет updated_by (кто последний редактировал)
  */
 export function updateNews(id, { title, content, excerpt, image_url, published_at, updated_by }) {
   const db = getDatabase();
@@ -170,6 +176,28 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
   logger.info(`News updated: ${current.title}`, { id, updated_by });
   
   return getNewsById(id);
+}
+
+/**
+ * Переупорядочить новости (drag-and-drop в админке)
+ * Устанавливает display_order для группы новостей
+ */
+export function reorderNews(newsIds) {
+  const db = getDatabase();
+  
+  try {
+    const stmt = db.prepare(`UPDATE news SET display_order = ? WHERE id = ?`);
+    
+    newsIds.forEach((id, index) => {
+      stmt.run(index + 1, id);
+    });
+    
+    logger.info(`News reordered`, { count: newsIds.length });
+    return { success: true, message: 'News reordered' };
+  } catch (error) {
+    logger.error('Reorder error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 /**
@@ -234,6 +262,7 @@ export default {
   getNewsById,
   createNews,
   updateNews,
+  reorderNews,
   publishNews,
   deleteNews,
   restoreNews
