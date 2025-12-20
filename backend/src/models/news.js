@@ -24,7 +24,7 @@ function generateSlug(title) {
 
 /**
  * Получить все опубликованные новости (публичный эндпоинт)
- * Сортировка по дате публикации
+ * Сортировка по display_order (если установлен) или по published_at
  */
 export function getPublishedNews() {
   const db = getDatabase();
@@ -36,7 +36,7 @@ export function getPublishedNews() {
     LEFT JOIN users u ON n.author_id = u.id
     WHERE n.published_at IS NOT NULL 
       AND n.is_deleted = 0
-    ORDER BY n.published_at DESC
+    ORDER BY COALESCE(n.display_order, 9999) ASC, n.published_at DESC
   `);
   return stmt.all();
 }
