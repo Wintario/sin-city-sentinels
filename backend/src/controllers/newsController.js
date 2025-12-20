@@ -73,6 +73,7 @@ export const createNews = asyncHandler(async (req, res) => {
 /**
  * PUT /api/news/:id
  * Обновить новость
+ * UPDATED: Теперь передаёт updated_by
  */
 export const updateNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -93,6 +94,9 @@ export const updateNews = asyncHandler(async (req, res) => {
   
   // Валидация
   const validatedData = validateNewsInput(req.body, true);
+  
+  // Добавляем updated_by (кто редактирует)
+  validatedData.updated_by = req.user.id;
   
   // Обновляем
   const news = NewsModel.updateNews(newsId, validatedData);
