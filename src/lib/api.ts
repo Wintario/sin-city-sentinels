@@ -58,10 +58,10 @@ export const apiCall = async <T>(
   
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
   
-  // Handle 401 Unauthorized - clear token and redirect
+  // Handle 401 Unauthorized - clear token and redirect (только для защищённых маршрутов)
   if (response.status === 401) {
     clearToken();
-    window.location.href = '/admin/login';
+    // Не редиректим сразу - пусть компонент сам решит что делать
     throw new Error('Unauthorized');
   }
   
@@ -94,12 +94,11 @@ export const apiUpload = async <T>(
     method: 'POST',
     headers,
     body: formData,
-    credentials: 'include', // передавать cookies
+    credentials: 'include',
   });
   
   if (response.status === 401) {
     clearToken();
-    window.location.href = '/admin/login';
     throw new Error('Unauthorized');
   }
   
@@ -140,9 +139,33 @@ export const authAPI = {
   },
   
   verify: async () => {
-    return await apiCall<{ valid: true; user: { id: number; username: string; role: string } }>('/auth/verify', {
-      method: 'POST',
-    });
+    // Специальная функция для проверки без редиректа
+    try {
+      const token = getToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${API_URL}/auth/verify`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+      });
+      
+      // Если 401 - просто возвращаем false, не редиректим
+      if (response.status === 401) {
+        return { valid: false };
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { valid: false };
+    }
   },
 };
 
