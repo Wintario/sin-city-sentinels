@@ -1,4 +1,6 @@
-import { db } from '../db/db.js';
+import { getDatabase } from '../db/db.js';
+
+const db = getDatabase();
 
 // Track news view
 export const trackNewsView = (req, res) => {
@@ -8,26 +10,14 @@ export const trackNewsView = (req, res) => {
     const userAgent = req.get('user-agent') || 'unknown';
 
     // Increment views_count in news table
-    db.run(
-      'UPDATE news SET views_count = views_count + 1 WHERE id = ?',
-      [id],
-      (err) => {
-        if (err) {
-          console.error('Error updating views count:', err);
-        }
-      }
-    );
+    db.prepare(
+      'UPDATE news SET views_count = views_count + 1 WHERE id = ?'
+    ).run(id);
 
     // Log page view
-    db.run(
-      'INSERT INTO page_views (page_type, page_id, ip_address, user_agent) VALUES (?, ?, ?, ?)',
-      ['news', id, ip, userAgent],
-      (err) => {
-        if (err) {
-          console.error('Error logging page view:', err);
-        }
-      }
-    );
+    db.prepare(
+      'INSERT INTO page_views (page_type, page_id, ip_address, user_agent) VALUES (?, ?, ?, ?)'
+    ).run('news', id, ip, userAgent);
 
     res.json({ success: true });
   } catch (error) {
@@ -39,22 +29,17 @@ export const trackNewsView = (req, res) => {
 // Get statistics overview
 export const getStatsOverview = (req, res) => {
   try {
-    db.all(
+    const result = db.prepare(
       `SELECT 
-        COUNT(DISTINCT page_id) as total_news_views,
-        COUNT(*) as total_page_views,
-        COUNT(DISTINCT DATE(viewed_at)) as unique_days,
+        COALESCE(COUNT(DISTINCT page_id), 0) as total_news_views,
+        COALESCE(COUNT(*), 0) as total_page_views,
+        COALESCE(COUNT(DISTINCT DATE(viewed_at)), 0) as unique_days,
         MAX(viewed_at) as last_view
       FROM page_views
-      WHERE page_type = 'news'`,
-      (err, rows) => {
-        if (err) {
-          console.error('Error getting stats overview:', err);
-          return res.status(500).json({ error: 'Failed to get stats' });
-        }
-        res.json(rows[0] || {});
-      }
-    );
+      WHERE page_type = 'news'`
+    ).get();
+    
+    res.json(result || {});
   } catch (error) {
     console.error('Error in getStatsOverview:', error);
     res.status(500).json({ error: 'Failed to get stats overview' });
@@ -64,12 +49,12 @@ export const getStatsOverview = (req, res) => {
 // Get news views ranking
 export const getNewsViews = (req, res) => {
   try {
-    db.all(
+    const results = db.prepare(
       `SELECT 
         n.id,
         n.title,
         n.views_count,
-        COUNT(pv.id) as recent_views_7days
+        COALESCE(COUNT(pv.id), 0) as recent_views_7days
       FROM news n
       LEFT JOIN page_views pv ON pv.page_id = n.id 
         AND pv.page_type = 'news'
@@ -77,15 +62,10 @@ export const getNewsViews = (req, res) => {
       WHERE n.is_deleted = 0
       GROUP BY n.id
       ORDER BY n.views_count DESC
-      LIMIT 10`,
-      (err, rows) => {
-        if (err) {
-          console.error('Error getting news views:', err);
-          return res.status(500).json({ error: 'Failed to get news views' });
-        }
-        res.json(rows || []);
-      }
-    );
+      LIMIT 10`
+    ).all();
+    
+    res.json(results || []);
   } catch (error) {
     console.error('Error in getNewsViews:', error);
     res.status(500).json({ error: 'Failed to get news views' });
@@ -95,7 +75,7 @@ export const getNewsViews = (req, res) => {
 // Get page visits by date
 export const getPageVisits = (req, res) => {
   try {
-    db.all(
+    const results = db.prepare(
       `SELECT 
         DATE(viewed_at) as date,
         page_type,
@@ -104,15 +84,10 @@ export const getPageVisits = (req, res) => {
       FROM page_views
       WHERE viewed_at >= datetime('now', '-30 days')
       GROUP BY DATE(viewed_at), page_type
-      ORDER BY date DESC`,
-      (err, rows) => {
-        if (err) {
-          console.error('Error getting page visits:', err);
-          return res.status(500).json({ error: 'Failed to get page visits' });
-        }
-        res.json(rows || []);
-      }
-    );
+      ORDER BY date DESC`
+    ).all();
+    
+    res.json(results || []);
   } catch (error) {
     console.error('Error in getPageVisits:', error);
     res.status(500).json({ error: 'Failed to get page visits' });
