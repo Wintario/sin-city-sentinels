@@ -179,6 +179,7 @@ export interface News {
   image_url?: string;
   published_at?: string;
   is_deleted?: number;
+  views_count?: number;
   created_at: string;
   updated_at: string;
   updated_by?: number;
@@ -354,4 +355,40 @@ export const usersAPI = {
     apiCall<{ success: boolean; message: string }>(`/users/${id}`, {
       method: 'DELETE',
     }),
+};
+
+// Stats types
+export interface StatsOverview {
+  total_news_views: number;
+  total_page_views: number;
+  unique_days: number;
+  last_view: string;
+}
+
+export interface NewsViewStats {
+  id: number;
+  title: string;
+  views_count: number;
+  recent_views_7days: number;
+}
+
+export interface PageVisitStats {
+  date: string;
+  page_type: string;
+  visits: number;
+  unique_visitors: number;
+}
+
+// Stats API
+export const statsAPI = {
+  trackNewsView: (newsId: number) =>
+    apiCall<{ success: boolean }>(`/stats/view/news/${newsId}`, {
+      method: 'POST',
+    }),
+  
+  getOverview: () => apiCall<StatsOverview>('/stats/overview'),
+  
+  getNewsViews: () => apiCall<NewsViewStats[]>('/stats/news-views'),
+  
+  getPageVisits: () => apiCall<PageVisitStats[]>('/stats/page-visits'),
 };
