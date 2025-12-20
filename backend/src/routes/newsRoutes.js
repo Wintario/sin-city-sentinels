@@ -31,7 +31,8 @@ router.get('/', getPublishedNews);
 router.get('/admin/list', authenticate, requireRole(['admin', 'author']), getAllNewsAdmin);
 
 // POST /api/news/admin/reorder - Переупорядочить новости (drag-and-drop)
-router.post('/admin/reorder', authenticate, requireRole('admin'), writeLimiter, reorderNews);
+// БЕЗ writeLimiter - это админская операция, не нужно лимитировать
+router.post('/admin/reorder', authenticate, requireRole('admin'), reorderNews);
 
 // GET /api/news/admin/:id - Одна новость для админки
 router.get('/admin/:id', authenticate, requireRole(['admin', 'author']), getNewsById);
