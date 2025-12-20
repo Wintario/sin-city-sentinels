@@ -105,6 +105,31 @@ export const updateNews = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/news/admin/reorder
+ * Переупорядочить новости (drag-and-drop)
+ * Body: { newsIds: [1, 3, 2, 4] }
+ */
+export const reorderNews = asyncHandler(async (req, res) => {
+  const { newsIds } = req.body;
+  
+  if (!Array.isArray(newsIds) || newsIds.length === 0) {
+    throw new ApiError(400, 'newsIds must be a non-empty array');
+  }
+  
+  logger.request(req, `Reorder news: ${newsIds.length} items`);
+  
+  const result = NewsModel.reorderNews(newsIds);
+  
+  if (!result.success) {
+    throw new ApiError(500, result.error);
+  }
+  
+  // Возвращаем обновленный список
+  const news = NewsModel.getAllNewsAdmin();
+  res.json({ success: true, message: result.message, news });
+});
+
+/**
  * DELETE /api/news/:id
  * Мягкое удаление новости
  */
@@ -183,6 +208,7 @@ export default {
   getNewsById,
   createNews,
   updateNews,
+  reorderNews,
   deleteNews,
   restoreNews,
   publishNews
