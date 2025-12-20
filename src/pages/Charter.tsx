@@ -80,20 +80,13 @@ const Charter = () => {
                 <p>Клан не принимает ни одну из сторон - света или тьмы, добра или зла, хаоса или равновесия, - до тех пор, пока в том нет для него выгоды.</p>
                 <p>Клан является нейтральным. Все конфликты, не затрагивающие наши интересы, не имеют для нас значения.</p>
                 <p>Если клан вмешивается в конфликт - это не значит, что он поддерживает одну из сторон. Это лишь значит, что он противостоит одной из них.</p>
-              </div>
-            </div>
-
-            {/* Цели - продолжение */}
-            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
-              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Цели (продолжение)</h3>
-              <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
                 <p>Единственное, чем руководствуется клан - благополучие клана и его членов. Мы понимаем и принимаем понятия чести, совести и благородства. Но клан для нас семья, и потому ради клана или его членов мы готовы поступиться этими понятиями. Никто не будет думать о совести и чести, когда над семьей нависла угроза.</p>
               </div>
             </div>
 
-            {/* Отношения внутри клана */}
+            {/* Взаимоотношения внутри клана */}
             <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
-              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Отношения внутри клана</h3>
+              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Взаимоотношения внутри клана</h3>
               <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
                 <p>Все члены клана - братья. У всех одни цели. Поэтому каждый новый член должен быть принят со всей благожелательностью.</p>
                 <p>Бойцы клана обязаны по возможности помогать друг другу.</p>
@@ -101,18 +94,11 @@ const Charter = () => {
               </div>
             </div>
 
-            {/* Отношения клана и бойца */}
+            {/* Взаимоотношения клана и бойца */}
             <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
-              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Клан и боец</h3>
+              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Взаимоотношения клана и бойца</h3>
               <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
                 <p>Клан - это все для его члена. Но клан в свою очередь заботится о благополучии каждого бойца в отдельности, так как совокупность бойцов и составляет наш клан, нашу семью.</p>
-              </div>
-            </div>
-
-            {/* Обязанности бойца */}
-            <div className="comic-panel bg-card/50 border-2 border-primary/50 p-5 hover:border-primary/80 transition-colors">
-              <h3 className="font-display text-xl text-primary mb-4 pb-2 border-b border-primary/30">Обязанности бойца</h3>
-              <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
                 <p>Боец обязан следовать уставу клана. Разрешено все, что не запрещено уставом. Нарушители устава будут подвергаться наказаниям вплоть до исключения из клана.</p>
                 <p>Боец имеет право получать любую помощь от клана - боевую, материальную, моральную.</p>
                 <p>Боец обязан делать для клана все, что в его силах.</p>
