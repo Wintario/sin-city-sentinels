@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LogOut, Newspaper, Users, Shield } from 'lucide-react';
@@ -50,19 +50,12 @@ const Admin = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Панель администратора</h1>
-            {user && (
-              <p className="text-muted-foreground text-sm mt-1">
-                Вы вошли как: <span className="font-medium">{user.username}</span> 
-                <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
-                  user.role === 'admin' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'
-                }`}>
-                  {user.role}
-                </span>
-              </p>
-            )}
-          </div>
+          <Link 
+            to="/" 
+            className="font-display text-2xl tracking-wider hover:text-primary transition-colors"
+          >
+            СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>
+          </Link>
           <Button 
             variant="outline" 
             onClick={handleLogout}
@@ -72,6 +65,20 @@ const Admin = () => {
             {isLoggingOut ? 'Очистка...' : 'Выход'}
           </Button>
         </div>
+
+        {/* User Info */}
+        {user && (
+          <div className="mb-8 p-4 bg-background rounded-lg border border-border">
+            <p className="text-sm text-muted-foreground">
+              Вы вошли как: <span className="font-medium text-foreground">{user.username}</span> 
+              <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
+                user.role === 'admin' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'
+              }`}>
+                {user.role}
+              </span>
+            </p>
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="news" className="w-full">
