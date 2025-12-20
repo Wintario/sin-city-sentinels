@@ -49,10 +49,14 @@ export const apiCall = async <T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
   
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  // Указываем чтобы максимально использовать cookies
+  const fetchOptions: RequestInit = {
     ...options,
     headers,
-  });
+    credentials: 'include' // На одном домене - всегда передавать cookies
+  };
+  
+  const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
   
   // Handle 401 Unauthorized - clear token and redirect
   if (response.status === 401) {
@@ -90,6 +94,7 @@ export const apiUpload = async <T>(
     method: 'POST',
     headers,
     body: formData,
+    credentials: 'include', // передавать cookies
   });
   
   if (response.status === 401) {
@@ -122,8 +127,22 @@ export const authAPI = {
     return data;
   },
   
-  logout: () => {
-    clearToken();
+  logout: async () => {
+    try {
+      await apiCall('/auth/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.log('Logout API error (expected if not authenticated):', error);
+    } finally {
+      clearToken();
+    }
+  },
+  
+  verify: async () => {
+    return await apiCall<{ valid: true; user: { id: number; username: string; role: string } }>('/auth/verify', {
+      method: 'POST',
+    });
   },
 };
 
