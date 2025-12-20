@@ -6,6 +6,7 @@ import {
   getNewsById,
   createNews,
   updateNews,
+  reorderNews,
   deleteNews,
   restoreNews,
   publishNews
@@ -28,6 +29,9 @@ router.get('/', getPublishedNews);
 
 // GET /api/news/admin/list - Новости для админки
 router.get('/admin/list', authenticate, requireRole(['admin', 'author']), getAllNewsAdmin);
+
+// POST /api/news/admin/reorder - Переупорядочить новости (drag-and-drop)
+router.post('/admin/reorder', authenticate, requireRole('admin'), writeLimiter, reorderNews);
 
 // GET /api/news/admin/:id - Одна новость для админки
 router.get('/admin/:id', authenticate, requireRole(['admin', 'author']), getNewsById);
