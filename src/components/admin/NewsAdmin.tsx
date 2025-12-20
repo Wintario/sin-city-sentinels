@@ -130,80 +130,93 @@ const NewsAdmin = () => {
         </p>
       ) : (
         <div className="space-y-3">
-          {currentNews.map((item) => (
-            <div
-              key={item.id}
-              className={`flex items-center justify-between p-4 rounded-lg border ${
-                item.published_at
-                  ? 'bg-green-500/5 border-green-500/20'
-                  : 'bg-muted/50 border-border'
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium truncate">
-                    {item.title}
-                  </h3>
-                  {item.published_at ? (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-600">
-                      <Eye className="w-3 h-3" />
-                      Опубликовано
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                      <EyeOff className="w-3 h-3" />
-                      Черновик
-                    </span>
-                  )}
+          {currentNews.map((item) => {
+            // Проверяем было ли редактирование
+            const wasEdited = item.updated_at && item.created_at && 
+              new Date(item.updated_at).getTime() > new Date(item.created_at).getTime();
+            
+            return (
+              <div
+                key={item.id}
+                className={`flex items-center justify-between p-4 rounded-lg border ${
+                  item.published_at
+                    ? 'bg-green-500/5 border-green-500/20'
+                    : 'bg-muted/50 border-border'
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium truncate">
+                      {item.title}
+                    </h3>
+                    {item.published_at ? (
+                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-600">
+                        <Eye className="w-3 h-3" />
+                        Опубликовано
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                        <EyeOff className="w-3 h-3" />
+                        Черновик
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 truncate">
+                    {item.excerpt || item.content?.substring(0, 100)}
+                  </p>
+                  <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                    <p>
+                      {item.published_at 
+                        ? `Опубликовано: ${new Date(item.published_at).toLocaleDateString('ru-RU')}`
+                        : `Создано: ${new Date(item.created_at).toLocaleDateString('ru-RU')}`
+                      }
+                      {item.author && ` • ${item.author}`}
+                    </p>
+                    {wasEdited && item.updated_by_username && (
+                      <p className="text-amber-600 dark:text-amber-400">
+                        Ред.: {new Date(item.updated_at).toLocaleDateString('ru-RU')} • {item.updated_by_username}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1 truncate">
-                  {item.excerpt || item.content?.substring(0, 100)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {item.published_at 
-                    ? `Опубликовано: ${new Date(item.published_at).toLocaleDateString('ru-RU')}`
-                    : `Создано: ${new Date(item.created_at).toLocaleDateString('ru-RU')}`
-                  }
-                  {item.author && ` • ${item.author}`}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-2 ml-4">
-                {!item.published_at && (
+                
+                <div className="flex items-center gap-2 ml-4">
+                  {!item.published_at && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePublish(item)}
+                      disabled={publishingId === item.id}
+                      className="text-green-600 border-green-600/30 hover:bg-green-500/10"
+                      title="Опубликовать"
+                    >
+                      {publishingId === item.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handlePublish(item)}
-                    disabled={publishingId === item.id}
-                    className="text-green-600 border-green-600/30 hover:bg-green-500/10"
-                    title="Опубликовать"
+                    onClick={() => handleEdit(item)}
+                    title="Редактировать"
                   >
-                    {publishingId === item.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
+                    <Edit className="w-4 h-4" />
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(item)}
-                  title="Редактировать"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(item.id)}
-                  title="Удалить"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(item.id)}
+                    title="Удалить"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
