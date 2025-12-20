@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, Calendar, User } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RainEffect from '@/components/RainEffect';
@@ -157,6 +157,32 @@ const NewsDetail = () => {
                 {news.content}
               </p>
             </div>
+
+            {/* Author and Date Footer */}
+            <footer className="mt-8 pt-6 border-t-2 border-noir-gray/30">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-noir-gray">
+                {news.author && (
+                  <div className="flex items-center gap-2">
+                    <User size={16} />
+                    <span className="font-body">Автор: <span className="text-noir-dark font-medium">{news.author}</span></span>
+                  </div>
+                )}
+                {news.published_at && (
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} />
+                    <span className="font-body">
+                      Опубликовано: <span className="text-noir-dark font-medium">
+                        {new Date(news.published_at).toLocaleDateString('ru-RU', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </footer>
           </article>
         </div>
       </main>
