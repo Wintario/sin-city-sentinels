@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'fs';
 import { dirname } from 'path';
 import { config } from '../config/config.js';
+import { runMigrations } from './migrations.js';
 
 let db = null;
 
@@ -29,6 +30,9 @@ export function initDatabase() {
   db.pragma('synchronous = NORMAL');
   
   console.log(`✅ Database connected: ${config.dbPath}`);
+  
+  // Запускаем миграции
+  runMigrations();
   
   return db;
 }
