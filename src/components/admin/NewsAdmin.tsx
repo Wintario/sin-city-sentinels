@@ -80,6 +80,7 @@ const NewsAdmin = () => {
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, id: number) => {
+    console.log('Drag start:', id);
     setDraggedId(id);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -91,6 +92,8 @@ const NewsAdmin = () => {
 
   const handleDrop = async (e: React.DragEvent, targetId: number) => {
     e.preventDefault();
+    
+    console.log('Drop:', { draggedId, targetId });
     
     if (draggedId === null || draggedId === targetId) {
       setDraggedId(null);
@@ -105,6 +108,8 @@ const NewsAdmin = () => {
       const draggedIndex = newOrder.findIndex(n => n.id === draggedId);
       const targetIndex = newOrder.findIndex(n => n.id === targetId);
 
+      console.log('Indices:', { draggedIndex, targetIndex });
+
       if (draggedIndex !== -1 && targetIndex !== -1) {
         // Перемещаем элемент
         const [dragged] = newOrder.splice(draggedIndex, 1);
@@ -112,22 +117,34 @@ const NewsAdmin = () => {
 
         // Отправляем новый порядок на сервер
         const newsIds = newOrder.map(n => n.id);
+        console.log('Sending news order:', newsIds);
+        
+        const token = localStorage.getItem('token');
+        console.log('Token exists:', !!token);
+        
         const response = await fetch('/api/news/admin/reorder', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ newsIds })
         });
 
-        if (!response.ok) throw new Error('Reorder failed');
+        console.log('Response status:', response.status);
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+
+        if (!response.ok) {
+          throw new Error(responseData.message || 'Reorder failed');
+        }
 
         toast.success('Порядок обновлён');
         loadNews();
       }
-    } catch (error) {
-      toast.error('Ошибка переупорядочивания');
+    } catch (error: any) {
+      console.error('Reorder error:', error);
+      toast.error(`Ошибка: ${error.message}`);
     } finally {
       setDraggedId(null);
       setIsReordering(false);
