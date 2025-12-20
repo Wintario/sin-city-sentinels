@@ -12,6 +12,7 @@ const Navigation = ({ onHover }: NavigationProps) => {
   const navItems = [
     { label: 'О нас', href: '#about', isExternal: false },
     { label: 'Новости', href: '#news', isExternal: false },
+    { label: 'Устав', href: '/charter', isExternal: true },
     { label: 'Состав клана', href: '/members', isExternal: true },
   ];
 
