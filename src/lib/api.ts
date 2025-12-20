@@ -110,7 +110,7 @@ export const apiUpload = async <T>(
 // Auth API
 export const authAPI = {
   login: async (username: string, password: string) => {
-    const data = await apiCall<{ token: string; user: { id: number; username: string; role: string } }>(
+    const data = await apiCall<{ token: string; user: { id: number; username: string; role: string } }>(  
       '/auth/login',
       {
         method: 'POST',
@@ -143,6 +143,7 @@ export interface News {
   updated_by_username?: string;
   author?: string;
   author_id?: number;
+  display_order?: number;
 }
 
 export interface NewsCreateInput {
@@ -195,6 +196,11 @@ export const newsAPI = {
   publish: (id: number) =>
     apiCall<News>(`/news/${id}/publish`, {
       method: 'PUT',
+    }),
+  reorder: (newsIds: number[]) =>
+    apiCall<{ success: boolean; message: string; news: News[] }>('/news/admin/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ newsIds }),
     }),
 };
 
