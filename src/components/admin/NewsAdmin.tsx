@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { newsAPI, News } from '@/lib/api';
-import { Trash2, Edit, Plus, Eye, EyeOff, Loader2, Send } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, EyeOff, Loader2, Send, GripVertical } from 'lucide-react';
 import NewsForm from './NewsForm';
 
 type TabType = 'drafts' | 'published';
@@ -14,6 +14,8 @@ const NewsAdmin = () => {
   const [editingNews, setEditingNews] = useState<News | null>(null);
   const [publishingId, setPublishingId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('drafts');
+  const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
 
   const loadNews = async () => {
     try {
@@ -76,6 +78,62 @@ const NewsAdmin = () => {
     loadNews();
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, id: number) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetId: number) => {
+    e.preventDefault();
+    
+    if (draggedId === null || draggedId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+
+    setIsReordering(true);
+
+    try {
+      // Создаём новый порядок
+      const newOrder = [...currentNews];
+      const draggedIndex = newOrder.findIndex(n => n.id === draggedId);
+      const targetIndex = newOrder.findIndex(n => n.id === targetId);
+
+      if (draggedIndex !== -1 && targetIndex !== -1) {
+        // Перемещаем элемент
+        const [dragged] = newOrder.splice(draggedIndex, 1);
+        newOrder.splice(targetIndex, 0, dragged);
+
+        // Отправляем новый порядок на сервер
+        const newsIds = newOrder.map(n => n.id);
+        const response = await fetch('/api/news/admin/reorder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ newsIds })
+        });
+
+        if (!response.ok) throw new Error('Reorder failed');
+
+        toast.success('Порядок обновлён');
+        loadNews();
+      }
+    } catch (error) {
+      toast.error('Ошибка переупорядочивания');
+    } finally {
+      setDraggedId(null);
+      setIsReordering(false);
+    }
+  };
+
   if (showForm) {
     return (
       <NewsForm
@@ -120,6 +178,13 @@ const NewsAdmin = () => {
         </button>
       </div>
 
+      {/* Подсказка о drag-and-drop */}
+      {currentNews.length > 1 && activeTab === 'published' && (
+        <div className="mb-4 p-3 rounded bg-blue-500/10 border border-blue-500/20 text-sm text-blue-600 dark:text-blue-400">
+          💡 Совет: Перетаскивайте новости для изменения порядка на главной странице
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -138,12 +203,29 @@ const NewsAdmin = () => {
             return (
               <div
                 key={item.id}
-                className={`flex items-center justify-between p-4 rounded-lg border ${
+                draggable={activeTab === 'published' && !isReordering}
+                onDragStart={(e) => handleDragStart(e, item.id)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, item.id)}
+                className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
                   item.published_at
                     ? 'bg-green-500/5 border-green-500/20'
                     : 'bg-muted/50 border-border'
+                } ${
+                  draggedId === item.id
+                    ? 'opacity-50 cursor-grabbing'
+                    : activeTab === 'published'
+                    ? 'cursor-grab hover:shadow-md'
+                    : ''
                 }`}
               >
+                {/* Drag handle для опубликованных новостей */}
+                {activeTab === 'published' && !isReordering && (
+                  <div className="flex items-center gap-2 mr-2">
+                    <GripVertical className="w-5 h-5 text-muted-foreground opacity-50 hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
+                
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium truncate">
