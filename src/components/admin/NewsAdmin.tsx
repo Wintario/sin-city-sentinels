@@ -80,7 +80,6 @@ const NewsAdmin = () => {
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, id: number) => {
-    console.log('Drag start:', id);
     setDraggedId(id);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -92,8 +91,6 @@ const NewsAdmin = () => {
 
   const handleDrop = async (e: React.DragEvent, targetId: number) => {
     e.preventDefault();
-    
-    console.log('Drop:', { draggedId, targetId });
     
     if (draggedId === null || draggedId === targetId) {
       setDraggedId(null);
@@ -108,8 +105,6 @@ const NewsAdmin = () => {
       const draggedIndex = newOrder.findIndex(n => n.id === draggedId);
       const targetIndex = newOrder.findIndex(n => n.id === targetId);
 
-      console.log('Indices:', { draggedIndex, targetIndex });
-
       if (draggedIndex !== -1 && targetIndex !== -1) {
         // Перемещаем элемент
         const [dragged] = newOrder.splice(draggedIndex, 1);
@@ -117,16 +112,13 @@ const NewsAdmin = () => {
 
         // Отправляем новый порядок на сервер
         const newsIds = newOrder.map(n => n.id);
-        console.log('Sending news order:', newsIds);
         
         const result = await newsAPI.reorder(newsIds);
-        console.log('Reorder result:', result);
 
         toast.success('Порядок обновлён');
         loadNews();
       }
     } catch (error: any) {
-      console.error('Reorder error:', error);
       toast.error(`Ошибка: ${error.message}`);
     } finally {
       setDraggedId(null);
@@ -177,13 +169,6 @@ const NewsAdmin = () => {
           Опубликованные ({publishedNews.length})
         </button>
       </div>
-
-      {/* Подсказка о drag-and-drop */}
-      {currentNews.length > 1 && activeTab === 'published' && (
-        <div className="mb-4 p-3 rounded bg-blue-500/10 border border-blue-500/20 text-sm text-blue-600 dark:text-blue-400">
-          💡 Совет: Перетаскивайте новости для изменения порядка на главной странице
-        </div>
-      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
