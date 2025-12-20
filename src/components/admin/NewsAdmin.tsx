@@ -244,6 +244,12 @@ const NewsAdmin = () => {
                         Ред.: {new Date(item.updated_at).toLocaleDateString('ru-RU')} • {item.updated_by_username}
                       </p>
                     )}
+                    {item.views_count !== undefined && (
+                      <p className="flex items-center gap-1 text-muted-foreground">
+                        <Eye className="w-3 h-3" />
+                        Просмотры: <span className="text-foreground font-medium">{item.views_count}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 
