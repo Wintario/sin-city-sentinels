@@ -17,11 +17,13 @@ const Admin = () => {
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
+    // Проверяем автентификацию только если мы в админке
     if (!isAuthenticated()) {
-      navigate('/admin/login');
-    } else {
-      setIsLoggedIn(true);
+      navigate('/admin/login', { replace: true });
+      return;
     }
+    
+    setIsLoggedIn(true);
   }, [navigate]);
 
   const handleLogout = async () => {
@@ -40,7 +42,7 @@ const Admin = () => {
   };
 
   if (!isLoggedIn) {
-    return null;
+    return null; // Покажем пусто в время редиректа
   }
 
   return (
