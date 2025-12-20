@@ -12,6 +12,7 @@ import UsersAdmin from '@/components/admin/UsersAdmin';
 const Admin = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const user = getStoredUser();
   const isAdmin = user?.role === 'admin';
 
@@ -23,10 +24,19 @@ const Admin = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    authAPI.logout();
-    toast.success('Выход выполнен');
-    navigate('/');
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await authAPI.logout();
+      toast.success('Выход выполнен');
+      navigate('/');
+    } catch (error) {
+      // Ошибка это нормально, токен все равно очищен
+      toast.success('Выход выполнен');
+      navigate('/');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   if (!isLoggedIn) {
@@ -51,9 +61,13 @@ const Admin = () => {
               </p>
             )}
           </div>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button 
+            variant="outline" 
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
             <LogOut className="w-4 h-4 mr-2" />
-            Выход
+            {isLoggingOut ? 'Очистка...' : 'Выход'}
           </Button>
         </div>
 
