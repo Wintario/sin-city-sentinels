@@ -112,21 +112,30 @@ export const updateNews = asyncHandler(async (req, res) => {
 export const reorderNews = asyncHandler(async (req, res) => {
   const { newsIds } = req.body;
   
+  logger.info('Reorder request', { newsIds, user: req.user?.username });
+  
   if (!Array.isArray(newsIds) || newsIds.length === 0) {
+    logger.warn('Invalid reorder request - newsIds not array or empty', { newsIds });
     throw new ApiError(400, 'newsIds must be a non-empty array');
   }
   
   logger.request(req, `Reorder news: ${newsIds.length} items`);
   
-  const result = NewsModel.reorderNews(newsIds);
-  
-  if (!result.success) {
-    throw new ApiError(500, result.error);
+  try {
+    const result = NewsModel.reorderNews(newsIds);
+    
+    if (!result.success) {
+      logger.error('Reorder failed', { error: result.error, newsIds });
+      throw new ApiError(500, result.error);
+    }
+    
+    // Возвращаем обновленный список
+    const news = NewsModel.getAllNewsAdmin();
+    res.json({ success: true, message: result.message, news });
+  } catch (error) {
+    logger.error('Reorder exception:', { error: error.message, newsIds });
+    throw new ApiError(500, `Reorder error: ${error.message}`);
   }
-  
-  // Возвращаем обновленный список
-  const news = NewsModel.getAllNewsAdmin();
-  res.json({ success: true, message: result.message, news });
 });
 
 /**
