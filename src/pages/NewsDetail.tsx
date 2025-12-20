@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Eye } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RainEffect from '@/components/RainEffect';
 import FilmGrain from '@/components/FilmGrain';
-import { newsAPI, News } from '@/lib/api';
+import { newsAPI, statsAPI, News } from '@/lib/api';
 import heroRabbit from '@/assets/hero-rabbit.png';
 
 const NewsDetail = () => {
@@ -14,6 +14,7 @@ const NewsDetail = () => {
   const [news, setNews] = useState<News | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewTracked, setViewTracked] = useState(false);
 
   // Load news from API
   useEffect(() => {
@@ -37,6 +38,23 @@ const NewsDetail = () => {
 
     loadNews();
   }, [id]);
+
+  // Track view when news is loaded
+  useEffect(() => {
+    if (news && news.id && !viewTracked) {
+      const trackView = async () => {
+        try {
+          await statsAPI.trackNewsView(news.id);
+          setViewTracked(true);
+        } catch (err) {
+          console.error('Failed to track view:', err);
+          // Не показываем ошибку пользователю, это вспомогательный функционал
+        }
+      };
+      
+      trackView();
+    }
+  }, [news, viewTracked]);
 
   // Scroll to top when opening news detail
   useEffect(() => {
@@ -178,6 +196,14 @@ const NewsDetail = () => {
                           day: 'numeric'
                         })}
                       </span>
+                    </span>
+                  </div>
+                )}
+                {news.views_count !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <Eye size={16} />
+                    <span className="font-body">
+                      Просмотров: <span className="text-noir-dark font-medium">{news.views_count}</span>
                     </span>
                   </div>
                 )}
