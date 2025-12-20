@@ -139,6 +139,8 @@ export interface News {
   is_deleted?: number;
   created_at: string;
   updated_at: string;
+  updated_by?: number;
+  updated_by_username?: string;
   author?: string;
   author_id?: number;
 }
