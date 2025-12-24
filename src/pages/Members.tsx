@@ -133,15 +133,6 @@ const Members = () => {
             >
               Вернуться в АРЕНУ →
             </a>
-            
-            <div className="mt-6">
-              <Link 
-                to="/admin/login"
-                className="font-body text-xs text-muted-foreground/40 hover:text-primary transition-colors duration-300"
-              >
-                admin
-              </Link>
-            </div>
 
             <div className="mt-8 flex justify-center items-center gap-4">
               <div className="h-px w-16 bg-gradient-to-r from-transparent to-border" />
