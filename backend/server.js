@@ -27,6 +27,9 @@ const app = express();
 // Инициализация базы данных
 initDatabase();
 
+// Trust proxy для корректной работы X-Forwarded-For заголовка (Nginx)
+app.set('trust proxy', 1);
+
 // Безопасность: установка HTTP заголовков
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
