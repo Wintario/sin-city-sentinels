@@ -1,14 +1,24 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /adminka
+Disallow: /admin
 
 User-agent: Bingbot
 Allow: /
+Disallow: /adminka
+Disallow: /admin
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /adminka
+Disallow: /admin
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /adminka
+Disallow: /admin
 
 User-agent: *
 Allow: /
+Disallow: /adminka
+Disallow: /admin
