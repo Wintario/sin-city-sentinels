@@ -69,13 +69,14 @@ export async function updatePassword(userId, newPassword) {
 }
 
 /**
- * Получить всех пользователей (без паролей)
+ * Получить всех активных пользователей (без паролей)
  */
 export function getAllUsers() {
   const db = getDatabase();
   const stmt = db.prepare(`
     SELECT id, username, role, is_active, created_at, updated_at 
     FROM users 
+    WHERE is_active = 1
     ORDER BY id ASC
   `);
   return stmt.all();
