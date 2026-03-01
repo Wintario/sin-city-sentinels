@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
-// Используем прямой путь к файлу в public
-const infoIcon = '/info.gif';
+// Используем прямой путь к файлу в public с версией для обхода кэша
+const infoIcon = '/info.gif?v=2';
 
 interface ImportCharacterProps {
   onImport: (data: CharacterData, iconUrl: string, characterUrl: string) => void;
