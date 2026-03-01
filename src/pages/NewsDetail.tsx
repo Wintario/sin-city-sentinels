@@ -7,6 +7,7 @@ import RainEffect from '@/components/RainEffect';
 import FilmGrain from '@/components/FilmGrain';
 import { newsAPI, statsAPI, News } from '@/lib/api';
 import heroRabbit from '@/assets/hero-rabbit.png';
+import './NewsDetail.css';
 
 const NewsDetail = () => {
   const { id } = useParams();
@@ -133,7 +134,7 @@ const NewsDetail = () => {
           </button>
 
           {/* News Content */}
-          <article className="newspaper-bg p-8 md:p-12 shadow-noir cursor-default">
+          <article className="newspaper-bg p-8 md:p-12 shadow-noir cursor-default" style={{ background: '#ffffff' }}>
             <header className="border-b-2 border-noir-dark pb-6 mb-6">
               <h1 className="font-display text-3xl md:text-4xl lg:text-5xl text-noir-dark leading-tight mb-4">
                 {news.title}
@@ -156,7 +157,7 @@ const NewsDetail = () => {
                 <img
                   src={news.image_url}
                   alt={news.title}
-                  className="w-full max-h-96 object-cover rounded-lg"
+                  className="w-full h-64 object-cover rounded-lg"
                 />
               </div>
             )}
@@ -169,11 +170,13 @@ const NewsDetail = () => {
                   {news.excerpt}
                 </p>
               )}
-              
-              {/* Main content */}
-              <p className="font-body text-lg text-noir-dark leading-relaxed whitespace-pre-line">
-                {news.content}
-              </p>
+
+              {/* Main content - render as HTML */}
+              <div
+                className="font-body text-lg text-noir-dark leading-relaxed news-content"
+                style={{ background: '#ffffff', padding: '1rem' }}
+                dangerouslySetInnerHTML={{ __html: news.content }}
+              />
             </div>
 
             {/* Author and Date Footer */}

@@ -59,8 +59,17 @@ export function validateNewsInput(data, isUpdate = false) {
       errors.push('Content is required');
     } else if (data.content) {
       const content = data.content.trim();
-      if (content.length < 10) {
-        errors.push('Content must be at least 10 characters');
+      // Проверяем длину контента (с учётом HTML тегов)
+      const textOnly = content.replace(/<[^>]*>/g, '').trim();
+      console.log('Content validation:', {
+        totalLength: content.length,
+        textOnlyLength: textOnly.length,
+        hasContent: textOnly.length >= 10,
+        title: data.title,
+        isUpdate
+      });
+      if (textOnly.length < 10) {
+        errors.push('Content must be at least 10 characters (text only: ' + textOnly.length + ')');
       } else if (content.length > config.maxContentLength) {
         errors.push(`Content must be less than ${config.maxContentLength} characters`);
       } else {
@@ -87,7 +96,8 @@ export function validateNewsInput(data, isUpdate = false) {
   if (data.image_url !== undefined) {
     if (data.image_url && typeof data.image_url === 'string') {
       const url = data.image_url.trim();
-      if (url.length > 0 && !isValidUrl(url)) {
+      // Разрешаем абсолютные URL и относительные пути (/uploads/...)
+      if (url.length > 0 && !url.startsWith('/') && !isValidUrl(url)) {
         errors.push('Invalid image URL format');
       } else {
         validated.image_url = url || null;
@@ -110,11 +120,12 @@ export function validateNewsInput(data, isUpdate = false) {
       }
     }
   }
-  
+
   if (errors.length > 0) {
+    console.error('Validation errors:', errors);
     throw new ApiError(400, 'Validation failed', errors);
   }
-  
+
   return validated;
 }
 

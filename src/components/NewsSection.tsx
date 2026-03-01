@@ -35,8 +35,13 @@ const NewsSection = () => {
     const loadNews = async () => {
       try {
         const data = await newsAPI.getAll();
-        // API возвращает только опубликованные новости, отсортированные по published_at DESC
-        setNews(data);
+        // Сортируем по дате публикации (убывание - новые сверху)
+        const sortedNews = [...data].sort((a, b) => {
+          const dateA = new Date(a.published_at || a.created_at).getTime();
+          const dateB = new Date(b.published_at || b.created_at).getTime();
+          return dateB - dateA;
+        });
+        setNews(sortedNews);
       } catch (error) {
         console.error('Failed to load news:', error);
         setNews([]);
@@ -118,7 +123,16 @@ const NewsSection = () => {
                     {item.title}
                   </h3>
                   <p className="font-body text-xs sm:text-sm text-noir-gray leading-relaxed mb-2">
-                    {item.excerpt || item.content?.substring(0, 150)}
+                    {item.excerpt 
+                      ? item.excerpt
+                      : (() => {
+                          // Удаляем HTML теги из контента для превью
+                          const tempDiv = document.createElement('div');
+                          tempDiv.innerHTML = item.content || '';
+                          const textOnly = tempDiv.textContent || tempDiv.innerText || '';
+                          return textOnly.substring(0, 150) + (textOnly.length > 150 ? '...' : '');
+                        })()
+                    }
                   </p>
                   <div className="flex items-center gap-2 text-noir-gray/70">
                     <Calendar size={12} className="flex-shrink-0" />

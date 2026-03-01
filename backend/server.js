@@ -14,10 +14,15 @@ import usersRoutes from './src/routes/usersRoutes.js';
 import settingsRoutes from './src/routes/settingsRoutes.js';
 import aboutCardsRoutes from './src/routes/aboutCardsRoutes.js';
 import statsRoutes from './src/routes/statsRoutes.js';
+import uploadRoutes from './src/routes/uploadRoutes.js';
+import proxyRoutes from './src/routes/proxyRoutes.js';
 import { initDatabase } from './src/db/db.js';
+import { initUploadDirectories } from './src/utils/fileUtils.js';
 
-// Загружка переменных окружения
-dotenv.config();
+// Загрузка переменных окружения
+// В production режиме используем .env.production
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,6 +31,9 @@ const app = express();
 
 // Инициализация базы данных
 initDatabase();
+
+// Инициализация директорий для загрузок
+initUploadDirectories();
 
 // Trust proxy для корректной работы X-Forwarded-For заголовка (Nginx)
 app.set('trust proxy', 1);
@@ -46,7 +54,10 @@ app.use(cors({
 // Парсинг JSON тела запросов
 app.use(express.json({ limit: '10mb' }));
 
-// Выдача статических файлов (аватарки членов клана)
+// Выдача статических файлов для загрузок (изображения новостей, аватарки)
+app.use('/uploads', express.static(join(__dirname, 'uploads')));
+
+// Выдача статических файлов (аватарки членов клана) - для совместимости
 app.use('/avatars', express.static('/var/www/rabbits/public/avatars'));
 
 // Rate limiting для всех API запросов
@@ -60,6 +71,8 @@ app.use('/api/users', usersRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/about-cards', aboutCardsRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/proxy', proxyRoutes);
 
 // Health check эндпоинт
 app.get('/health', (req, res) => {
@@ -79,7 +92,8 @@ app.get('/api', (req, res) => {
       auth: '/api/auth',
       news: '/api/news',
       members: '/api/members',
-      stats: '/api/stats'
+      stats: '/api/stats',
+      upload: '/api/upload'
     }
   });
 });

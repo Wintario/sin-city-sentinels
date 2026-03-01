@@ -5,7 +5,7 @@ import { newsAPI, News } from '@/lib/api';
 import { Trash2, Edit, Plus, Eye, EyeOff, Loader2, Send, Menu } from 'lucide-react';
 import NewsForm from './NewsForm';
 
-type TabType = 'drafts' | 'published';
+type TabType = 'published' | 'drafts';
 
 const NewsAdmin = () => {
   const [news, setNews] = useState<News[]>([]);
@@ -13,15 +13,23 @@ const NewsAdmin = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingNews, setEditingNews] = useState<News | null>(null);
   const [publishingId, setPublishingId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('drafts');
+  const [activeTab, setActiveTab] = useState<TabType>('published');
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [isReordering, setIsReordering] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const loadNews = async () => {
     try {
       setIsLoading(true);
       const data = await newsAPI.getAdminList();
-      setNews(data);
+      // Сортируем по дате (убывание - новые сверху)
+      const sortedNews = [...data].sort((a, b) => {
+        const dateA = new Date(a.published_at || a.updated_at || a.created_at).getTime();
+        const dateB = new Date(b.published_at || b.updated_at || b.created_at).getTime();
+        return dateB - dateA;
+      });
+      setNews(sortedNews);
     } catch (error) {
       toast.error('Ошибка загрузки новостей');
     } finally {
@@ -37,6 +45,16 @@ const NewsAdmin = () => {
   const draftNews = news.filter(n => !n.published_at && !n.is_deleted);
   const publishedNews = news.filter(n => n.published_at && !n.is_deleted);
   const currentNews = activeTab === 'drafts' ? draftNews : publishedNews;
+  
+  // Пагинация
+  const totalPages = Math.ceil(currentNews.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedNews = currentNews.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  
+  // Сброс на первую страницу при смене вкладки
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить эту новость?')) return;
@@ -149,16 +167,6 @@ const NewsAdmin = () => {
       {/* Вкладки */}
       <div className="flex gap-2 mb-6 border-b border-border">
         <button
-          onClick={() => setActiveTab('drafts')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-            activeTab === 'drafts'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Черновики ({draftNews.length})
-        </button>
-        <button
           onClick={() => setActiveTab('published')}
           className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'published'
@@ -167,6 +175,16 @@ const NewsAdmin = () => {
           }`}
         >
           Опубликованные ({publishedNews.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('drafts')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'drafts'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Черновики ({draftNews.length})
         </button>
       </div>
 
@@ -179,31 +197,32 @@ const NewsAdmin = () => {
           {activeTab === 'drafts' ? 'Черновиков нет' : 'Опубликованных новостей нет'}
         </p>
       ) : (
-        <div className="space-y-3">
-          {currentNews.map((item) => {
-            // Проверяем было ли редактирование
-            const wasEdited = item.updated_at && item.created_at && 
-              new Date(item.updated_at).getTime() > new Date(item.created_at).getTime();
-            
-            return (
-              <div
-                key={item.id}
-                draggable={activeTab === 'published' && !isReordering}
-                onDragStart={(e) => handleDragStart(e, item.id)}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, item.id)}
-                className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
-                  item.published_at
-                    ? 'bg-green-500/5 border-green-500/20'
-                    : 'bg-muted/50 border-border'
-                } ${
-                  draggedId === item.id
-                    ? 'opacity-50 cursor-grabbing'
-                    : activeTab === 'published'
-                    ? 'cursor-grab hover:shadow-md'
-                    : ''
-                }`}
-              >
+        <>
+          <div className="space-y-3">
+            {paginatedNews.map((item) => {
+              // Проверяем было ли редактирование
+              const wasEdited = item.updated_at && item.created_at &&
+                new Date(item.updated_at).getTime() > new Date(item.created_at).getTime();
+
+              return (
+                <div
+                  key={item.id}
+                  draggable={activeTab === 'published' && !isReordering}
+                  onDragStart={(e) => handleDragStart(e, item.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, item.id)}
+                  className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                    item.published_at
+                      ? 'bg-green-500/5 border-green-500/20'
+                      : 'bg-muted/50 border-border'
+                  } ${
+                    draggedId === item.id
+                      ? 'opacity-50 cursor-grabbing'
+                      : activeTab === 'published'
+                      ? 'cursor-grab hover:shadow-md'
+                      : ''
+                  }`}
+                >
                 {/* Drag handle для опубликованных новостей */}
                 {activeTab === 'published' && !isReordering && (
                   <div className="flex items-center gap-3 mr-3">
@@ -291,6 +310,45 @@ const NewsAdmin = () => {
             );
           })}
         </div>
+        
+        {/* Пагинация */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-border">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              ← Назад
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Страница {currentPage} из {totalPages}
+            </span>
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className="w-8 h-8 p-0"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Вперёд →
+            </Button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

@@ -53,7 +53,7 @@ export const apiCall = async <T>(
   const fetchOptions: RequestInit = {
     ...options,
     headers,
-    credentials: 'include' // На одном домене - всегда передавать cookies
+    credentials: 'same-origin' // На одном домене - всегда передавать cookies
   };
   
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
@@ -94,7 +94,7 @@ export const apiUpload = async <T>(
     method: 'POST',
     headers,
     body: formData,
-    credentials: 'include',
+    credentials: 'same-origin',
   });
   
   if (response.status === 401) {
@@ -153,7 +153,7 @@ export const authAPI = {
       const response = await fetch(`${API_URL}/auth/verify`, {
         method: 'POST',
         headers,
-        credentials: 'include',
+        credentials: 'same-origin',
       });
       
       // Если 401 - просто возвращаем false, не редиректим
@@ -187,6 +187,7 @@ export interface News {
   author?: string;
   author_id?: number;
   display_order?: number;
+  card_width?: 'wide' | 'narrow';
 }
 
 export interface NewsCreateInput {
@@ -195,6 +196,7 @@ export interface NewsCreateInput {
   excerpt?: string | null;
   image_url?: string | null;
   published_at?: string | null;
+  card_width?: 'wide' | 'narrow' | null;
 }
 
 // News API
