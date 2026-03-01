@@ -10,7 +10,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import infoIcon from '@/assets/info.gif';
+
+// Используем прямой путь к файлу в public
+const infoIcon = '/info.gif';
 
 interface ImportCharacterProps {
   onImport: (data: CharacterData, iconUrl: string, characterUrl: string) => void;
