@@ -48,12 +48,11 @@ app.use(helmet({
       fontSrc: ["'self'", "https:", "data:"],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
       objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],
-      styleSrc: ["'self'", "https:", "'unsafe-inline'"],
-      upgradeInsecureRequests: false
+      styleSrc: ["'self'", "https:", "'unsafe-inline'"]
     }
   }
 }));
