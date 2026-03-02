@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
-// Используем прямой путь к файлу в public с версией для обхода кэша
-const infoIcon = '/info.gif?v=2';
+// Используем внешнюю ссылку на изображение с apeha.ru
+const infoIcon = 'https://apeha.ru/current/info.gif';
 
 interface ImportCharacterProps {
   onImport: (data: CharacterData, iconUrl: string, characterUrl: string) => void;
