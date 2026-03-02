@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
-// Используем внешнюю ссылку на изображение с apeha.ru
-const infoIcon = 'https://apeha.ru/current/info.gif';
+// Используем локальный путь к файлу через бэкенд
+const infoIcon = '/static/info.gif';
 
 interface ImportCharacterProps {
   onImport: (data: CharacterData, iconUrl: string, characterUrl: string) => void;

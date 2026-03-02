@@ -60,6 +60,9 @@ app.use('/uploads', express.static(join(__dirname, 'uploads')));
 // Выдача статических файлов (аватарки членов клана) - для совместимости
 app.use('/avatars', express.static('/var/www/rabbits/public/avatars'));
 
+// Выдача info.gif для импорта персонажей
+app.use('/static', express.static(join(__dirname, 'static')));
+
 // Rate limiting для всех API запросов
 app.use('/api/', apiLimiter);
 
