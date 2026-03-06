@@ -30,8 +30,6 @@ import commentAdminRoutes from './src/routes/commentAdminRoutes.js';
 import { initDatabase } from './src/db/db.js';
 import { initUploadDirectories } from './src/utils/fileUtils.js';
 
-const __dirname = dirname(__filename);
-
 const app = express();
 
 // Инициализация базы данных
