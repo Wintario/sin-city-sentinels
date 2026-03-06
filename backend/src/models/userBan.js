@@ -1,4 +1,5 @@
 import { getDatabase } from '../db/db.js';
+import bcrypt from 'bcrypt';
 
 /**
  * Забанить пользователя
@@ -89,38 +90,64 @@ export function unbanUser(userId) {
 }
 
 /**
- * Полностью удалить пользователя из БД
+ * Полностью удалить пользователя из БД (деактивация с переносом контента)
  * @param {number} userId - ID пользователя
  */
 export function permanentDelete(userId) {
   const db = getDatabase();
 
-  // Сначала обновляем author_id в news на NULL (чтобы не нарушить FK)
-  db.prepare('UPDATE news SET author_id = NULL WHERE author_id = ?').run(userId);
+  // Находим или создаём системного пользователя "deleted_user"
+  let deletedUser = db.prepare('SELECT id FROM users WHERE username = ?').get('deleted_user');
+  if (!deletedUser) {
+    // Создаём системного пользователя для переноса контента
+    const passwordHash = bcrypt.hashSync('deleted', 10);
+    const stmt = db.prepare(`
+      INSERT INTO users (username, email, password_hash, role, is_active)
+      VALUES ('deleted_user', 'deleted@system.local', ?, 'user', 0)
+    `);
+    const result = stmt.run(passwordHash);
+    deletedUser = { id: result.lastInsertRowid };
+    
+    // Создаём профиль
+    db.prepare(`
+      INSERT INTO user_profiles (user_id, arena_nickname, character_url, email_verified)
+      VALUES (?, 'Удалённый пользователь', '', 0)
+    `).run(deletedUser.id);
+  }
 
-  // Сначала удаляем баны (если есть)
+  const deletedUserId = deletedUser.id;
+
+  // Переносим новости на deleted_user
+  db.prepare('UPDATE news SET author_id = ? WHERE author_id = ?').run(deletedUserId, userId);
+
+  // Переносим комментарии на deleted_user
+  db.prepare('UPDATE comments SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+
+  // Переносим жалобы на deleted_user
+  db.prepare('UPDATE comment_reports SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+
+  // Переносим просмотры на deleted_user
+  db.prepare('UPDATE page_views SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+
+  // Удаляем баны (если есть)
   db.prepare('DELETE FROM user_bans WHERE user_id = ?').run(userId);
 
   // Удаляем токены верификации
   db.prepare('DELETE FROM character_verification_tokens WHERE user_id = ?').run(userId);
 
-  // Удаляем профиль пользователя (явно, до удаления пользователя)
+  // Удаляем профиль пользователя
   db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(userId);
 
-  // Удаляем комментарии пользователя
-  db.prepare('DELETE FROM comments WHERE user_id = ?').run(userId);
+  // Удаляем email verification токены
+  db.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').run(userId);
 
-  // Удаляем жалобы на комментарии пользователя
-  db.prepare('DELETE FROM comment_reports WHERE user_id = ?').run(userId);
+  // Удаляем password reset токены
+  db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(userId);
 
-  // Удаляем статистику просмотров пользователя
-  db.prepare('DELETE FROM page_views WHERE user_id = ?').run(userId);
+  // Деактивируем пользователя (не удаляем полностью!)
+  db.prepare('UPDATE users SET is_active = 0, is_deleted = 1 WHERE id = ?').run(userId);
 
-  // Удаляем пользователя
-  const stmt = db.prepare('DELETE FROM users WHERE id = ?');
-  const result = stmt.run(userId);
-
-  return { success: result.changes > 0 };
+  return { success: true, message: 'Пользователь деактивирован, контент перенесён' };
 }
 
 /**

@@ -39,7 +39,7 @@ export function runMigrations() {
         { name: 'role', sql: "TEXT DEFAULT 'user'", default: "'user'" },
         { name: 'is_active', sql: 'INTEGER DEFAULT 1', default: '1' }
       ];
-      
+
       let userColumnsAdded = 0;
       for (const col of requiredUserColumns) {
         if (!existingColumns.includes(col.name)) {
@@ -49,7 +49,14 @@ export function runMigrations() {
           userColumnsAdded++;
         }
       }
-      
+
+      // Добавляем колонку is_deleted для мягкого удаления пользователей
+      const hasIsDeleted = existingColumns.includes('is_deleted');
+      if (!hasIsDeleted) {
+        console.log(`  📝 Adding column 'is_deleted' to users table...`);
+        db.exec(`ALTER TABLE users ADD COLUMN is_deleted INTEGER DEFAULT 0`);
+      }
+
       if (userColumnsAdded > 0) {
         console.log(`✅ Added ${userColumnsAdded} column(s) to users table`);
         
