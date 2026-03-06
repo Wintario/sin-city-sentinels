@@ -1,6 +1,6 @@
 [eval]:1
-import('./bootstrap.js').then(() =; setTimeout(() =, 1000);
-                               ^
+console.log('NODE_ENV at start:', process.env.NODE_ENV); import('./server.js').then(() = error:', e.message)); setTimeout(() =, 3000);
+                                                                                     ^
 
 SyntaxError: Unexpected token ')'
     at makeContextifyScript (node:internal/vm:185:14)
