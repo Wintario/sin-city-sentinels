@@ -26,7 +26,8 @@ export const useImageResize = ({ editor }: UseImageResizeOptions) => {
       
       // Проверяем, что клик на изображении
       if (target.tagName === 'IMG') {
-        const rect = target.getBoundingClientRect();
+        const imageTarget = target as HTMLImageElement;
+        const rect = imageTarget.getBoundingClientRect();
         
         // Проверяем, что клик в правом нижнем углу (где resize handle)
         const handleX = rect.right - 10;
@@ -44,10 +45,10 @@ export const useImageResize = ({ editor }: UseImageResizeOptions) => {
           e.preventDefault();
           resizeState.current.isResizing = true;
           resizeState.current.startX = clickX;
-          resizeState.current.startWidth = target.width || target.clientWidth;
-          resizeState.current.image = target;
+          resizeState.current.startWidth = imageTarget.width || imageTarget.clientWidth;
+          resizeState.current.image = imageTarget;
           
-          target.style.cursor = 'nwse-resize';
+          imageTarget.style.cursor = 'nwse-resize';
           
           document.addEventListener('mousemove', handleMouseMove);
           document.addEventListener('mouseup', handleMouseUp);

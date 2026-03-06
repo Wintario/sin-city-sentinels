@@ -1,4 +1,6 @@
 // API configuration and utilities
+// При разработке через Vite proxy используем относительный путь '/api'
+// Бекенд должен быть запущен на localhost:3000
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Get auth token from localStorage
@@ -17,56 +19,71 @@ export const clearToken = (): void => {
   localStorage.removeItem('auth_user');
 };
 
-// Get stored user
-export const getStoredUser = (): { id: number; username: string; role: string } | null => {
-  const user = localStorage.getItem('auth_user');
-  return user ? JSON.parse(user) : null;
-};
-
-// Set stored user
-export const setStoredUser = (user: { id: number; username: string; role: string }): void => {
-  localStorage.setItem('auth_user', JSON.stringify(user));
-};
-
 // Check if user is authenticated
 export const isAuthenticated = (): boolean => {
   return !!getToken();
 };
 
+export interface StoredUser {
+  id: number;
+  username: string;
+  role: string;
+  email?: string;
+  displayName?: string;
+  display_name?: string;
+  arena_nickname?: string;
+  is_active?: number;
+  is_verified?: boolean;
+}
+
+// Get stored user
+export const getStoredUser = (): StoredUser | null => {
+  const user = localStorage.getItem('auth_user');
+  return user ? JSON.parse(user) : null;
+};
+
+// Set stored user
+export const setStoredUser = (user: StoredUser): void => {
+  localStorage.setItem('auth_user', JSON.stringify(user));
+};
+
 // Generic API call with auth handling
 export const apiCall = async <T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  skipAuthCleanup = false // Не очищать токен при 401
 ): Promise<T> => {
   const token = getToken();
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
   };
-  
+
   if (token) {
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
-  
-  // Указываем чтобы максимально использовать cookies
+
+  // credentials: 'include' - передавать cookies даже на разные origins (нужно для CORS)
   const fetchOptions: RequestInit = {
     ...options,
     headers,
-    credentials: 'same-origin' // На одном домене - всегда передавать cookies
+    credentials: 'include'
   };
-  
+
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
-  
+
   // Handle 401 Unauthorized - clear token and redirect (только для защищённых маршрутов)
   if (response.status === 401) {
-    clearToken();
+    if (!skipAuthCleanup) {
+      clearToken();
+    }
     // Не редиректим сразу - пусть компонент сам решит что делать
     throw new Error('Unauthorized');
   }
-  
+
   const data = await response.json();
-  
+
   if (!response.ok) {
     throw new Error(data.error || data.message || 'API Error');
   }
@@ -81,20 +98,20 @@ export const apiUpload = async <T>(
   fieldName: string = 'file'
 ): Promise<T> => {
   const token = getToken();
-  
+
   const formData = new FormData();
   formData.append(fieldName, file);
-  
+
   const headers: HeadersInit = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   const response = await fetch(`${API_URL}${endpoint}`, {
     method: 'POST',
     headers,
     body: formData,
-    credentials: 'same-origin',
+    credentials: 'include',
   });
   
   if (response.status === 401) {
@@ -111,62 +128,43 @@ export const apiUpload = async <T>(
   return data as T;
 };
 
-// Auth API
-export const authAPI = {
-  login: async (username: string, password: string) => {
-    const data = await apiCall<{ token: string; user: { id: number; username: string; role: string } }>(  
-      '/auth/login',
-      {
-        method: 'POST',
-        body: JSON.stringify({ username, password }),
-      }
+export interface VideoUploadJob {
+  id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  result?: {
+    videoUrl: string;
+    thumbnailUrl: string;
+  };
+  error?: string;
+}
+
+export const uploadVideoForNews = async (file: File): Promise<{ videoUrl: string; thumbnailUrl: string }> => {
+  const startResponse = await apiUpload<{ success: boolean; jobId: string }>(
+    '/upload/video',
+    file,
+    'video'
+  );
+
+  const maxAttempts = 120;
+  const delayMs = 1000;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const statusResponse = await apiCall<{ success: boolean; job: VideoUploadJob }>(
+      `/upload/video/status/${startResponse.jobId}`
     );
-    setToken(data.token);
-    setStoredUser(data.user);
-    return data;
-  },
-  
-  logout: async () => {
-    try {
-      await apiCall('/auth/logout', {
-        method: 'POST',
-      });
-    } catch (error) {
-      console.log('Logout API error (expected if not authenticated):', error);
-    } finally {
-      clearToken();
+
+    if (statusResponse.job.status === 'completed' && statusResponse.job.result) {
+      return statusResponse.job.result;
     }
-  },
-  
-  verify: async () => {
-    // Специальная функция для проверки без редиректа
-    try {
-      const token = getToken();
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`${API_URL}/auth/verify`, {
-        method: 'POST',
-        headers,
-        credentials: 'same-origin',
-      });
-      
-      // Если 401 - просто возвращаем false, не редиректим
-      if (response.status === 401) {
-        return { valid: false };
-      }
-      
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return { valid: false };
+
+    if (statusResponse.job.status === 'failed') {
+      throw new Error(statusResponse.job.error || 'Ошибка обработки видео');
     }
-  },
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  throw new Error('Превышено время ожидания обработки видео');
 };
 
 // News types
@@ -339,26 +337,6 @@ export interface UserCreateInput {
   role: 'admin' | 'author';
 }
 
-// Users API
-export const usersAPI = {
-  getList: () => apiCall<User[]>('/users'),
-  getById: (id: number) => apiCall<User>(`/users/${id}`),
-  create: (data: UserCreateInput) =>
-    apiCall<User>('/users', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  update: (id: number, data: { password?: string; role?: 'admin' | 'author' }) =>
-    apiCall<User>(`/users/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  delete: (id: number) =>
-    apiCall<{ success: boolean; message: string }>(`/users/${id}`, {
-      method: 'DELETE',
-    }),
-};
-
 // Stats types
 export interface StatsOverview {
   total_news_views: number;
@@ -387,10 +365,254 @@ export const statsAPI = {
     apiCall<{ success: boolean }>(`/stats/view/news/${newsId}`, {
       method: 'POST',
     }),
-  
+
   getOverview: () => apiCall<StatsOverview>('/stats/overview'),
-  
+
   getNewsViews: () => apiCall<NewsViewStats[]>('/stats/news-views'),
-  
+
   getPageVisits: () => apiCall<PageVisitStats[]>('/stats/page-visits'),
+};
+
+// ============================================
+// Registration & Auth API
+// ============================================
+
+export interface RegisterInput {
+  username: string;        // Ник в Арене (для входа и отображения)
+  password: string;
+  characterUrl: string;    // Ссылка на персонажа (обязательно)
+}
+
+export interface LoginInput {
+  username: string;        // Ник в Арене
+  password: string;
+}
+
+export interface UserWithProfile {
+  id: number;
+  username: string;
+  role: string;
+  email?: string;
+  displayName?: string;
+  display_name?: string;
+  arena_nickname?: string;
+  is_active?: number;
+  is_verified?: boolean;
+}
+
+export const authAPI = {
+  login: (data: LoginInput) =>
+    apiCall<{ token: string; user: UserWithProfile }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  register: (data: RegisterInput) =>
+    apiCall<{ success: boolean; verificationToken?: string; user: UserWithProfile }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verifyCharacter: (token: string) =>
+    apiCall<{ success: boolean }>('/auth/verify-character', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+
+  resetPasswordRequest: (data: { username: string; characterUrl: string }) =>
+    apiCall<{ success: boolean; resetToken?: string }>('/auth/reset-password-request', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    apiCall<{ success: boolean }>(`/auth/reset-password/${token}`, {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+
+  logout: () =>
+    apiCall<{ success: boolean }>('/auth/logout', {
+      method: 'POST',
+    }),
+
+  getCurrentUser: () => apiCall<{ user: UserWithProfile }>('/auth/me', {}, true), // Не очищать токен при ошибке
+
+  verifyToken: () => apiCall<{ valid: boolean; user: UserWithProfile }>('/auth/verify-token', { method: 'POST' }, true), // Не очищать токен при ошибке - это фоновая проверка
+};
+
+// ============================================
+// Comments API
+// ============================================
+
+export interface Comment {
+  id: number;
+  news_id: number;
+  user_id: number;
+  parent_id?: number;
+  content: string;
+  is_deleted: boolean;
+  is_hidden: boolean;
+  hidden_by?: number;
+  hidden_at?: string;
+  hidden_reason?: string;
+  edited_at?: string;
+  created_at: string;
+  author_username: string;
+  author_display_name?: string;
+  author_arena_nickname?: string;
+  author_character_url?: string;
+}
+
+export interface CommentsResponse {
+  comments: Comment[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export const commentsAPI = {
+  getByNewsId: (newsId: number, page = 1, limit = 20) =>
+    apiCall<CommentsResponse>(`/comments?newsId=${newsId}&page=${page}&limit=${limit}`),
+
+  create: (newsId: number, content: string, parentId?: number) =>
+    apiCall<{ success: boolean; comment: Comment }>('/comments', {
+      method: 'POST',
+      body: JSON.stringify({ newsId, content, parentId }),
+    }),
+
+  update: (id: number, content: string) =>
+    apiCall<{ success: boolean; comment: Comment }>(`/comments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    }),
+
+  delete: (id: number) =>
+    apiCall<{ success: boolean; comment: Comment }>(`/comments/${id}`, {
+      method: 'DELETE',
+    }),
+
+  hide: (id: number, reason?: string) =>
+    apiCall<{ success: boolean; comment: Comment }>(`/comments/${id}/hide`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    }),
+
+  restore: (id: number) =>
+    apiCall<{ success: boolean; comment: Comment }>(`/comments/${id}/restore`, {
+      method: 'PATCH',
+    }),
+
+  getHistory: (id: number) =>
+    apiCall<{ success: boolean; history: any[] }>(`/comments/${id}/history`),
+
+  report: (id: number, reason: string) =>
+    apiCall<{ success: boolean; report: any }>(`/comments/${id}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+};
+
+// ============================================
+// Reports API (Admin)
+// ============================================
+
+export interface CommentReport {
+  id: number;
+  comment_id: number;
+  user_id: number;
+  reason: string;
+  status: 'pending' | 'reviewed' | 'resolved' | 'rejected';
+  reviewed_by?: number;
+  reviewed_at?: string;
+  created_at: string;
+  comment_content?: string;
+  reporter_username?: string;
+}
+
+export interface ReportsResponse {
+  reports: CommentReport[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export const reportsAPI = {
+  getAll: (status = 'pending', page = 1, limit = 20) =>
+    apiCall<ReportsResponse>(`/reports?status=${status}&page=${page}&limit=${limit}`),
+
+  getPendingCount: () => apiCall<{ count: number }>('/reports/pending-count'),
+
+  getById: (id: number) => apiCall<{ success: boolean; report: CommentReport }>(`/reports/${id}`),
+
+  updateStatus: (id: number, status: 'pending' | 'reviewed' | 'resolved' | 'rejected') =>
+    apiCall<{ success: boolean; report: CommentReport }>(`/reports/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  bulkAction: (reportIds: number[], action: string, status?: string) =>
+    apiCall<{ success: boolean; results: any[] }>('/reports/bulk-action', {
+      method: 'POST',
+      body: JSON.stringify({ reportIds, action, status }),
+    }),
+};
+
+// ============================================
+// Users API (Extended for Admin)
+// ============================================
+
+export interface UserWithProfileExtended extends UserWithProfile {
+  created_at: string;
+  updated_at: string;
+  email_verified?: boolean;
+  email?: string;
+  display_name?: string;
+  arena_nickname?: string;
+}
+
+export interface BanInfo {
+  id: number;
+  user_id: number;
+  banned_by?: number;
+  ban_reason?: string;
+  ban_start: string;
+  ban_end?: string;
+  is_permanent: number;
+  is_active: number;
+  banned_by_username?: string;
+}
+
+export const usersAPI = {
+  getList: () => apiCall<UserWithProfileExtended[]>('/users'),
+  getById: (id: number) => apiCall<UserWithProfileExtended>(`/users/${id}`),
+  getBanInfo: (id: number) => apiCall<{ success: boolean; ban?: BanInfo }>(`/users/${id}/ban`),
+  create: (data: { username: string; password: string; role: string }) =>
+    apiCall<UserWithProfileExtended>('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: { username?: string; email?: string; password?: string; role?: string; arenaNickname?: string; characterUrl?: string }) =>
+    apiCall<UserWithProfileExtended>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  ban: (id: number, data: { banDuration: string; reason?: string }) =>
+    apiCall<{ success: boolean; message: string; ban?: BanInfo }>(`/users/${id}/ban`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  unban: (id: number) =>
+    apiCall<{ success: boolean; message: string }>(`/users/${id}/unban`, {
+      method: 'POST',
+    }),
+  permanentDelete: (id: number) =>
+    apiCall<{ success: boolean; message: string }>(`/users/${id}`, {
+      method: 'DELETE',
+    }),
+  resetPassword: (id: number, newPassword: string) =>
+    apiCall<{ success: boolean; message: string }>(`/users/${id}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    }),
 };

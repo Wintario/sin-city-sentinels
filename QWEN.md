@@ -1,0 +1,2 @@
+## Qwen Added Memories
+- Импорт персонажа и вставка изображения из kovcheg2.apeha.ru: backend использует curl для загрузки HTML, конвертирует Windows-1251 в UTF-8 через iconv-lite, обрабатывает JavaScript редиректы (location.href) с относительными и абсолютными URL. Парсинг данных: ник и уровень из <title>, клан из <td class="writer">Состоит</td>, изображение персонажа из <div style="background: url('...pers/N_NNNN.gif')">.

@@ -16,6 +16,9 @@ import aboutCardsRoutes from './src/routes/aboutCardsRoutes.js';
 import statsRoutes from './src/routes/statsRoutes.js';
 import uploadRoutes from './src/routes/uploadRoutes.js';
 import proxyRoutes from './src/routes/proxyRoutes.js';
+import commentRoutes from './src/routes/commentRoutes.js';
+import reportRoutes from './src/routes/reportRoutes.js';
+import commentAdminRoutes from './src/routes/commentAdminRoutes.js';
 import { initDatabase } from './src/db/db.js';
 import { initUploadDirectories } from './src/utils/fileUtils.js';
 
@@ -49,6 +52,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https:", "data:"],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://vk.com", "https://rutube.ru"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
@@ -59,11 +63,35 @@ app.use(helmet({
 }));
 
 // CORS настройки
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+// При использовании credentials нельзя указывать '*', нужно явно указать origins
+const corsOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8080', 'http://localhost:5173'];
+const allowAllOrigins = corsOrigins.includes('*');
+
+// Основная CORS конфигурация для всех маршрутов
+const corsOptions = {
+  origin: allowAllOrigins ? '*' : function (origin, callback) {
+    // Разрешить запросы без origin (mobile apps, POST requests)
+    if (!origin) return callback(null, true);
+
+    if (corsOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+
+// Отдельная CORS конфигурация для /api/proxy (разрешаем все origins для публичных данных)
+app.use('/api/proxy', cors({
+  origin: '*',
+  credentials: false,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
 }));
 
 // Парсинг JSON тела запросов
@@ -83,6 +111,9 @@ app.use('/api/', apiLimiter);
 
 // API маршруты
 app.use('/api/auth', authRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/comments', commentAdminRoutes);
+app.use('/api/reports', reportRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/members', membersRoutes);
 app.use('/api/users', usersRoutes);
@@ -126,11 +157,71 @@ app.use(errorHandler);
 
 // Запуск сервера
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🐰 Sin City Sentinels backend running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`📍 API info: http://localhost:${PORT}/api`);
   console.log(`\n🔒 Environment: ${process.env.NODE_ENV || 'development'}\n`);
 });
 
+// Обработка сигналов завершения для корректного закрытия сервера
+// Проверка PID защищает от случайного завершения процесса
+let isShuttingDown = false;
+
+async function gracefulShutdown(signal) {
+  // Защита от повторного вызова
+  if (isShuttingDown) {
+    console.log('⚠️  Уже выполняется завершение работы, игнорируем повторный сигнал');
+    return;
+  }
+  isShuttingDown = true;
+  
+  console.log(`\n📶 Получен сигнал ${signal} (PID: ${process.pid}). Корректное завершение работы...`);
+
+  server.close(async (err) => {
+    if (err) {
+      console.error('❌ Ошибка при закрытии сервера:', err);
+      process.exit(1);
+    }
+
+    console.log('✅ Сервер остановлен');
+
+    // Закрываем соединения с базой данных если есть
+    try {
+      const { getDatabase } = await import('./src/db/db.js');
+      const db = getDatabase();
+      if (db) {
+        db.close();
+        console.log('✅ База данных закрыта');
+      }
+    } catch (e) {
+      // Игнорируем ошибки при закрытии БД
+    }
+
+    console.log('✅ Завершение работы завершено');
+    process.exit(0);
+  });
+
+  // Принудительное завершение через 10 секунд
+  setTimeout(() => {
+    console.error('⚠️  Принудительное завершение работы (timeout 10s)');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Обработка незапятанных ошибок
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection:', reason);
+  gracefulShutdown('unhandledRejection');
+});
+
 export default app;
+export { server };

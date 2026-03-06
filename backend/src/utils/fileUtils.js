@@ -14,6 +14,9 @@ const __dirname = path.dirname(__filename);
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 const NEWS_IMAGES_DIR = path.join(UPLOADS_DIR, 'news-images');
 const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
+const VIDEOS_DIR = path.join(UPLOADS_DIR, 'videos');
+const VIDEO_THUMBS_DIR = path.join(UPLOADS_DIR, 'video_thumbs');
+const VIDEO_TEMP_DIR = path.join(UPLOADS_DIR, 'video_temp');
 
 // Порог сжатия (если файл больше - сжимаем)
 const COMPRESSION_THRESHOLD = 1 * 1024 * 1024; // 1 MB
@@ -40,6 +43,9 @@ export const initUploadDirectories = () => {
   ensureDirectoryExists(UPLOADS_DIR);
   ensureDirectoryExists(NEWS_IMAGES_DIR);
   ensureDirectoryExists(AVATARS_DIR);
+  ensureDirectoryExists(VIDEOS_DIR);
+  ensureDirectoryExists(VIDEO_THUMBS_DIR);
+  ensureDirectoryExists(VIDEO_TEMP_DIR);
   logger.info('Upload directories initialized');
 };
 
@@ -52,6 +58,21 @@ export const getNewsImagesDir = () => NEWS_IMAGES_DIR;
  * Получить полный путь к директории аватарок
  */
 export const getAvatarsDir = () => AVATARS_DIR;
+
+/**
+ * РџРѕР»СѓС‡РёС‚СЊ РїРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє РґРёСЂРµРєС‚РѕСЂРёРё РІРёРґРµРѕ
+ */
+export const getVideosDir = () => VIDEOS_DIR;
+
+/**
+ * РџРѕР»СѓС‡РёС‚СЊ РїРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє РґРёСЂРµРєС‚РѕСЂРёРё thumbnail РІРёРґРµРѕ
+ */
+export const getVideoThumbsDir = () => VIDEO_THUMBS_DIR;
+
+/**
+ * РџРѕР»СѓС‡РёС‚СЊ РїРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє РІСЂРµРјРµРЅРЅРѕР№ РґРёСЂРµРєС‚РѕСЂРёРё РІРёРґРµРѕ
+ */
+export const getVideoTempDir = () => VIDEO_TEMP_DIR;
 
 /**
  * Получить публичный URL для файла
@@ -226,6 +247,9 @@ export default {
   initUploadDirectories,
   getNewsImagesDir,
   getAvatarsDir,
+  getVideosDir,
+  getVideoThumbsDir,
+  getVideoTempDir,
   getPublicUrl,
   fileExists,
   deleteFile,

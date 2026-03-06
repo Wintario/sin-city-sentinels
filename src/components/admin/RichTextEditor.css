@@ -34,25 +34,6 @@
   }
 }
 
-/* Индикатор текущего формата */
-.editor-content-wrapper::before {
-  content: 'Широкая (65%)';
-  position: absolute;
-  top: -1.5rem;
-  right: 0;
-  font-size: 0.75rem;
-  color: hsl(var(--muted-foreground));
-  transition: content 0.3s ease;
-}
-
-.editor-content-wrapper.max-w-narrow::before {
-  content: 'Узкая (30%)';
-}
-
-.editor-content-wrapper.max-w-wide::before {
-  content: 'Широкая (65%)';
-}
-
 .editor-toolbar {
   border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--muted) / 0.3);

@@ -1,13 +1,26 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Menu, X, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getStoredUser, clearToken, isAuthenticated } from '@/lib/api';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 interface NavigationProps {
   onHover: (isHovering: boolean) => void;
 }
 
 const Navigation = ({ onHover }: NavigationProps) => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const user = getStoredUser();
+  const loggedIn = isAuthenticated();
 
   const navItems = [
     { label: 'О нас', href: '#about', isExternal: false },
@@ -18,6 +31,12 @@ const Navigation = ({ onHover }: NavigationProps) => {
 
   const handleMouseEnter = () => onHover(true);
   const handleMouseLeave = () => onHover(false);
+
+  const handleLogout = () => {
+    clearToken();
+    toast.success('Вы вышли из системы');
+    navigate('/');
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
@@ -52,6 +71,47 @@ const Navigation = ({ onHover }: NavigationProps) => {
                 </a>
               )
             ))}
+
+            {/* Auth Button */}
+            {loggedIn ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <UserIcon className="h-4 w-4" />
+                    {user?.displayName || user?.username || 'Профиль'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <UserIcon className="h-4 w-4 mr-2" />
+                    Профиль
+                  </DropdownMenuItem>
+                  {(user?.role === 'admin' || user?.role === 'author') && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        Перейти в админку
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Выйти
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/auth')}
+                className="gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                Войти
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}

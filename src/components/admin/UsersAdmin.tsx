@@ -1,328 +1,625 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { usersAPI, reportsAPI, UserWithProfileExtended, BanInfo } from '@/lib/api';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { usersAPI, User } from '@/lib/api';
-import { Trash2, Edit, Plus, ArrowLeft, Shield, PenTool, Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, MoreVertical, Edit, Trash2, KeyRound, Shield, UserX, CheckCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-const UsersAdmin = () => {
-  const [users, setUsers] = useState<User[]>([]);
+interface UsersAdminProps {
+  isAdminUser: boolean;
+}
+
+const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<UserWithProfileExtended[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    role: 'author' as 'admin' | 'author',
-  });
-  const [error, setError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
 
-  const loadUsers = async () => {
-    try {
-      setIsLoading(true);
-      const data = await usersAPI.getList();
-      setUsers(data);
-    } catch (err: any) {
-      console.error('Error loading users:', err);
-      // Показываем более понятную ошибку
-      if (err.message?.includes('404')) {
-        toast.error('Endpoint /api/users не найден. Проверьте backend.');
-      } else {
-        toast.error(err.message || 'Ошибка загрузки администраторов');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [editingUser, setEditingUser] = useState<UserWithProfileExtended | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBanDialog, setShowBanDialog] = useState(false);
+  const [userForAction, setUserForAction] = useState<UserWithProfileExtended | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [banDuration, setBanDuration] = useState('1h');
+  const [banReason, setBanReason] = useState('');
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [banInfoMap, setBanInfoMap] = useState<Map<number, BanInfo>>(new Map());
 
   useEffect(() => {
     loadUsers();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Валидация
-    if (!editingUser) {
-      if (!formData.username || formData.username.length < 2) {
-        setError('Имя пользователя должно быть минимум 2 символа');
-        return;
-      }
-      if (!formData.password || formData.password.length < 4) {
-        setError('Пароль должен быть минимум 4 символа');
-        return;
-      }
-    }
-
-    setIsSaving(true);
+  const loadUsers = async () => {
+    setIsLoading(true);
     try {
-      if (editingUser) {
-        // Обновление
-        const updateData: { password?: string; role?: 'admin' | 'author' } = { 
-          role: formData.role 
-        };
-        if (formData.password && formData.password.length >= 4) {
-          updateData.password = formData.password;
+      const data = await usersAPI.getList();
+      setUsers(data);
+      
+      // Загружаем информацию о банах для всех пользователей
+      const banMap = new Map<number, BanInfo>();
+      for (const user of data) {
+        try {
+          const banResponse = await usersAPI.getBanInfo(user.id);
+          if (banResponse.ban) {
+            banMap.set(user.id, banResponse.ban);
+          }
+        } catch (e) {
+          // У пользователя нет активного бана
         }
-        await usersAPI.update(editingUser.id, updateData);
-        toast.success('Администратор обновлён');
-      } else {
-        // Создание
-        await usersAPI.create({
-          username: formData.username.trim(),
-          password: formData.password,
-          role: formData.role,
-        });
-        toast.success('Администратор создан');
       }
-
-      setFormData({ username: '', password: '', role: 'author' });
-      setShowForm(false);
-      setEditingUser(null);
-      await loadUsers();
-    } catch (err: any) {
-      // Понятные ошибки
-      let message = err.message || 'Ошибка при сохранении';
-      if (message.includes('already exists') || message.includes('UNIQUE')) {
-        message = 'Пользователь с таким именем уже существует';
-      } else if (message.includes('404')) {
-        message = 'Endpoint не найден. Проверьте backend.';
-      }
-      setError(message);
+      setBanInfoMap(banMap);
+    } catch (error: any) {
+      toast.error('Не удалось загрузить пользователей');
+      console.error(error);
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
-  const handleEdit = (user: User) => {
+  const handleEdit = (user: UserWithProfileExtended) => {
     setEditingUser(user);
-    setFormData({
-      username: user.username,
-      password: '',
-      role: user.role,
-    });
-    setError('');
-    setShowForm(true);
+    setShowEditDialog(true);
   };
 
-  const handleDelete = async (user: User) => {
-    // Проверка что не удаляем последнего админа
-    const adminCount = users.filter(u => u.role === 'admin').length;
-    if (user.role === 'admin' && adminCount <= 1) {
-      toast.error('Нельзя удалить последнего администратора');
+  const handleSaveEdit = async () => {
+    if (!editingUser) return;
+
+    setIsActionLoading(true);
+    try {
+      await usersAPI.update(editingUser.id, {
+        username: editingUser.username,
+        email: editingUser.email,
+        arenaNickname: editingUser.arena_nickname,
+        role: editingUser.role,
+      });
+      toast.success('Пользователь обновлён');
+      setShowEditDialog(false);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || 'Ошибка обновления');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!userForAction) return;
+
+    setIsActionLoading(true);
+    try {
+      await usersAPI.permanentDelete(userForAction.id);
+      toast.success('Пользователь полностью удалён');
+      setShowDeleteDialog(false);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || 'Ошибка удаления');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleBan = async () => {
+    if (!userForAction) return;
+
+    setIsActionLoading(true);
+    try {
+      await usersAPI.ban(userForAction.id, {
+        banDuration,
+        reason: banReason || undefined
+      });
+      toast.success(banDuration === 'permanent' ? 'Пользователь забанен навсегда' : `Пользователь забанен`);
+      setShowBanDialog(false);
+      setBanDuration('1h');
+      setBanReason('');
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || 'Ошибка бана');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleUnban = async (userId: number) => {
+    setIsActionLoading(true);
+    try {
+      await usersAPI.unban(userId);
+      toast.success('Пользователь разбанен');
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || 'Ошибка разбана');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!userForAction || !newPassword) {
+      toast.error('Введите новый пароль');
       return;
     }
 
-    if (!confirm(`Удалить администратора "${user.username}"?`)) return;
+    if (newPassword.length < 6) {
+      toast.error('Пароль должен быть не менее 6 символов');
+      return;
+    }
 
+    setIsActionLoading(true);
     try {
-      await usersAPI.delete(user.id);
-      toast.success('Администратор удалён');
-      await loadUsers();
-    } catch (err: any) {
-      toast.error(err.message || 'Ошибка при удалении');
+      await usersAPI.resetPassword(userForAction.id, newPassword);
+      toast.success('Пароль сброшен');
+      setShowResetPassword(false);
+      setNewPassword('');
+    } catch (error: any) {
+      toast.error(error.message || 'Ошибка сброса пароля');
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingUser(null);
-    setFormData({ username: '', password: '', role: 'author' });
-    setError('');
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.arena_nickname?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    
+    return matchesSearch && matchesRole;
+  });
+
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'admin': return 'destructive';
+      case 'author': return 'default';
+      default: return 'secondary';
+    }
   };
 
-  // Проверка можно ли удалить пользователя
-  const canDelete = (user: User) => {
-    if (user.role !== 'admin') return true;
-    const adminCount = users.filter(u => u.role === 'admin').length;
-    return adminCount > 1;
-  };
-
-  if (showForm) {
+  if (isLoading) {
     return (
-      <div>
-        <button
-          onClick={handleCancel}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft size={20} />
-          <span>Назад к списку</span>
-        </button>
-
-        <h2 className="text-xl font-semibold mb-6">
-          {editingUser ? 'Редактирование администратора' : 'Новый администратор'}
-        </h2>
-
-        {error && (
-          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">
-              Имя пользователя
-            </label>
-            <Input
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              disabled={!!editingUser}
-              placeholder="Логин"
-              required={!editingUser}
-              minLength={2}
-              maxLength={50}
-            />
-            {editingUser && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Имя пользователя нельзя изменить
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">
-              Пароль {editingUser && '(оставьте пустым, чтобы не менять)'}
-            </label>
-            <Input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder={editingUser ? 'Новый пароль (опционально)' : 'Пароль'}
-              required={!editingUser}
-              minLength={editingUser ? 0 : 4}
-              maxLength={100}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">
-              Роль
-            </label>
-            <Select
-              value={formData.role}
-              onValueChange={(value: 'admin' | 'author') => setFormData({ ...formData, role: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="author">
-                  <div className="flex items-center gap-2">
-                    <PenTool className="w-4 h-4" />
-                    Author (редактирование контента)
-                  </div>
-                </SelectItem>
-                <SelectItem value="admin">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Admin (полный доступ)
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" disabled={isSaving}>
-              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingUser ? 'Сохранить' : 'Создать'}
-            </Button>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              Отмена
-            </Button>
-          </div>
-        </form>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">Управление администраторами</h2>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить администратора
-        </Button>
-      </div>
-
-      <div className="mb-4 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-        <p>💡 <strong>Admin</strong> - полный доступ ко всем разделам</p>
-        <p>💡 <strong>Author</strong> - может редактировать новости и участников</p>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">{isAdminUser ? 'Пользователи' : 'Просмотр пользователей'}</h1>
+          <p className="text-muted-foreground mt-1">
+            {isAdminUser
+              ? 'Управление зарегистрированными пользователями'
+              : 'Просмотр списка пользователей (только для администраторов)'}
+          </p>
         </div>
-      ) : users.length === 0 ? (
-        <p className="text-muted-foreground">Администраторов нет</p>
-      ) : (
-        <div className="space-y-3">
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className={`flex items-center justify-between p-4 rounded-lg border ${
-                user.role === 'admin' 
-                  ? 'bg-red-500/5 border-red-500/20' 
-                  : 'bg-muted/50 border-border'
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  user.role === 'admin' ? 'bg-red-500/20' : 'bg-blue-500/20'
-                }`}>
-                  {user.role === 'admin' ? (
-                    <Shield className="w-5 h-5 text-red-500" />
-                  ) : (
-                    <PenTool className="w-5 h-5 text-blue-500" />
-                  )}
-                </div>
-                
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{user.username}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      user.role === 'admin' 
-                        ? 'bg-red-500/20 text-red-500' 
-                        : 'bg-blue-500/20 text-blue-500'
-                    }`}>
-                      {user.role === 'admin' ? 'Admin' : 'Author'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Создан: {new Date(user.created_at).toLocaleDateString('ru-RU')}
-                  </p>
-                </div>
+        {isAdminUser && (
+          <Button onClick={() => navigate('/admin/reports')}>
+            Перейти к жалобам
+          </Button>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <Input
+            placeholder="Поиск по email, нику..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Все роли" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все роли</SelectItem>
+            <SelectItem value="admin">Админ</SelectItem>
+            <SelectItem value="author">Автор</SelectItem>
+            <SelectItem value="user">Пользователь</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Users Table */}
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Ник в Арене</TableHead>
+              <TableHead>Роль</TableHead>
+              <TableHead>Верификация</TableHead>
+              <TableHead>Дата регистрации</TableHead>
+              <TableHead className="w-[80px]">Действия</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Пользователи не найдены
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{user.username}</div>
+                      {user.display_name && user.display_name !== user.username && (
+                        <div className="text-sm text-muted-foreground">{user.display_name}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {user.arena_nickname || (
+                      <span className="text-muted-foreground">Не указан</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {banInfoMap.has(user.id) ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="destructive" className="bg-red-600">
+                              <Shield className="h-3 w-3 mr-1" />
+                              Забанен
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            {(() => {
+                              const ban = banInfoMap.get(user.id);
+                              if (!ban) return null;
+                              if (ban.is_permanent) {
+                                return (
+                                  <div>
+                                    <p>Навсегда</p>
+                                    {ban.ban_reason && <p className="text-xs text-muted-foreground mt-1">Причина: {ban.ban_reason}</p>}
+                                  </div>
+                                );
+                              }
+                              const banEnd = ban.ban_end ? new Date(ban.ban_end).toLocaleString('ru-RU') : 'Неизвестно';
+                              return (
+                                <div>
+                                  <p>До: {banEnd}</p>
+                                  {ban.ban_reason && <p className="text-xs text-muted-foreground mt-1">Причина: {ban.ban_reason}</p>}
+                                </div>
+                              );
+                            })()}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                        {user.role === 'admin' ? 'Админ' :
+                         user.role === 'author' ? 'Автор' : 'Пользователь'}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {user.email_verified ? (
+                      <Badge variant="outline" className="bg-green-500/10 text-green-700">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Верифицирован
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700">
+                        Не верифицирован
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(user.created_at).toLocaleDateString('ru-RU')}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {isAdminUser && (
+                          <DropdownMenuItem onClick={() => handleEdit(user)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Редактировать
+                          </DropdownMenuItem>
+                        )}
+                        {isAdminUser && (
+                          <DropdownMenuItem onClick={() => {
+                            setUserForAction(user);
+                            setShowResetPassword(true);
+                          }}>
+                            <KeyRound className="h-4 w-4 mr-2" />
+                            Сбросить пароль
+                          </DropdownMenuItem>
+                        )}
+                        {isAdminUser && banInfoMap.has(user.id) && (
+                          <DropdownMenuItem
+                            onClick={() => handleUnban(user.id)}
+                            className="text-green-600"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Разбанить
+                          </DropdownMenuItem>
+                        )}
+                        {isAdminUser && !banInfoMap.has(user.id) && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setUserForAction(user);
+                              setShowBanDialog(true);
+                            }}
+                            className="text-yellow-600"
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            Забанить
+                          </DropdownMenuItem>
+                        )}
+                        {isAdminUser && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setUserForAction(user);
+                              setShowDeleteDialog(true);
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Удалить навсегда
+                          </DropdownMenuItem>
+                        )}
+                        {!isAdminUser && (
+                          <DropdownMenuItem disabled>
+                            <Shield className="h-4 w-4 mr-2" />
+                            Только для админов
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактирование пользователя</DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={editingUser.email || ''}
+                  onChange={(e) =>
+                    setEditingUser({ ...editingUser, email: e.target.value })
+                  }
+                  placeholder="user@example.com"
+                />
               </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(user)}
+              <div>
+                <Label>Ник в Арене (логин)</Label>
+                <Input
+                  value={editingUser.username}
+                  onChange={(e) =>
+                    setEditingUser({ ...editingUser, username: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Отображаемое имя</Label>
+                <Input
+                  value={editingUser.arena_nickname || ''}
+                  onChange={(e) =>
+                    setEditingUser({ ...editingUser, arena_nickname: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Роль</Label>
+                <Select
+                  value={editingUser.role}
+                  onValueChange={(value) =>
+                    setEditingUser({ ...editingUser, role: value })
+                  }
                 >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(user)}
-                  disabled={!canDelete(user)}
-                  title={!canDelete(user) ? 'Нельзя удалить последнего админа' : undefined}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Пользователь</SelectItem>
+                    <SelectItem value="author">Автор</SelectItem>
+                    <SelectItem value="admin">Админ</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isActionLoading}>
+              {isActionLoading ? 'Сохранение...' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={showResetPassword} onOpenChange={setShowResetPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Сброс пароля</DialogTitle>
+          </DialogHeader>
+          {userForAction && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Сброс пароля для пользователя <strong>{userForAction.username}</strong>
+              </p>
+              <div>
+                <Label htmlFor="new-password">Новый пароль</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Минимум 6 символов"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowResetPassword(false);
+              setNewPassword('');
+            }}>
+              Отмена
+            </Button>
+            <Button onClick={handleResetPassword} disabled={isActionLoading || !newPassword}>
+              {isActionLoading ? 'Сброс...' : 'Сбросить пароль'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить пользователя НАВСЕГДА?</AlertDialogTitle>
+            <AlertDialogDescription className="text-red-600">
+              Это действие НЕОБРАТИМО! Пользователь{' '}
+              <strong>{userForAction?.username}</strong> будет полностью удалён из базы данных.
+              <br /><br />
+              Все данные будут удалены безвозвратно (комментарии, профиль, настройки).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isActionLoading}>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isActionLoading} className="bg-red-600 hover:bg-red-700">
+              {isActionLoading ? 'Удаление...' : 'Удалить навсегда'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Ban Dialog */}
+      <Dialog open={showBanDialog} onOpenChange={setShowBanDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Забанить пользователя</DialogTitle>
+            <DialogDescription>
+              Выберите срок блокировки для пользователя <strong>{userForAction?.username}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          {userForAction && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Срок бана</Label>
+                <Select value={banDuration} onValueChange={setBanDuration}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1h">1 час</SelectItem>
+                    <SelectItem value="1d">1 день</SelectItem>
+                    <SelectItem value="3d">3 дня</SelectItem>
+                    <SelectItem value="7d">7 дней</SelectItem>
+                    <SelectItem value="30d">30 дней</SelectItem>
+                    <SelectItem value="permanent">Навсегда</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ban-reason">Причина (опционально)</Label>
+                <Input
+                  id="ban-reason"
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Например: нарушение правил"
+                  disabled={isActionLoading}
+                />
+              </div>
+              {banDuration !== 'permanent' && (
+                <p className="text-xs text-muted-foreground">
+                  После истечения срока бан автоматически снимется
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowBanDialog(false);
+              setBanDuration('1h');
+              setBanReason('');
+            }} disabled={isActionLoading}>
+              Отмена
+            </Button>
+            <Button onClick={handleBan} disabled={isActionLoading} variant={banDuration === 'permanent' ? 'destructive' : 'default'}>
+              {isActionLoading ? 'Бан...' : (banDuration === 'permanent' ? 'Забанить навсегда' : 'Забанить')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

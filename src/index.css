@@ -401,3 +401,62 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(0 100% 60%);
 }
+
+/* Blockquote styles for comments */
+.comment-content blockquote,
+div.prose blockquote {
+  border-left: 3px solid hsl(var(--primary)) !important;
+  padding: 0.5rem 0.75rem !important;
+  margin: 0.35rem 0 !important;
+  color: hsl(var(--foreground) / 0.85) !important;
+  font-style: italic !important;
+  background-color: hsl(var(--foreground) / 0.12) !important;
+  border-radius: 4px !important;
+  display: block !important;
+  font-size: 0.92em !important;
+  line-height: 1.35 !important;
+}
+
+.comment-content blockquote strong,
+div.prose blockquote strong {
+  color: hsl(var(--primary)) !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  display: block !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.comment-content blockquote p,
+div.prose blockquote p {
+  display: block !important;
+  margin: 0 !important;
+  font-style: normal !important;
+  font-size: 0.95em !important;
+}
+
+/* Comment content styles */
+.prose blockquote + p,
+.prose blockquote + div {
+  margin-top: 0.35rem;
+}
+
+/* Comment text area styling */
+.comment-content {
+  background-color: hsl(var(--foreground) / 0.06);
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.comment-content p {
+  margin: 0.2rem 0 !important;
+}
+
+.comment-content > :first-child {
+  margin-top: 0 !important;
+}
+
+.comment-content > :last-child {
+  margin-bottom: 0 !important;
+}

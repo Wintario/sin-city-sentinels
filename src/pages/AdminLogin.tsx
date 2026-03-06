@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { authAPI } from '@/lib/api';
+import { authAPI, setToken, setStoredUser } from '@/lib/api';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -16,13 +16,15 @@ const AdminLogin = () => {
     setIsLoading(true);
 
     try {
-      await authAPI.login(username, password);
+      const response = await authAPI.login({ username, password });
+      setToken(response.token);
+      setStoredUser(response.user);
       toast.success('Вход выполнен успешно');
       navigate('/admin');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Ошибка входа';
-      toast.error(message === 'Invalid username or password' 
-        ? 'Неверный логин или пароль' 
+      toast.error(message === 'Invalid username or password'
+        ? 'Неверный логин или пароль'
         : message);
     } finally {
       setIsLoading(false);

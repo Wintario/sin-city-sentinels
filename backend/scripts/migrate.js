@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import bcrypt from 'bcrypt';
-import { mkdirSync, existsSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -291,6 +291,83 @@ insertSetting.run('background_url', '/images/hero-rabbit.png');
 insertSetting.run('bg_color', '#1a1a1a');
 insertSetting.run('bg_opacity', '0.7');
 console.log('  ✅ Background settings initialized');
+
+// ============================================
+// Миграция 002: Система комментариев
+// ============================================
+
+console.log('\n📋 Running migration 002: Comments system...\n');
+
+// Функция для выполнения SQL миграции
+function runMigration(filePath, description) {
+  if (!existsSync(filePath)) {
+    console.log(`  ⏭️  ${description} file not found`);
+    return;
+  }
+  
+  const sql = readFileSync(filePath, 'utf8');
+  
+  // Разбиваем на statements по ; с учётом многострочных CREATE TABLE
+  const statements = [];
+  let currentStmt = '';
+  let inCreateTable = false;
+  
+  for (const line of sql.split('\n')) {
+    const trimmed = line.trim();
+    
+    // Пропускаем комментарии
+    if (trimmed.startsWith('--') || trimmed.startsWith('/*')) continue;
+    
+    // Пустые строки
+    if (trimmed === '') continue;
+    
+    // Проверяем начало CREATE TABLE
+    if (trimmed.toUpperCase().includes('CREATE TABLE')) {
+      inCreateTable = true;
+    }
+    
+    currentStmt += line + '\n';
+    
+    // Если нашли ; и не внутри CREATE TABLE - это конец statement
+    if (trimmed.endsWith(';') && !inCreateTable) {
+      statements.push(currentStmt.trim());
+      currentStmt = '';
+      inCreateTable = false;
+    }
+    
+    // Если нашли ); в CREATE TABLE - это конец
+    if (inCreateTable && trimmed === ');') {
+      statements.push(currentStmt.trim());
+      currentStmt = '';
+      inCreateTable = false;
+    }
+  }
+  
+  // Выполняем каждый statement
+  let success = 0;
+  let skipped = 0;
+  
+  for (const stmt of statements) {
+    try {
+      db.exec(stmt);
+      success++;
+    } catch (e) {
+      if (e.message.includes('already exists') || e.message.includes('duplicate column')) {
+        skipped++;
+      } else {
+        console.log(`  ⚠️  Error: ${e.message}`);
+        console.log(`     Statement: ${stmt.substring(0, 100)}...`);
+      }
+    }
+  }
+  
+  console.log(`  ✅ ${description}: ${success} executed, ${skipped} skipped`);
+}
+
+runMigration(join(__dirname, '../migrations/002_add_comments_tables.sql'), 'Tables (migration 002)');
+runMigration(join(__dirname, '../migrations/002_add_comments_indexes.sql'), 'Indexes (migration 002)');
+
+console.log('  ✅ Migration 002 completed (comments system)');
 
 // ============================================
 // Завершение

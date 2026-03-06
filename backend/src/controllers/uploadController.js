@@ -2,7 +2,8 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
 import { compressImageIfNeeded, getPublicUrl } from '../utils/fileUtils.js';
-import { MAX_FILE_SIZE, MAX_HEADER_IMAGE_SIZE } from '../middleware/uploadValidator.js';
+import { MAX_FILE_SIZE, MAX_HEADER_IMAGE_SIZE, MAX_VIDEO_SIZE } from '../middleware/uploadValidator.js';
+import { enqueueVideoProcessing, getVideoJobStatus } from '../services/videoProcessingQueue.js';
 
 /**
  * POST /api/upload/image
@@ -108,6 +109,51 @@ export const uploadHeaderImage = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/upload/video
+ * Р—Р°РіСЂСѓР·РёС‚СЊ РІРёРґРµРѕ Рё РїРѕСЃС‚Р°РІРёС‚СЊ РІ РѕС‡РµСЂРµРґСЊ РѕР±СЂР°Р±РѕС‚РєРё
+ */
+export const uploadNewsVideo = asyncHandler(async (req, res) => {
+  logger.info('Upload video request', {
+    user: req.user?.username,
+    file: req.file?.originalname
+  });
+
+  if (!req.file) {
+    throw new ApiError(400, 'РќРµС‚ РІРёРґРµРѕ РґР»СЏ Р·Р°РіСЂСѓР·РєРё');
+  }
+
+  if (req.file.size > MAX_VIDEO_SIZE) {
+    throw new ApiError(400, `Р’РёРґРµРѕ СЃР»РёС€РєРѕРј Р±РѕР»СЊС€РѕРµ. РњР°РєСЃРёРјСѓРј ${MAX_VIDEO_SIZE / 1024 / 1024}MB`);
+  }
+
+  const jobId = enqueueVideoProcessing(req.file.path, req.file.originalname, req.user?.id);
+
+  res.status(202).json({
+    success: true,
+    jobId,
+    message: 'Processing video...'
+  });
+});
+
+/**
+ * GET /api/upload/video/status/:jobId
+ * РџРѕР»СѓС‡РёС‚СЊ СЃС‚Р°С‚СѓСЃ РѕР±СЂР°Р±РѕС‚РєРё РІРёРґРµРѕ
+ */
+export const getVideoUploadStatus = asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+  const job = getVideoJobStatus(jobId);
+
+  if (!job) {
+    throw new ApiError(404, 'Video processing job not found');
+  }
+
+  res.json({
+    success: true,
+    job
+  });
+});
+
+/**
  * DELETE /api/upload/image/:filename
  * Удалить загруженное изображение
  */
@@ -152,5 +198,7 @@ export const deleteImage = asyncHandler(async (req, res) => {
 export default {
   uploadNewsImage,
   uploadHeaderImage,
+  uploadNewsVideo,
+  getVideoUploadStatus,
   deleteImage
 };

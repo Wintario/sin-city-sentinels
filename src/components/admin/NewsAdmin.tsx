@@ -23,13 +23,7 @@ const NewsAdmin = () => {
     try {
       setIsLoading(true);
       const data = await newsAPI.getAdminList();
-      // Сортируем по дате (убывание - новые сверху)
-      const sortedNews = [...data].sort((a, b) => {
-        const dateA = new Date(a.published_at || a.updated_at || a.created_at).getTime();
-        const dateB = new Date(b.published_at || b.updated_at || b.created_at).getTime();
-        return dateB - dateA;
-      });
-      setNews(sortedNews);
+      setNews(data);
     } catch (error) {
       toast.error('Ошибка загрузки новостей');
     } finally {
@@ -134,7 +128,7 @@ const NewsAdmin = () => {
         const result = await newsAPI.reorder(newsIds);
 
         toast.success('Порядок обновлён');
-        loadNews();
+        setNews(result.news);
       }
     } catch (error: any) {
       toast.error(`Ошибка: ${error.message}`);
@@ -355,3 +349,4 @@ const NewsAdmin = () => {
 };
 
 export default NewsAdmin;
+

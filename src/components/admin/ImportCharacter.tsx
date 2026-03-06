@@ -12,7 +12,7 @@ import {
 import { toast } from 'sonner';
 
 // Используем локальный путь к файлу через бэкенд
-const infoIcon = '/static/info.gif';
+const infoIcon = '/info.gif';
 
 interface ImportCharacterProps {
   onImport: (data: CharacterData, iconUrl: string, characterUrl: string) => void;

@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, User, Eye } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Eye, MessageSquare } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RainEffect from '@/components/RainEffect';
 import FilmGrain from '@/components/FilmGrain';
 import { newsAPI, statsAPI, News } from '@/lib/api';
+import { CommentsContainer } from '@/components/comments';
 import heroRabbit from '@/assets/hero-rabbit.png';
 import './NewsDetail.css';
 
@@ -16,6 +17,15 @@ const NewsDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewTracked, setViewTracked] = useState(false);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  const normalizedContent = useMemo(() => {
+    const content = news?.content || '';
+    return content.replace(
+      /&lt;img\s+([^>]*?alt="video:(?:external|upload):[^"]+"[^>]*?)\/?&gt;/gi,
+      (_match, attrs) => `<img ${attrs.trim()} />`
+    );
+  }, [news?.content]);
 
   // Load news from API
   useEffect(() => {
@@ -61,6 +71,101 @@ const NewsDetail = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
+
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root) return;
+
+    const placeholders = root.querySelectorAll('img[alt^="video:"]');
+    placeholders.forEach((imgNode) => {
+      const img = imgNode as HTMLImageElement;
+      const marker = img.alt || '';
+      if (!marker.startsWith('video:')) return;
+
+      let type: 'external' | 'upload' | null = null;
+      let value = '';
+
+      if (marker.startsWith('video:external:')) {
+        type = 'external';
+        value = decodeURIComponent(marker.replace('video:external:', ''));
+      } else if (marker.startsWith('video:upload:')) {
+        type = 'upload';
+        value = decodeURIComponent(marker.replace('video:upload:', ''));
+      }
+
+      if (!type || !value) return;
+
+      const block = document.createElement('div');
+      block.className = 'video-block';
+      block.dataset.videoType = type;
+
+      if (type === 'external') {
+        block.dataset.embed = value;
+      } else {
+        block.dataset.video = value;
+      }
+
+      const thumb = document.createElement('img');
+      thumb.src = img.src;
+      thumb.alt = 'Video preview';
+      thumb.className = 'video-thumb';
+      thumb.loading = 'lazy';
+
+      const play = document.createElement('button');
+      play.type = 'button';
+      play.className = 'video-play';
+      play.setAttribute('aria-label', 'Play video');
+      play.textContent = '▶';
+
+      block.appendChild(thumb);
+      block.appendChild(play);
+      img.replaceWith(block);
+    });
+
+    const handleVideoClick = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      const block = target?.closest('.video-block') as HTMLElement | null;
+      if (!block || block.dataset.loaded === 'true') return;
+
+      const type = block.dataset.videoType;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'video-wrapper';
+
+      if (type === 'external') {
+        const embed = block.dataset.embed;
+        if (!embed) return;
+
+        const iframe = document.createElement('iframe');
+        iframe.src = embed;
+        iframe.allowFullscreen = true;
+        iframe.loading = 'lazy';
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+        wrapper.appendChild(iframe);
+      } else {
+        const videoSrc = block.dataset.video;
+        if (!videoSrc) return;
+
+        const video = document.createElement('video');
+        video.controls = true;
+        video.preload = 'metadata';
+
+        const source = document.createElement('source');
+        source.src = videoSrc;
+        source.type = 'video/mp4';
+        video.appendChild(source);
+        wrapper.appendChild(video);
+      }
+
+      block.innerHTML = '';
+      block.appendChild(wrapper);
+      block.dataset.loaded = 'true';
+      block.classList.add('video-block-loaded');
+    };
+
+    root.addEventListener('click', handleVideoClick);
+    return () => root.removeEventListener('click', handleVideoClick);
+  }, [normalizedContent]);
 
   if (isLoading) {
     return (
@@ -123,7 +228,7 @@ const NewsDetail = () => {
         className="relative z-20 pt-32 pb-24 px-4 min-h-screen cursor-pointer"
         onClick={handleOverlayClick}
       >
-        <div className="container mx-auto max-w-3xl" onClick={(e) => e.stopPropagation()}>
+        <div className="container mx-auto max-w-3xl lg:max-w-6xl" onClick={(e) => e.stopPropagation()}>
           {/* Back Button */}
           <button
             onClick={() => navigate('/')}
@@ -175,7 +280,8 @@ const NewsDetail = () => {
               <div
                 className="font-body text-lg text-noir-dark leading-relaxed news-content"
                 style={{ background: '#ffffff', padding: '1rem' }}
-                dangerouslySetInnerHTML={{ __html: news.content }}
+                ref={contentRef}
+                dangerouslySetInnerHTML={{ __html: normalizedContent }}
               />
             </div>
 
@@ -213,6 +319,11 @@ const NewsDetail = () => {
               </div>
             </footer>
           </article>
+
+          {/* Comments Section */}
+          <div className="mt-12 mb-8">
+            <CommentsContainer newsId={Number(id)} />
+          </div>
         </div>
       </main>
 

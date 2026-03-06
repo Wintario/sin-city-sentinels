@@ -2,6 +2,12 @@ import { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { uploadVideoForNews } from '@/lib/api';
+import {
+  buildExternalVideoMarker,
+  buildUploadedVideoMarker,
+  parseExternalVideoUrl
+} from './videoUtils';
 import {
   Tooltip,
   TooltipContent,
@@ -51,6 +57,7 @@ import {
   Type,
   Trash2,
   Upload,
+  Video,
   Shrink,
   Expand,
   Smile,
@@ -103,12 +110,71 @@ const TooltipButton = forwardRef<HTMLButtonElement, TooltipButtonProps>(({
 
 TooltipButton.displayName = 'TooltipButton';
 
+const generateVideoThumbnailFromFile = (file: File): Promise<string | null> =>
+  new Promise((resolve) => {
+    const blobUrl = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.src = blobUrl;
+
+    const cleanup = () => {
+      URL.revokeObjectURL(blobUrl);
+      video.removeAttribute('src');
+      video.load();
+    };
+
+    const capture = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const maxWidth = 640;
+        const sourceWidth = video.videoWidth || maxWidth;
+        const sourceHeight = video.videoHeight || 360;
+        const width = Math.min(maxWidth, sourceWidth);
+        const height = Math.max(1, Math.round((sourceHeight / sourceWidth) * width));
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          cleanup();
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(video, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        cleanup();
+        resolve(dataUrl);
+      } catch {
+        cleanup();
+        resolve(null);
+      }
+    };
+
+    video.addEventListener('loadeddata', () => {
+      if (video.duration > 1) {
+        video.currentTime = 1;
+      } else {
+        capture();
+      }
+    });
+    video.addEventListener('seeked', capture);
+    video.addEventListener('error', () => {
+      cleanup();
+      resolve(null);
+    });
+  });
+
 export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoStatus, setVideoStatus] = useState('');
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
   const [characterImageUrl, setCharacterImageUrl] = useState('');
   const [showCharacterImage, setShowCharacterImage] = useState(false);
 
@@ -130,6 +196,27 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
       setImageUrl('');
       setImageDialogOpen(false);
     }
+  };
+
+  const addVideoByUrl = () => {
+    const parsed = parseExternalVideoUrl(videoUrl);
+
+    if (!parsed) {
+      toast.error('Поддерживаются только YouTube, VK Video и Rutube');
+      return;
+    }
+
+    editor.chain().focus().insertContent({
+      type: 'image',
+      attrs: {
+        src: parsed.thumbnailUrl,
+        alt: buildExternalVideoMarker(parsed),
+      }
+    }).run();
+    setVideoUrl('');
+    setVideoDialogOpen(false);
+    setVideoStatus('Video inserted into editor');
+    toast.success('Видео вставлено в редактор');
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,8 +243,59 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
     }
   };
 
+  const handleVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsVideoUploading(true);
+    setVideoStatus('Uploading video...');
+    const processingTimer = setTimeout(() => {
+      setVideoStatus('Processing video...');
+    }, 500);
+
+    try {
+      const localThumbnail = await generateVideoThumbnailFromFile(file);
+      const result = await uploadVideoForNews(file);
+      clearTimeout(processingTimer);
+
+      const thumbnailSrc =
+        result.thumbnailUrl === '/video-placeholder.svg' && localThumbnail
+          ? localThumbnail
+          : result.thumbnailUrl;
+
+      editor.chain().focus().insertContent({
+        type: 'image',
+        attrs: {
+          src: thumbnailSrc,
+          alt: buildUploadedVideoMarker(result.videoUrl),
+        }
+      }).run();
+
+      setVideoStatus('Video inserted into editor');
+      setVideoDialogOpen(false);
+      toast.success('Видео вставлено в редактор');
+    } catch (error) {
+      clearTimeout(processingTimer);
+      const message = error instanceof Error ? error.message : 'Ошибка загрузки видео';
+      setVideoStatus('');
+      toast.error(message);
+    } finally {
+      setIsVideoUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const addTable = () => {
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  };
+
+  const applyFontSize = (size: string) => {
+    if (size) {
+      editor.chain().focus().setMark('textStyle', { fontSize: size }).run();
+      return;
+    }
+
+    editor.chain().focus().setMark('textStyle', { fontSize: null }).run();
   };
 
   const addHorizontalRule = () => {
@@ -374,49 +512,49 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         <DropdownMenuContent>
           <DropdownMenuItem
             onClick={() => {
-              editor.chain().focus().setFontSize('10px').run();
+              applyFontSize('10px');
             }}
           >
             10px
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              editor.chain().focus().setFontSize('12px').run();
+              applyFontSize('12px');
             }}
           >
             12px
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              editor.chain().focus().setFontSize('14px').run();
+              applyFontSize('14px');
             }}
           >
             14px
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              editor.chain().focus().setFontSize('16px').run();
+              applyFontSize('16px');
             }}
           >
             16px
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              editor.chain().focus().setFontSize('18px').run();
+              applyFontSize('18px');
             }}
           >
             18px
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              editor.chain().focus().setFontSize('20px').run();
+              applyFontSize('20px');
             }}
           >
             20px
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              editor.chain().focus().setFontSize('').run();
+              applyFontSize('');
             }}
           >
             Сбросить
@@ -916,6 +1054,73 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                 Введите URL страницы персонажа для извлечения изображения
               </p>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogTrigger asChild>
+          <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setVideoDialogOpen(true)}
+                className="h-8 w-8 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Video className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p className="text-xs">Insert Video</p>
+            </TooltipContent>
+          </Tooltip>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insert Video</DialogTitle>
+            <DialogDescription>
+              Добавьте ссылку YouTube/VK/Rutube или загрузите файл (mp4, mov, webm, mkv до 100MB)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm text-muted-foreground mb-2 block">
+                Insert video link
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addVideoByUrl()}
+                />
+                <Button onClick={addVideoByUrl} size="sm">OK</Button>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Или</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-2 block">
+                Upload video file
+              </label>
+              <Input
+                type="file"
+                accept=".mp4,.mov,.webm,.mkv,video/mp4,video/quicktime,video/webm,video/x-matroska"
+                onChange={handleVideoFileUpload}
+                disabled={isVideoUploading}
+              />
+            </div>
+            {videoStatus && (
+              <p className="text-sm text-muted-foreground">{videoStatus}</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>

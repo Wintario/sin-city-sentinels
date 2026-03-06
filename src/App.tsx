@@ -10,53 +10,72 @@ import Charter from "./pages/Charter";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import NewsDetail from "./pages/NewsDetail";
+import Auth from "./pages/Auth";
+import ResetPasswordRequest from "./pages/ResetPasswordRequest";
+import ResetPassword from "./pages/ResetPassword";
+import Profile from "./pages/Profile";
+import UsersAdmin from "./components/admin/UsersAdmin";
+import ReportsAdmin from "./components/admin/ReportsAdmin";
 import NotFound from "./pages/NotFound";
-import { authAPI, setStoredUser } from "./lib/api";
+import { AuthProvider } from "./contexts/AuthContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => {
   const [authChecked, setAuthChecked] = useState(false);
 
-  // Проверяем аутентификацию при загрузке (восстанавливаем из cookies)
+  // Ждём пока AuthContext проверит авторизацию из localStorage
+  // Проверка происходит в useEffect AuthProvider
   useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        const result = await authAPI.verify();
-        if (result.valid && result.user) {
-          setStoredUser(result.user);
-        }
-      } catch (error) {
-        // Пользователь не авторизован - это нормально
-      } finally {
-        setAuthChecked(true);
-      }
-    };
-
-    verifyAuth();
+    // Просто ждём завершения проверки в AuthContext
+    // AuthContext сам загрузит токен из localStorage и проверит его
+    const timer = setTimeout(() => {
+      setAuthChecked(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   if (!authChecked) {
-    return <div className="w-full h-screen bg-black" />; // Loading screen
+    return (
+      <div className="w-full h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-lg">Загрузка...</div>
+      </div>
+    );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/members" element={<Members />} />
-            <Route path="/charter" element={<Charter />} />
-            <Route path="/adminka" element={<AdminLogin />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/news/:id" element={<NewsDetail />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/members" element={<Members />} />
+              <Route path="/charter" element={<Charter />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/reset-password-request" element={<ResetPasswordRequest />} />
+              <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/adminka" element={<AdminLogin />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/users" element={<UsersAdmin isAdminUser={false} />} />
+              <Route path="/admin/reports" element={<ReportsAdmin />} />
+              <Route path="/news/:id" element={<NewsDetail />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
