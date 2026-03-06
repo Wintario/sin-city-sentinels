@@ -91,10 +91,21 @@ export function unbanUser(userId) {
 
 /**
  * Полностью удалить пользователя из БД (деактивация с переносом контента)
+ * ⚠️ ЗАЩИЩЁННЫЙ ПОЛЬЗОВАТЕЛЬ: зайчонок имеет вечные права администратора
+ * и не может быть удалён НИ ПРИ КАКИХ ОБСТОЯТЕЛЬСТВАХ.
  * @param {number} userId - ID пользователя
  */
 export function permanentDelete(userId) {
   const db = getDatabase();
+
+  // Получаем пользователя для проверки
+  const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+  
+  // ⚠️ АБСОЛЮТНАЯ ЗАЩИТА: пользователь зайчонок не может быть удалён
+  // Это правило имеет наивысший приоритет на уровне базы данных
+  if (user && user.username === 'зайчонок') {
+    throw new Error('ЗАЩИЩЁННЫЙ ПОЛЬЗОВАТЕЛЬ: зайчонок имеет вечные права администратора и не может быть удалён. Это правило зафиксировано в коде.');
+  }
 
   // Находим или создаём системного пользователя "deleted_user"
   let deletedUser = db.prepare('SELECT id FROM users WHERE username = ?').get('deleted_user');
@@ -107,7 +118,7 @@ export function permanentDelete(userId) {
     `);
     const result = stmt.run(passwordHash);
     deletedUser = { id: result.lastInsertRowid };
-    
+
     // Создаём профиль
     db.prepare(`
       INSERT INTO user_profiles (user_id, arena_nickname, character_url, email_verified)
@@ -157,12 +168,12 @@ export function permanentDelete(userId) {
   db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(userId);
 
   // Получаем текущего пользователя для изменения username
-  const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+  const currentUser = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
   
   // Добавляем суффикс к username чтобы освободить оригинальное имя
   // Формат: username_deleted_<timestamp>
   const timestamp = Date.now().toString().slice(-6); // Последние 6 цифр timestamp
-  const newUsername = `${user.username}_deleted_${timestamp}`;
+  const newUsername = `${currentUser.username}_deleted_${timestamp}`;
   
   // Обновляем username и помечаем как удалённого
   db.prepare('UPDATE users SET username = ?, is_active = 0, is_deleted = 1 WHERE id = ?').run(newUsername, userId);

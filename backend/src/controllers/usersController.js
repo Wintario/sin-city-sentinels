@@ -213,6 +213,9 @@ export async function unban(req, res, next) {
 
 /**
  * Полностью удалить пользователя из БД
+ * ⚠️ ЗАЩИЩЁННЫЙ ПОЛЬЗОВАТЕЛЬ: зайчонок имеет вечные права администратора
+ * и не может быть удалён НИ ПРИ КАКИХ ОБСТОЯТЕЛЬСТВАХ.
+ * Это правило действует для ВСЕХ администраторов без исключений.
  */
 export async function permanentDelete(req, res, next) {
   try {
@@ -224,14 +227,24 @@ export async function permanentDelete(req, res, next) {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
+    // ⚠️ АБСОЛЮТНАЯ ЗАЩИТА: пользователь зайчонок не может быть удалён
+    // Это правило имеет наивысший приоритет и не может быть отменено
+    if (user.username === 'зайчонок') {
+      return res.status(403).json({ 
+        error: 'Пользователь зайчонок имеет вечные права администратора и не может быть удалён',
+        protection: 'permanent_admin_protection',
+        message: 'Это правило зафиксировано в коде и не подлежит изменению'
+      });
+    }
+
     // Проверяем, не последний ли это активный админ
     if (user.role === 'admin') {
       const allUsers = userModel.getAllUsersWithProfiles();
       // Считаем всех активных админов КРОМЕ того, которого удаляем
-      const activeAdmins = allUsers.filter(u => 
+      const activeAdmins = allUsers.filter(u =>
         u.role === 'admin' && u.is_active !== 0 && u.id !== userId
       );
-      
+
       if (activeAdmins.length === 0) {
         return res.status(400).json({ error: 'Нельзя удалить последнего активного администратора' });
       }
