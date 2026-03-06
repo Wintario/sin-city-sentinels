@@ -134,10 +134,10 @@ app.use(errorHandler);
 // Запуск сервера
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
-  console.log(`\n🐰 Sin City Sentinels backend running on port ${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/health`);
-  console.log(`📍 API info: http://localhost:${PORT}/api`);
-  console.log(`\n🔒 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+  console.log(`\n>> Sin City Sentinels backend running on port ${PORT}`);
+  console.log(`>> Health check: http://localhost:${PORT}/health`);
+  console.log(`>> API info: http://localhost:${PORT}/api`);
+  console.log(`>> Environment: ${process.env.NODE_ENV || 'development'}\n`);
 });
 
 // Обработка сигналов завершения для корректного закрытия сервера
@@ -147,20 +147,20 @@ let isShuttingDown = false;
 async function gracefulShutdown(signal) {
   // Защита от повторного вызова
   if (isShuttingDown) {
-    console.log('⚠️  Уже выполняется завершение работы, игнорируем повторный сигнал');
+    console.log('>> Shutdown already in progress, ignoring duplicate signal');
     return;
   }
   isShuttingDown = true;
-  
-  console.log(`\n📶 Получен сигнал ${signal} (PID: ${process.pid}). Корректное завершение работы...`);
+
+  console.log(`\n>> Received signal ${signal} (PID: ${process.pid}). Graceful shutdown...`);
 
   server.close(async (err) => {
     if (err) {
-      console.error('❌ Ошибка при закрытии сервера:', err);
+      console.error('!! Error closing server:', err);
       process.exit(1);
     }
 
-    console.log('✅ Сервер остановлен');
+    console.log('>> Server stopped');
 
     // Закрываем соединения с базой данных если есть
     try {
@@ -168,19 +168,19 @@ async function gracefulShutdown(signal) {
       const db = getDatabase();
       if (db) {
         db.close();
-        console.log('✅ База данных закрыта');
+        console.log('>> Database closed');
       }
     } catch (e) {
       // Игнорируем ошибки при закрытии БД
     }
 
-    console.log('✅ Завершение работы завершено');
+    console.log('>> Shutdown complete');
     process.exit(0);
   });
 
   // Принудительное завершение через 10 секунд
   setTimeout(() => {
-    console.error('⚠️  Принудительное завершение работы (timeout 10s)');
+    console.error('!! Forced shutdown (timeout 10s)');
     process.exit(1);
   }, 10000);
 }
@@ -190,12 +190,12 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Обработка не пойманных ошибок
 process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err);
+  console.error('!! Uncaught Exception:', err);
   gracefulShutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection:', reason);
+  console.error('!! Unhandled Rejection:', reason);
   gracefulShutdown('unhandledRejection');
 });
 

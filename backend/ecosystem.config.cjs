@@ -9,7 +9,8 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: '3000',
-      CORS_ORIGIN: 'https://wickedrabbits.ru,https://www.wickedrabbits.ru'
+      CORS_ORIGIN: 'https://wickedrabbits.ru,https://www.wickedrabbits.ru',
+      FORCE_COLOR: 'false'
     }
   }]
 };
