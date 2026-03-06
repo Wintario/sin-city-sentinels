@@ -217,22 +217,27 @@ export async function unban(req, res, next) {
 export async function permanentDelete(req, res, next) {
   try {
     const { id } = req.params;
+    const userId = parseInt(id);
 
-    const user = userModel.findById(parseInt(id));
+    const user = userModel.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
-    // Проверяем, не последний ли это админ
+    // Проверяем, не последний ли это активный админ
     if (user.role === 'admin') {
       const allUsers = userModel.getAllUsersWithProfiles();
-      const adminCount = allUsers.filter(u => u.role === 'admin' && u.is_active !== 0).length;
-      if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Нельзя удалить последнего администратора' });
+      // Считаем всех активных админов КРОМЕ того, которого удаляем
+      const activeAdmins = allUsers.filter(u => 
+        u.role === 'admin' && u.is_active !== 0 && u.id !== userId
+      );
+      
+      if (activeAdmins.length === 0) {
+        return res.status(400).json({ error: 'Нельзя удалить последнего активного администратора' });
       }
     }
 
-    const result = userBanModel.permanentDelete(parseInt(id));
+    const result = userBanModel.permanentDelete(userId);
 
     res.json({
       success: result.success,
