@@ -1,20 +1,23 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// ЗАГРУЗКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (ДО ВСЕХ ИМПОРТОВ!)
+// ЗАГРУЗКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (САМОЕ НАЧАЛО!)
 // ═══════════════════════════════════════════════════════════════════════════════
-// Важно: dotenv должен быть загружен ДО импорта модулей, которые используют
-// process.env (например, config.js, middleware, routes)
+import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 
-// Определяем .env файл в зависимости от NODE_ENV
-// NODE_ENV устанавливается в PM2 или через командную строку
+// Загружаем .env или .env.production ДО всех остальных импортов
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: __filename.replace('server.js', envFile) });
 
-// Теперь импортируем остальные модули
+// ═══════════════════════════════════════════════════════════════════════════════
+// ОСНОВНОЙ КОД
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 
 import { errorHandler } from './src/middleware/errorHandler.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
@@ -103,16 +106,8 @@ app.use('/api/proxy', cors({
 }));
 
 // Парсинг JSON тела запросов
-app.use(express.json({ limit: '10mb' }));
-
-// Выдача статических файлов для загрузок (изображения новостей, аватарки)
-app.use('/uploads', express.static(join(__dirname, 'uploads')));
-
-// Выдача статических файлов (аватарки членов клана) - для совместимости
-app.use('/avatars', express.static('/var/www/rabbits/public/avatars'));
-
-// Выдача info.gif для импорта персонажей
-app.use('/static', express.static(join(__dirname, 'static')));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting для всех API запросов
 app.use('/api/', apiLimiter);
@@ -131,36 +126,17 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/proxy', proxyRoutes);
 
-// Health check эндпоинт
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    service: 'Sin City Sentinels API'
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API информация
-app.get('/api', (req, res) => {
-  res.json({
-    name: 'Sin City Sentinels API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      news: '/api/news',
-      members: '/api/members',
-      stats: '/api/stats',
-      upload: '/api/upload'
-    }
-  });
-});
-
-// 404 для неизвестных маршрутов
-app.use('/api/*', (req, res) => {
+// Обработка 404
+app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-// Централизованная обработка ошибок (должна быть последней!)
+// Обработка ошибок
 app.use(errorHandler);
 
 // Запуск сервера
@@ -220,7 +196,7 @@ async function gracefulShutdown(signal) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Обработка незапятанных ошибок
+// Обработка не пойманных ошибок
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
   gracefulShutdown('uncaughtException');
