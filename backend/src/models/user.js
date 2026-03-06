@@ -5,19 +5,21 @@ const SALT_ROUNDS = 10;
 
 /**
  * Найти пользователя по username (ник в Арене)
+ * Не находит удалённых пользователей (is_deleted=1)
  */
 export function findByUsername(username) {
   const db = getDatabase();
-  const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
+  const stmt = db.prepare('SELECT * FROM users WHERE username = ? AND (is_deleted = 0 OR is_deleted IS NULL)');
   return stmt.get(username);
 }
 
 /**
  * Найти пользователя по email
+ * Не находит удалённых пользователей (is_deleted=1)
  */
 export function findByEmail(email) {
   const db = getDatabase();
-  const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+  const stmt = db.prepare('SELECT * FROM users WHERE email = ? AND (is_deleted = 0 OR is_deleted IS NULL)');
   return stmt.get(email);
 }
 
@@ -156,6 +158,7 @@ export function updateUserRole(userId, role) {
 
 /**
  * Получить всех пользователей с профилями (для админки)
+ * Исключает удалённых пользователей (is_deleted=1)
  */
 export function getAllUsersWithProfiles() {
   const db = getDatabase();
@@ -163,6 +166,7 @@ export function getAllUsersWithProfiles() {
     SELECT u.*, p.arena_nickname, p.character_url, p.email_verified
     FROM users u
     LEFT JOIN user_profiles p ON u.id = p.user_id
+    WHERE u.is_deleted = 0 OR u.is_deleted IS NULL
     ORDER BY u.created_at DESC
   `);
   return stmt.all();
