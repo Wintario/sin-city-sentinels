@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   apps: [{
     name: 'rabbits-backend',
     script: './bootstrap.js',
@@ -7,9 +7,6 @@ module.exports = {
     watch: false,
     max_memory_restart: '500M',
     env: {
-      NODE_ENV: 'production'
-    },
-    env_production: {
       NODE_ENV: 'production'
     }
   }]
