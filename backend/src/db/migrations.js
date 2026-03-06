@@ -279,18 +279,25 @@ export function runMigrations() {
     }
 
     // Проверяем существует ли колонка views_count в таблице news
-    const newsTable = db.prepare(
-      "PRAGMA table_info(news)"
-    ).all();
+    // Сначала проверяем существует ли сама таблица
+    const newsTableExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='news'"
+    ).get();
 
-    const hasViewsCount = newsTable.some(col => col.name === 'views_count');
+    if (newsTableExists) {
+      const newsTable = db.prepare(
+        "PRAGMA table_info(news)"
+      ).all();
 
-    if (!hasViewsCount) {
-      console.log('📝 Adding views_count column to news table...');
-      db.exec(`
-        ALTER TABLE news ADD COLUMN views_count INTEGER DEFAULT 0
-      `);
-      console.log('✅ views_count column added to news table');
+      const hasViewsCount = newsTable.some(col => col.name === 'views_count');
+
+      if (!hasViewsCount) {
+        console.log('📝 Adding views_count column to news table...');
+        db.exec(`
+          ALTER TABLE news ADD COLUMN views_count INTEGER DEFAULT 0
+        `);
+        console.log('✅ views_count column added to news table');
+      }
     }
 
     // ============================================
