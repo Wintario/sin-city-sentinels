@@ -12,24 +12,24 @@ export async function fetchCharacterPage(characterUrl) {
 
     // Экранируем кавычки в URL для безопасности curl команды
     const escapedUrl = characterUrl.replace(/"/g, '\\"');
-    
-    // curl запрос с теми же параметрами, что в proxyRoutes.js
-    const curlCommand = `curl -s --max-time 15 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "${escapedUrl}"`;
+
+    // curl запрос с -L для следования редиректам
+    const curlCommand = `curl -sL --max-time 15 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "${escapedUrl}"`;
 
     exec(curlCommand, { encoding: 'buffer', timeout: 20000 }, (error, stdout, stderr) => {
       if (error) {
         console.error('[characterVerificationService] curl error:', error.message);
-        
+
         if (error.code === 'ENOTFOUND') {
-          reject(new Error('Не удалось найти сервер apeha.ru. Проверьте подключение к интернету.'));
+          reject(new Error('Не удалось найти сервер. Проверьте подключение к интернету.'));
           return;
         }
-        
+
         if (error.killed || error.code === 'ETIMEDOUT') {
-          reject(new Error('Превышено время ожидания ответа от сервера (20 сек)'));
+          reject(new Error('Превышено время ожидания ответа от сервера (20 сек). Сайт Арены может быть недоступен.'));
           return;
         }
-        
+
         reject(new Error('Не удалось загрузить страницу персонажа: ' + error.message));
         return;
       }
@@ -46,6 +46,13 @@ export async function fetchCharacterPage(characterUrl) {
       }
 
       console.log('[characterVerificationService] First 300 chars:', html.substring(0, 300));
+
+      // Проверяем, не пустая ли страница
+      if (!html || html.trim().length < 50) {
+        console.error('[characterVerificationService] Empty or too short response');
+        reject(new Error('Сервер Арены вернул пустую страницу. Попробуйте позже.'));
+        return;
+      }
 
       // Проверяем на JavaScript редирект (как в ImportCharacter.tsx)
       const redirectMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
