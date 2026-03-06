@@ -48,8 +48,12 @@ export function errorHandler(err, req, res, next) {
     });
   }
   
-  // Все остальные ошибки
+  // Ошибки CORS
   if (err.message === 'Not allowed by CORS') {
+    // Важно: для CORS ошибок нужно установить заголовок Access-Control-Allow-Origin
+    // иначе браузер заблокирует ответ и покажет ошибку в консоли
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     return res.status(403).json({
       error: err.message
     });

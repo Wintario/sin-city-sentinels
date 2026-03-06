@@ -1,23 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// ЗАГРУЗКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (САМОЕ НАЧАЛО!)
-// ═══════════════════════════════════════════════════════════════════════════════
-// Примечание: dotenv загружается в bootstrap.js ДО импорта server.js
-// Этот блок нужен только для прямого запуска server.js (без bootstrap.js)
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = __filename.slice(0, __filename.lastIndexOf('/'));
-
-// Загружаем .env только если CORS_ORIGIN ещё не установлен
-if (!process.env.CORS_ORIGIN) {
-  const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-  dotenv.config({ path: `${__dirname}/${envFile}` });
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // ОСНОВНОЙ КОД
 // ═══════════════════════════════════════════════════════════════════════════════
+// Примечание: dotenv загружается в bootstrap.js ДО импорта server.js
+// Этот файл импортируется из bootstrap.js где process.env уже настроен
 
 import express from 'express';
 import helmet from 'helmet';

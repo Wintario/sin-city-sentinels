@@ -7,7 +7,9 @@ export default {
     watch: false,
     max_memory_restart: '500M',
     env: {
-      NODE_ENV: 'production'
+      NODE_ENV: 'production',
+      PORT: '3000',
+      CORS_ORIGIN: 'https://wickedrabbits.ru,https://www.wickedrabbits.ru'
     }
   }]
 };
