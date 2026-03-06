@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Menu, X, LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getStoredUser, clearToken, isAuthenticated } from '@/lib/api';
+import { clearToken } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -18,8 +19,8 @@ interface NavigationProps {
 
 const Navigation = ({ onHover }: NavigationProps) => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const user = getStoredUser();
   const loggedIn = isAuthenticated();
 
   const navItems = [
