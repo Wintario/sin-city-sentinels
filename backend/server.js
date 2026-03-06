@@ -1,8 +1,22 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// ЗАГРУЗКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (ДО ВСЕХ ИМПОРТОВ!)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Важно: dotenv должен быть загружен ДО импорта модулей, которые используют
+// process.env (например, config.js, middleware, routes)
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+
+// Определяем .env файл в зависимости от NODE_ENV
+// NODE_ENV устанавливается в PM2 или через командную строку
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
+
+// Теперь импортируем остальные модули
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 import { errorHandler } from './src/middleware/errorHandler.js';
@@ -22,12 +36,6 @@ import commentAdminRoutes from './src/routes/commentAdminRoutes.js';
 import { initDatabase } from './src/db/db.js';
 import { initUploadDirectories } from './src/utils/fileUtils.js';
 
-// Загрузка переменных окружения
-// В production режиме используем .env.production
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-dotenv.config({ path: envFile });
-
-const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
