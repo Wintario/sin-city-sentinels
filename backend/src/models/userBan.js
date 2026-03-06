@@ -95,6 +95,9 @@ export function unbanUser(userId) {
 export function permanentDelete(userId) {
   const db = getDatabase();
 
+  // Сначала обновляем author_id в news на NULL (чтобы не нарушить FK)
+  db.prepare('UPDATE news SET author_id = NULL WHERE author_id = ?').run(userId);
+
   // Сначала удаляем баны (если есть)
   db.prepare('DELETE FROM user_bans WHERE user_id = ?').run(userId);
 
