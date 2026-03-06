@@ -8,6 +8,10 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import { errorHandler } from './src/middleware/errorHandler.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
