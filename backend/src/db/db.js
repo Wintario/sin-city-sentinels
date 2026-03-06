@@ -16,7 +16,7 @@ export function initDatabase() {
   const dbDir = dirname(config.dbPath);
   if (!existsSync(dbDir)) {
     mkdirSync(dbDir, { recursive: true });
-    console.log(`📁 Created database directory: ${dbDir}`);
+    console.log(`>> Created database directory: ${dbDir}`);
   }
 
   // Подключаемся к БД (создаётся автоматически, если не существует)
@@ -30,8 +30,8 @@ export function initDatabase() {
   db.pragma('synchronous = NORMAL');
 
   const absolutePath = resolve(config.dbPath);
-  console.log(`✅ Database connected: ${config.dbPath}`);
-  console.log(`📍 Absolute path: ${absolutePath}`);
+  console.log(`>> Database connected: ${config.dbPath}`);
+  console.log(`>> Absolute path: ${absolutePath}`);
 
   // Запускаем миграции
   runMigrations();
@@ -40,7 +40,7 @@ export function initDatabase() {
   import('../models/userProfile.js').then(({ cleanupOrphanProfiles }) => {
     const orphanCount = cleanupOrphanProfiles();
     if (orphanCount > 0) {
-      console.log(`🧹 Cleaned up ${orphanCount} orphan user profiles`);
+      console.log(`>> Cleaned up ${orphanCount} orphan user profiles`);
     }
   });
 
@@ -64,7 +64,7 @@ export function closeDatabase() {
   if (db) {
     db.close();
     db = null;
-    console.log('🔒 Database connection closed');
+    console.log('>> Database connection closed');
   }
 }
 
