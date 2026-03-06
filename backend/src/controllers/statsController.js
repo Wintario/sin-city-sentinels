@@ -1,9 +1,8 @@
 import { getDatabase } from '../db/db.js';
 
-const db = getDatabase();
-
 // Track news view
 export const trackNewsView = (req, res) => {
+  const db = getDatabase();
   try {
     const { id } = req.params;
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
@@ -28,6 +27,7 @@ export const trackNewsView = (req, res) => {
 
 // Get statistics overview
 export const getStatsOverview = (req, res) => {
+  const db = getDatabase();
   try {
     const result = db.prepare(
       `SELECT 
@@ -48,6 +48,7 @@ export const getStatsOverview = (req, res) => {
 
 // Get news views ranking
 export const getNewsViews = (req, res) => {
+  const db = getDatabase();
   try {
     const results = db.prepare(
       `SELECT 
@@ -74,6 +75,7 @@ export const getNewsViews = (req, res) => {
 
 // Get page visits by date
 export const getPageVisits = (req, res) => {
+  const db = getDatabase();
   try {
     const results = db.prepare(
       `SELECT 
