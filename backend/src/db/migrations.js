@@ -270,12 +270,25 @@ export function runMigrations() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           page_type TEXT NOT NULL,
           page_id INTEGER NOT NULL,
+          user_id INTEGER,
           ip_address TEXT,
           user_agent TEXT,
           viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
       console.log('✅ page_views table created');
+    } else {
+      // Проверяем, есть ли колонка user_id (для старых БД)
+      const columns = db.prepare("PRAGMA table_info(page_views)").all();
+      const hasUserId = columns.some(col => col.name === 'user_id');
+      
+      if (!hasUserId) {
+        console.log('📝 Adding user_id column to page_views table...');
+        db.exec(`
+          ALTER TABLE page_views ADD COLUMN user_id INTEGER
+        `);
+        console.log('✅ user_id column added to page_views table');
+      }
     }
 
     // Проверяем существует ли колонка views_count в таблице news
