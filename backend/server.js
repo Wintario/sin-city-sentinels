@@ -3,15 +3,12 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // Важно: dotenv должен быть загружен ДО импорта модулей, которые используют
 // process.env (например, config.js, middleware, routes)
-import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 
 // Определяем .env файл в зависимости от NODE_ENV
 // NODE_ENV устанавливается в PM2 или через командную строку
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-dotenv.config({ path: envFile });
 
 // Теперь импортируем остальные модули
 import express from 'express';
@@ -72,7 +69,10 @@ app.use(helmet({
 
 // CORS настройки
 // При использовании credentials нельзя указывать '*', нужно явно указать origins
-const corsOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8080', 'http://localhost:5173'];
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:8080,http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 const allowAllOrigins = corsOrigins.includes('*');
 
 // Основная CORS конфигурация для всех маршрутов

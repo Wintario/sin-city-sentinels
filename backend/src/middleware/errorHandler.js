@@ -49,6 +49,12 @@ export function errorHandler(err, req, res, next) {
   }
   
   // Все остальные ошибки
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      error: err.message
+    });
+  }
+
   const statusCode = err.statusCode || 500;
   const message = config.nodeEnv === 'production' 
     ? 'Internal server error' 
