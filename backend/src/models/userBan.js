@@ -117,17 +117,29 @@ export function permanentDelete(userId) {
 
   const deletedUserId = deletedUser.id;
 
-  // Переносим новости на deleted_user
-  db.prepare('UPDATE news SET author_id = ? WHERE author_id = ?').run(deletedUserId, userId);
+  // Переносим новости на deleted_user (сначала проверяем, есть ли новости у пользователя)
+  const newsCount = db.prepare('SELECT COUNT(*) as count FROM news WHERE author_id = ?').get(userId);
+  if (newsCount.count > 0) {
+    db.prepare('UPDATE news SET author_id = ? WHERE author_id = ?').run(deletedUserId, userId);
+  }
 
   // Переносим комментарии на deleted_user
-  db.prepare('UPDATE comments SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+  const commentCount = db.prepare('SELECT COUNT(*) as count FROM comments WHERE user_id = ?').get(userId);
+  if (commentCount.count > 0) {
+    db.prepare('UPDATE comments SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+  }
 
   // Переносим жалобы на deleted_user
-  db.prepare('UPDATE comment_reports SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+  const reportCount = db.prepare('SELECT COUNT(*) as count FROM comment_reports WHERE user_id = ?').get(userId);
+  if (reportCount.count > 0) {
+    db.prepare('UPDATE comment_reports SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+  }
 
   // Переносим просмотры на deleted_user
-  db.prepare('UPDATE page_views SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+  const viewCount = db.prepare('SELECT COUNT(*) as count FROM page_views WHERE user_id = ?').get(userId);
+  if (viewCount.count > 0) {
+    db.prepare('UPDATE page_views SET user_id = ? WHERE user_id = ?').run(deletedUserId, userId);
+  }
 
   // Удаляем баны (если есть)
   db.prepare('DELETE FROM user_bans WHERE user_id = ?').run(userId);
@@ -144,8 +156,16 @@ export function permanentDelete(userId) {
   // Удаляем password reset токены
   db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(userId);
 
-  // Деактивируем пользователя (не удаляем полностью!)
-  db.prepare('UPDATE users SET is_active = 0, is_deleted = 1 WHERE id = ?').run(userId);
+  // Получаем текущего пользователя для изменения username
+  const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+  
+  // Добавляем суффикс к username чтобы освободить оригинальное имя
+  // Формат: username_deleted_<timestamp>
+  const timestamp = Date.now().toString().slice(-6); // Последние 6 цифр timestamp
+  const newUsername = `${user.username}_deleted_${timestamp}`;
+  
+  // Обновляем username и помечаем как удалённого
+  db.prepare('UPDATE users SET username = ?, is_active = 0, is_deleted = 1 WHERE id = ?').run(newUsername, userId);
 
   return { success: true, message: 'Пользователь деактивирован, контент перенесён' };
 }
