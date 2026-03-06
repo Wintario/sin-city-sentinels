@@ -13,8 +13,8 @@ export async function fetchCharacterPage(characterUrl) {
     // Экранируем кавычки в URL для безопасности curl команды
     const escapedUrl = characterUrl.replace(/"/g, '\\"');
 
-    // curl запрос с -L для следования редиректам
-    const curlCommand = `curl -sL --max-time 15 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "${escapedUrl}"`;
+    // curl запрос с -L для следования редиректам и -k для игнорирования SSL ошибок
+    const curlCommand = `curl -sLk --max-time 15 -4 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "${escapedUrl}"`;
 
     exec(curlCommand, { encoding: 'buffer', timeout: 20000 }, (error, stdout, stderr) => {
       if (error) {
