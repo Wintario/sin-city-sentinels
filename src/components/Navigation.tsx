@@ -23,8 +23,8 @@ const Navigation = ({ onHover }: NavigationProps) => {
   const loggedIn = isAuthenticated;
 
   const navItems = [
-    { label: 'О нас', href: '#about', isExternal: false },
-    { label: 'Новости', href: '#news', isExternal: false },
+    { label: 'О нас', href: '/#about', isExternal: true },
+    { label: 'Новости', href: '/#news', isExternal: true },
     { label: 'Устав', href: '/charter', isExternal: true },
     { label: 'Состав клана', href: '/members', isExternal: true },
   ];
