@@ -310,6 +310,7 @@ export function runMigrations() {
       ).all();
 
       const hasViewsCount = newsTable.some(col => col.name === 'views_count');
+      const hasHeaderImageMeta = newsTable.some(col => col.name === 'header_image_meta');
 
       if (!hasViewsCount) {
         console.log('>> Adding views_count column to news table...');
@@ -317,6 +318,14 @@ export function runMigrations() {
           ALTER TABLE news ADD COLUMN views_count INTEGER DEFAULT 0
         `);
         console.log('>> views_count column added to news table');
+      }
+
+      if (!hasHeaderImageMeta) {
+        console.log('>> Adding header_image_meta column to news table...');
+        db.exec(`
+          ALTER TABLE news ADD COLUMN header_image_meta TEXT
+        `);
+        console.log('>> header_image_meta column added to news table');
       }
     }
 

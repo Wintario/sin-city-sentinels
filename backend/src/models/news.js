@@ -30,7 +30,7 @@ export function getPublishedNews() {
   const db = getDatabase();
   const stmt = db.prepare(`
     SELECT
-      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url,
+      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url, n.header_image_meta,
       n.published_at,
       u.username as author
     FROM news n
@@ -49,7 +49,7 @@ export function getPublishedNewsById(id) {
   const db = getDatabase();
   const stmt = db.prepare(`
     SELECT
-      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url,
+      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url, n.header_image_meta,
       n.published_at, n.created_at,
       u.username as author
     FROM news n
@@ -69,7 +69,7 @@ export function getAllNewsAdmin() {
   const db = getDatabase();
   const stmt = db.prepare(`
     SELECT
-      n.id, n.title, n.slug, n.excerpt, n.content, n.image_url,
+      n.id, n.title, n.slug, n.excerpt, n.content, n.image_url, n.header_image_meta,
       n.published_at, n.is_deleted, n.created_at, n.updated_at, n.updated_by,
       n.author_id,
       u.username as author,
@@ -104,13 +104,13 @@ export function getNewsById(id) {
 /**
  * Создать новую новость
  */
-export function createNews({ title, content, excerpt, image_url, published_at, author_id }) {
+export function createNews({ title, content, excerpt, image_url, header_image_meta, published_at, author_id }) {
   const db = getDatabase();
   const slug = generateSlug(title);
 
   const stmt = db.prepare(`
-    INSERT INTO news (title, slug, content, excerpt, image_url, published_at, author_id, updated_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO news (title, slug, content, excerpt, image_url, header_image_meta, published_at, author_id, updated_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -119,6 +119,7 @@ export function createNews({ title, content, excerpt, image_url, published_at, a
     content,
     excerpt || null,
     image_url || null,
+    header_image_meta || null,
     published_at || null,
     author_id,
     author_id
@@ -133,7 +134,7 @@ export function createNews({ title, content, excerpt, image_url, published_at, a
  * ВАЖНО: published_at НЕ меняется при редактировании!
  * Сохраняет updated_by (кто последний редактировал)
  */
-export function updateNews(id, { title, content, excerpt, image_url, published_at, updated_by }) {
+export function updateNews(id, { title, content, excerpt, image_url, header_image_meta, published_at, updated_by }) {
   const db = getDatabase();
   
   const current = getNewsById(id);
@@ -152,6 +153,7 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
       content = COALESCE(?, content),
       excerpt = COALESCE(?, excerpt),
       image_url = ?,
+      header_image_meta = ?,
       published_at = ?,
       updated_by = ?,
       updated_at = CURRENT_TIMESTAMP
@@ -164,6 +166,7 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
     content || null,
     excerpt || null,
     image_url !== undefined ? image_url : current.image_url,
+    header_image_meta !== undefined ? header_image_meta : current.header_image_meta,
     published_at !== undefined ? published_at : current.published_at,
     updated_by || current.updated_by,
     id

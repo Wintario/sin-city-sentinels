@@ -218,6 +218,7 @@ export interface News {
   content: string;
   excerpt?: string;
   image_url?: string;
+  header_image_meta?: string | null;
   published_at?: string;
   is_deleted?: number;
   views_count?: number;
@@ -235,6 +236,7 @@ export interface NewsCreateInput {
   content: string;
   excerpt?: string | null;
   image_url?: string | null;
+  header_image_meta?: string | null;
   published_at?: string | null;
   card_width?: 'wide' | 'narrow' | null;
 }
@@ -256,6 +258,7 @@ export const newsAPI = {
         content: data.content,
         excerpt: data.excerpt || null,
         image_url: data.image_url || null,
+        header_image_meta: data.header_image_meta || null,
         published_at: data.published_at || null,
       }),
     }),
@@ -267,6 +270,7 @@ export const newsAPI = {
         content: data.content,
         excerpt: data.excerpt || null,
         image_url: data.image_url || null,
+        header_image_meta: data.header_image_meta || null,
         published_at: data.published_at,
       }),
     }),

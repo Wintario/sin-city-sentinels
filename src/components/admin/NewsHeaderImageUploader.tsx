@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,28 +8,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface NewsHeaderImageUploaderProps {
   value: string | null;
+  metaValue?: string | null;
   onChange: (value: string | null) => void;
+  onMetaChange?: (value: string | null) => void;
 }
 
-const NewsHeaderImageUploader = ({ value, onChange }: NewsHeaderImageUploaderProps) => {
+const NewsHeaderImageUploader = ({ value, metaValue, onChange, onMetaChange }: NewsHeaderImageUploaderProps) => {
   const [urlInput, setUrlInput] = useState(value || '');
 
   const handleUrlSubmit = () => {
     if (urlInput.trim()) {
       onChange(urlInput.trim());
+      onMetaChange?.(null);
     }
   };
 
   const handleImageSelect = (imageUrl: string) => {
-    console.log('NewsHeaderImageUploader: received imageUrl:', imageUrl);
     onChange(imageUrl || null);
-    // Обновляем preview локально
     setUrlInput(imageUrl);
   };
 
   const handleClear = () => {
     setUrlInput('');
     onChange(null);
+    onMetaChange?.(null);
   };
 
   return (
@@ -65,7 +67,10 @@ const NewsHeaderImageUploader = ({ value, onChange }: NewsHeaderImageUploaderPro
           <ImageUploader
             onImageSelect={handleImageSelect}
             existingImageUrl={value}
-            maxSize={5 * 1024 * 1024} // 5 MB для шапки
+            existingImageMeta={metaValue}
+            onImageMetaChange={onMetaChange}
+            maxSize={5 * 1024 * 1024}
+            targetUploadSize={900 * 1024}
             endpoint="/upload/header-image"
           />
         </TabsContent>
@@ -114,7 +119,7 @@ const NewsHeaderImageUploader = ({ value, onChange }: NewsHeaderImageUploaderPro
       </Tabs>
 
       <p className="text-xs text-muted-foreground">
-        Рекомендуемый размер: 1200×600px. Форматы: JPG, PNG, GIF, WebP. Макс. размер: 5MB.
+        Рекомендуемый размер: 1200x600px. Форматы: JPG, PNG, GIF, WebP. Максимум: 5MB.
       </p>
     </div>
   );

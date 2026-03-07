@@ -127,6 +127,54 @@ export function validateNewsInput(data, isUpdate = false) {
     }
   }
 
+  // Header image meta (optional crop data)
+  if (data.header_image_meta !== undefined) {
+    if (data.header_image_meta === null || data.header_image_meta === '') {
+      validated.header_image_meta = null;
+    } else {
+      let meta = data.header_image_meta;
+
+      if (typeof meta === 'string') {
+        if (meta.length > 5000) {
+          errors.push('header_image_meta is too large');
+        } else {
+          try {
+            meta = JSON.parse(meta);
+          } catch {
+            errors.push('header_image_meta must be valid JSON');
+          }
+        }
+      }
+
+      if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+        const zoom = Number(meta.zoom);
+        const offsetXRatio = Number(meta.offsetXRatio);
+        const offsetYRatio = Number(meta.offsetYRatio);
+
+        if (!Number.isFinite(zoom) || zoom < 0.1 || zoom > 10) {
+          errors.push('header_image_meta.zoom must be between 0.1 and 10');
+        }
+        if (!Number.isFinite(offsetXRatio) || offsetXRatio < -1 || offsetXRatio > 1) {
+          errors.push('header_image_meta.offsetXRatio must be between -1 and 1');
+        }
+        if (!Number.isFinite(offsetYRatio) || offsetYRatio < -1 || offsetYRatio > 1) {
+          errors.push('header_image_meta.offsetYRatio must be between -1 and 1');
+        }
+
+        if (errors.length === 0) {
+          validated.header_image_meta = JSON.stringify({
+            zoom,
+            offsetXRatio,
+            offsetYRatio,
+            editorVersion: typeof meta.editorVersion === 'number' ? meta.editorVersion : 1
+          });
+        }
+      } else if (data.header_image_meta !== null && data.header_image_meta !== '') {
+        errors.push('header_image_meta must be an object');
+      }
+    }
+  }
+
   if (errors.length > 0) {
     console.error('Validation errors:', errors);
     throw new ApiError(400, 'Validation failed', errors);

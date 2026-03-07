@@ -34,6 +34,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
     content: news?.content || '',
     excerpt: news?.excerpt || null,
     image_url: news?.image_url || null,
+    header_image_meta: news?.header_image_meta || null,
     published_at: news?.published_at || null,
     card_width: news?.card_width || 'wide',
   });
@@ -159,6 +160,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
         content: formData.content.trim(),
         excerpt: formData.excerpt?.trim() || null,
         image_url: formData.image_url?.trim() || null,
+        header_image_meta: formData.header_image_meta || null,
         published_at: publish ? new Date().toISOString() : null,
       };
 
@@ -205,7 +207,9 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
         <div>
           <NewsHeaderImageUploader
             value={formData.image_url}
+            metaValue={formData.header_image_meta}
             onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+            onMetaChange={(meta) => setFormData(prev => ({ ...prev, header_image_meta: meta }))}
           />
         </div>
 
