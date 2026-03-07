@@ -1,6 +1,6 @@
-// API configuration and utilities
-// При разработке через Vite proxy используем относительный путь '/api'
-// Бекенд должен быть запущен на localhost:3000
+﻿// API configuration and utilities
+// РџСЂРё СЂР°Р·СЂР°Р±РѕС‚РєРµ С‡РµСЂРµР· Vite proxy РёСЃРїРѕР»СЊР·СѓРµРј РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅС‹Р№ РїСѓС‚СЊ '/api'
+// Р‘РµРєРµРЅРґ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ Р·Р°РїСѓС‰РµРЅ РЅР° localhost:3000
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Get auth token from localStorage
@@ -51,7 +51,7 @@ export const setStoredUser = (user: StoredUser): void => {
 export const apiCall = async <T>(
   endpoint: string,
   options: RequestInit = {},
-  skipAuthCleanup = false // Не очищать токен при 401
+  skipAuthCleanup = false // РќРµ РѕС‡РёС‰Р°С‚СЊ С‚РѕРєРµРЅ РїСЂРё 401
 ): Promise<T> => {
   const token = getToken();
 
@@ -64,7 +64,7 @@ export const apiCall = async <T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
-  // credentials: 'include' - передавать cookies даже на разные origins (нужно для CORS)
+  // credentials: 'include' - РїРµСЂРµРґР°РІР°С‚СЊ cookies РґР°Р¶Рµ РЅР° СЂР°Р·РЅС‹Рµ origins (РЅСѓР¶РЅРѕ РґР»СЏ CORS)
   const fetchOptions: RequestInit = {
     ...options,
     headers,
@@ -73,19 +73,19 @@ export const apiCall = async <T>(
 
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
 
-  // Handle 401 Unauthorized - clear token and redirect (только для защищённых маршрутов)
+  // Handle 401 Unauthorized - clear token and redirect (С‚РѕР»СЊРєРѕ РґР»СЏ Р·Р°С‰РёС‰С‘РЅРЅС‹С… РјР°СЂС€СЂСѓС‚РѕРІ)
   if (response.status === 401) {
     if (!skipAuthCleanup) {
       clearToken();
     }
-    // Не редиректим сразу - пусть компонент сам решит что делать
+    // РќРµ СЂРµРґРёСЂРµРєС‚РёРј СЃСЂР°Р·Сѓ - РїСѓСЃС‚СЊ РєРѕРјРїРѕРЅРµРЅС‚ СЃР°Рј СЂРµС€РёС‚ С‡С‚Рѕ РґРµР»Р°С‚СЊ
     throw new Error('Unauthorized');
   }
 
-  const data = await response.json();
+  const data = await parseResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(data.error || data.message || 'API Error');
+    throw new Error(data?.error || data?.message || `API Error (${response.status})`);
   }
   
   return data as T;
@@ -119,13 +119,32 @@ export const apiUpload = async <T>(
     throw new Error('Unauthorized');
   }
   
-  const data = await response.json();
+  const data = await parseResponseBody(response);
   
   if (!response.ok) {
-    throw new Error(data.error || data.message || 'Upload Error');
+    throw new Error(data?.error || data?.message || `Upload Error (${response.status})`);
   }
   
   return data as T;
+};
+
+const parseResponseBody = async (response: Response): Promise<Record<string, any>> => {
+  const contentType = response.headers.get('content-type') || '';
+  const raw = await response.text();
+
+  if (!raw) {
+    return {};
+  }
+
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+
+  return { message: raw };
 };
 
 export interface VideoUploadJob {
@@ -158,13 +177,13 @@ export const uploadVideoForNews = async (file: File): Promise<{ videoUrl: string
     }
 
     if (statusResponse.job.status === 'failed') {
-      throw new Error(statusResponse.job.error || 'Ошибка обработки видео');
+      throw new Error(statusResponse.job.error || 'РћС€РёР±РєР° РѕР±СЂР°Р±РѕС‚РєРё РІРёРґРµРѕ');
     }
 
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  throw new Error('Превышено время ожидания обработки видео');
+  throw new Error('РџСЂРµРІС‹С€РµРЅРѕ РІСЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ РѕР±СЂР°Р±РѕС‚РєРё РІРёРґРµРѕ');
 };
 
 // News types
@@ -184,7 +203,6 @@ export interface News {
   updated_by_username?: string;
   author?: string;
   author_id?: number;
-  display_order?: number;
   card_width?: 'wide' | 'narrow';
 }
 
@@ -240,10 +258,13 @@ export const newsAPI = {
     apiCall<News>(`/news/${id}/publish`, {
       method: 'PUT',
     }),
-  reorder: (newsIds: number[]) =>
-    apiCall<{ success: boolean; message: string; news: News[] }>('/news/admin/reorder', {
+  moveUp: (id: number) =>
+    apiCall<{ success: boolean; news: News }>(`/news/${id}/move-up`, {
       method: 'POST',
-      body: JSON.stringify({ newsIds }),
+    }),
+  moveDown: (id: number) =>
+    apiCall<{ success: boolean; news: News }>(`/news/${id}/move-down`, {
+      method: 'POST',
     }),
 };
 
@@ -378,7 +399,6 @@ export const statsAPI = {
 // ============================================
 
 export interface RegisterInput {
-  username: string;        // Ник в Арене (для входа и отображения)
   password: string;
   characterUrl: string;    // Ссылка на персонажа (обязательно)
 }
@@ -387,7 +407,6 @@ export interface LoginInput {
   username: string;        // Ник в Арене
   password: string;
 }
-
 export interface UserWithProfile {
   id: number;
   username: string;
@@ -436,9 +455,9 @@ export const authAPI = {
       method: 'POST',
     }),
 
-  getCurrentUser: () => apiCall<{ user: UserWithProfile }>('/auth/me', {}, true), // Не очищать токен при ошибке
+  getCurrentUser: () => apiCall<{ user: UserWithProfile }>('/auth/me', {}, true), // РќРµ РѕС‡РёС‰Р°С‚СЊ С‚РѕРєРµРЅ РїСЂРё РѕС€РёР±РєРµ
 
-  verifyToken: () => apiCall<{ valid: boolean; user: UserWithProfile }>('/auth/verify-token', { method: 'POST' }, true), // Не очищать токен при ошибке - это фоновая проверка
+  verifyToken: () => apiCall<{ valid: boolean; user: UserWithProfile }>('/auth/verify-token', { method: 'POST' }, true), // РќРµ РѕС‡РёС‰Р°С‚СЊ С‚РѕРєРµРЅ РїСЂРё РѕС€РёР±РєРµ - СЌС‚Рѕ С„РѕРЅРѕРІР°СЏ РїСЂРѕРІРµСЂРєР°
 };
 
 // ============================================
@@ -616,3 +635,4 @@ export const usersAPI = {
       body: JSON.stringify({ newPassword }),
     }),
 };
+

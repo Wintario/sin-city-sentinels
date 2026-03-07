@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { statsAPI, StatsOverview, NewsViewStats, PageVisitStats } from '@/lib/api';
 import { Eye, TrendingUp, Calendar, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -59,7 +59,7 @@ const StatsAdmin = () => {
           <TrendingUp className="w-5 h-5" />
           Site Statistics
         </h2>
-        <button
+        <button type="button"
           onClick={loadStats}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -68,19 +68,19 @@ const StatsAdmin = () => {
       </div>
 
       <div className="flex gap-2 mb-6 border-b border-border">
-        <button
+        <button type="button"
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
         >
           Overview
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('topnews')}
           className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'topnews' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
         >
           Top 10 News
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('visits')}
           className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'visits' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
         >

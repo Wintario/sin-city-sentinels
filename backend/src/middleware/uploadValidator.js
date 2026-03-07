@@ -8,7 +8,7 @@ import { getNewsImagesDir, getVideoTempDir } from '../utils/fileUtils.js';
 export const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 export const MAX_HEADER_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 export const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10 MB
-export const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
+export const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
 
 // Allowed image formats
 export const ALLOWED_MIME_TYPES = [

@@ -321,7 +321,7 @@ const CommentsContainer = ({ newsId }: CommentsContainerProps) => {
           {isAuthenticated && <p className="text-sm mt-2">Будьте первым, кто прокомментирует!</p>}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {commentsTree.map((comment) => (
             <CommentThread
               key={comment.id}

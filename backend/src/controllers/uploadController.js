@@ -1,9 +1,13 @@
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
-import { compressImageIfNeeded, getPublicUrl } from '../utils/fileUtils.js';
+import { compressImageIfNeeded, getPublicUrl, getNewsImagesDir } from '../utils/fileUtils.js';
 import { MAX_FILE_SIZE, MAX_HEADER_IMAGE_SIZE, MAX_VIDEO_SIZE } from '../middleware/uploadValidator.js';
 import { enqueueVideoProcessing, getVideoJobStatus } from '../services/videoProcessingQueue.js';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+const isApehaHost = (hostname) => hostname === 'apeha.ru' || hostname.endsWith('.apeha.ru');
 
 /**
  * POST /api/upload/image
@@ -109,6 +113,121 @@ export const uploadHeaderImage = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/upload/external-image
+ * Скачать внешнее изображение и сохранить локально в uploads/news-images
+ */
+export const uploadExternalImage = asyncHandler(async (req, res) => {
+  const { url } = req.body || {};
+
+  if (!url || typeof url !== 'string') {
+    throw new ApiError(400, 'URL is required');
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new ApiError(400, 'Invalid URL');
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new ApiError(400, 'Only HTTP and HTTPS URLs are allowed');
+  }
+
+  // Разрешаем только источники apeha.ru
+  if (!isApehaHost(parsedUrl.hostname)) {
+    throw new ApiError(400, 'Only *.apeha.ru domains are allowed');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  let response;
+  try {
+    response = await fetch(parsedUrl.href, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
+    });
+  } catch (error) {
+    clearTimeout(timeout);
+    throw new ApiError(502, `Failed to download image: ${error.message}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    throw new ApiError(502, `Failed to download image (status ${response.status})`);
+  }
+
+  const contentTypeRaw = (response.headers.get('content-type') || '').toLowerCase();
+  const contentType = contentTypeRaw.split(';')[0].trim();
+  const maxBytes = 8 * 1024 * 1024;
+
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  if (buffer.length === 0) {
+    throw new ApiError(400, 'Downloaded file is empty');
+  }
+
+  if (buffer.length > maxBytes) {
+    throw new ApiError(400, `Image is too large. Max size: ${Math.round(maxBytes / 1024 / 1024)}MB`);
+  }
+
+  const contentTypeToExt = {
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/png': '.png',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
+  };
+
+  const urlExt = path.extname(parsedUrl.pathname || '').toLowerCase();
+  const allowedExt = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+  let ext = contentTypeToExt[contentType] || (allowedExt.has(urlExt) ? urlExt : '.jpg');
+  if (ext === '.jpeg') ext = '.jpg';
+
+  if (!contentType.startsWith('image/') && !allowedExt.has(ext)) {
+    throw new ApiError(400, 'URL does not point to an image');
+  }
+
+  const hash = crypto.createHash('sha1').update(buffer).digest('hex').slice(0, 20);
+  const filename = `external_${hash}${ext}`;
+  const targetPath = path.join(getNewsImagesDir(), filename);
+
+  if (!fs.existsSync(targetPath)) {
+    fs.writeFileSync(targetPath, buffer);
+    await compressImageIfNeeded(targetPath);
+    logger.info('External image downloaded and saved', {
+      filename,
+      source: parsedUrl.href,
+      user: req.user?.username,
+      size: buffer.length,
+    });
+  } else {
+    logger.info('External image reuse (already cached)', {
+      filename,
+      source: parsedUrl.href,
+      user: req.user?.username,
+    });
+  }
+
+  res.json({
+    success: true,
+    file: {
+      filename,
+      url: getPublicUrl(filename, 'news-images'),
+      size: buffer.length,
+      source: parsedUrl.href,
+    },
+  });
+});
+
+/**
  * POST /api/upload/video
  * Р—Р°РіСЂСѓР·РёС‚СЊ РІРёРґРµРѕ Рё РїРѕСЃС‚Р°РІРёС‚СЊ РІ РѕС‡РµСЂРµРґСЊ РѕР±СЂР°Р±РѕС‚РєРё
  */
@@ -198,6 +317,7 @@ export const deleteImage = asyncHandler(async (req, res) => {
 export default {
   uploadNewsImage,
   uploadHeaderImage,
+  uploadExternalImage,
   uploadNewsVideo,
   getVideoUploadStatus,
   deleteImage

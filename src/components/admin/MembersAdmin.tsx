@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
@@ -192,7 +192,7 @@ const MembersAdmin = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Результаты импорта</h2>
-          <Button variant="outline" onClick={resetImport}>
+          <Button type="button" variant="outline" onClick={resetImport}>
             Закрыть
           </Button>
         </div>
@@ -240,7 +240,7 @@ const MembersAdmin = () => {
           ))}
         </div>
 
-        <Button onClick={() => window.location.href = '/members'} className="w-full">
+        <Button type="button" onClick={() => window.location.href = '/members'} className="w-full">
           Перейти на страницу участников
         </Button>
       </div>
@@ -252,11 +252,11 @@ const MembersAdmin = () => {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">Управление составом</h2>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
             <Upload className="w-4 h-4 mr-2" />
             Массовая загрузка
           </Button>
-          <Button onClick={() => setShowForm(true)}>
+          <Button type="button" onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Добавить участника
           </Button>
@@ -360,7 +360,7 @@ const MembersAdmin = () => {
                 
                 <div className="flex items-center gap-2">
                   {!leader && (
-                    <Button
+                    <Button type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => handleSetLeader(member.id, member.name)}
@@ -369,14 +369,14 @@ const MembersAdmin = () => {
                       <Crown className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(member)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button
+                  <Button type="button"
                     variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(member.id, member.name)}
@@ -394,3 +394,5 @@ const MembersAdmin = () => {
 };
 
 export default MembersAdmin;
+
+

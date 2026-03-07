@@ -28,7 +28,7 @@ export const config = {
   
   // Rate limiting (значения из .env для разработки)
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX, 10) || 300,
   loginRateLimitWindowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 минут
   loginRateLimitMax: parseInt(process.env.LOGIN_RATE_LIMIT_MAX, 10) || 50, // 50 попыток
   registerRateLimitWindowMs: 60 * 60 * 1000,

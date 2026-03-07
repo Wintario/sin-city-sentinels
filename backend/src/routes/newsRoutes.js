@@ -6,7 +6,8 @@ import {
   getNewsById,
   createNews,
   updateNews,
-  reorderNews,
+  moveNewsUp,
+  moveNewsDown,
   deleteNews,
   restoreNews,
   publishNews
@@ -30,10 +31,6 @@ router.get('/', getPublishedNews);
 // GET /api/news/admin/list - Новости для админки
 router.get('/admin/list', authenticate, requireRole(['admin', 'author']), getAllNewsAdmin);
 
-// POST /api/news/admin/reorder - Переупорядочить новости (drag-and-drop)
-// БЕЗ writeLimiter - это админская операция, не нужно лимитировать
-router.post('/admin/reorder', authenticate, requireRole('admin'), reorderNews);
-
 // GET /api/news/admin/:id - Одна новость для админки
 router.get('/admin/:id', authenticate, requireRole(['admin', 'author']), getNewsById);
 
@@ -45,6 +42,12 @@ router.put('/:id', authenticate, requireRole(['admin', 'author']), writeLimiter,
 
 // PUT /api/news/:id/publish - Опубликовать новость
 router.put('/:id/publish', authenticate, requireRole(['admin', 'author']), publishNews);
+
+// POST /api/news/:id/move-up - Переместить новость вверх
+router.post('/:id/move-up', authenticate, requireRole(['admin', 'author']), moveNewsUp);
+
+// POST /api/news/:id/move-down - Переместить новость вниз
+router.post('/:id/move-down', authenticate, requireRole(['admin', 'author']), moveNewsDown);
 
 // DELETE /api/news/:id - Удалить новость (мягкое удаление)
 router.delete('/:id', authenticate, requireRole(['admin', 'author']), deleteNews);

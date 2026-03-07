@@ -36,6 +36,12 @@ export function validateLoginInput(username, password) {
 export function validateNewsInput(data, isUpdate = false) {
   const errors = [];
   const validated = {};
+  const hasMediaTag = (html) => {
+    const value = String(html || '');
+    return /<(video|iframe|img|source)\b/i.test(value)
+      || /video:(upload|external):/i.test(value)
+      || /\/uploads\/videos\/[^\s"'<>]+\.(mp4|mov|webm|mkv)/i.test(value);
+  };
   
   // Title
   if (!isUpdate || data.title !== undefined) {
@@ -68,7 +74,7 @@ export function validateNewsInput(data, isUpdate = false) {
         title: data.title,
         isUpdate
       });
-      if (textOnly.length < 10) {
+      if (textOnly.length < 10 && !hasMediaTag(content)) {
         errors.push('Content must be at least 10 characters (text only: ' + textOnly.length + ')');
       } else if (content.length > config.maxContentLength) {
         errors.push(`Content must be less than ${config.maxContentLength} characters`);
@@ -135,6 +141,7 @@ export function validateNewsInput(data, isUpdate = false) {
 export function validateMemberInput(data, isUpdate = false) {
   const errors = [];
   const validated = {};
+  const hasMediaTag = (html) => /<(video|iframe|img)\b/i.test(html || '');
   
   // Name
   if (!isUpdate || data.name !== undefined) {
@@ -241,3 +248,4 @@ export default {
   validateNewsInput,
   validateMemberInput
 };
+

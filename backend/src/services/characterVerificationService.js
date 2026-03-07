@@ -174,7 +174,7 @@ export function extractCharacterName(html) {
  * @param {string} html - HTML содержимое страницы
  * @returns {string|null} URL изображения или null
  */
-export function extractCharacterImage(html) {
+export function extractCharacterImage(html, baseUrl = 'https://apeha.ru/') {
   if (!html) return null;
 
   // Ищем паттерн: background: url('...pers/N_NNNN.gif')
@@ -185,8 +185,12 @@ export function extractCharacterImage(html) {
   if (match && match[1]) {
     let imageUrl = match[1];
     // Если относительный URL, делаем абсолютным
-    if (!imageUrl.startsWith('http')) {
-      imageUrl = 'https://kovcheg2.apeha.ru/' + imageUrl.replace(/^\//, '');
+    if (!/^https?:\/\//i.test(imageUrl)) {
+      try {
+        imageUrl = new URL(imageUrl, baseUrl).href;
+      } catch {
+        imageUrl = `https://apeha.ru/${imageUrl.replace(/^\//, '')}`;
+      }
     }
     console.log('[characterVerificationService] Extracted character image:', imageUrl);
     return imageUrl;
@@ -249,3 +253,4 @@ export default {
   extractAboutSection,
   parseCharacterInfo
 };
+

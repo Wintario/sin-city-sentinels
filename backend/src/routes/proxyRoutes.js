@@ -44,6 +44,7 @@ function decodeWin1251(buffer) {
 }
 
 const router = Router();
+const isApehaHost = (hostname) => hostname === 'apeha.ru' || hostname.endsWith('.apeha.ru');
 
 /**
  * POST /api/proxy/fetch
@@ -66,7 +67,7 @@ router.post('/fetch',
         throw new ApiError(400, 'Only HTTP and HTTPS URLs are allowed');
       }
 
-      if (!parsedUrl.hostname.includes('apeha.ru')) {
+      if (!isApehaHost(parsedUrl.hostname)) {
         throw new ApiError(400, 'Only *.apeha.ru domains are allowed');
       }
     } catch (error) {
@@ -79,7 +80,7 @@ router.post('/fetch',
     console.log('Fetching URL:', url);
 
     // Простой curl запрос
-    const curlCommand = `curl -s --max-time 10 -A "Mozilla/5.0" "${url.replace(/"/g, '\\"')}"`;
+    const curlCommand = `curl -sLk --max-time 10 -A "Mozilla/5.0" "${url.replace(/"/g, '\\"')}"`;
     
     const html = await new Promise((resolve, reject) => {
       exec(curlCommand, { encoding: 'buffer', timeout: 12000 }, (error, stdout, stderr) => {

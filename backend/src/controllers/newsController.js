@@ -5,7 +5,7 @@ import logger from '../utils/logger.js';
 
 /**
  * GET /api/news
- * Получить все опубликованные новости (публичный)
+ * РџРѕР»СѓС‡РёС‚СЊ РІСЃРµ РѕРїСѓР±Р»РёРєРѕРІР°РЅРЅС‹Рµ РЅРѕРІРѕСЃС‚Рё (РїСѓР±Р»РёС‡РЅС‹Р№)
  */
 export const getPublishedNews = asyncHandler(async (req, res) => {
   const news = NewsModel.getPublishedNews();
@@ -14,7 +14,7 @@ export const getPublishedNews = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/news/:id
- * Получить одну опубликованную новость (публичный)
+ * РџРѕР»СѓС‡РёС‚СЊ РѕРґРЅСѓ РѕРїСѓР±Р»РёРєРѕРІР°РЅРЅСѓСЋ РЅРѕРІРѕСЃС‚СЊ (РїСѓР±Р»РёС‡РЅС‹Р№)
  */
 export const getPublishedNewsById = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -29,7 +29,7 @@ export const getPublishedNewsById = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/news/admin/list
- * Получить все новости для админки
+ * РџРѕР»СѓС‡РёС‚СЊ РІСЃРµ РЅРѕРІРѕСЃС‚Рё РґР»СЏ Р°РґРјРёРЅРєРё
  */
 export const getAllNewsAdmin = asyncHandler(async (req, res) => {
   const news = NewsModel.getAllNewsAdmin();
@@ -38,7 +38,7 @@ export const getAllNewsAdmin = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/news/admin/:id
- * Получить новость по ID для админки
+ * РџРѕР»СѓС‡РёС‚СЊ РЅРѕРІРѕСЃС‚СЊ РїРѕ ID РґР»СЏ Р°РґРјРёРЅРєРё
  */
 export const getNewsById = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -53,18 +53,18 @@ export const getNewsById = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/news
- * Создать новую новость
+ * РЎРѕР·РґР°С‚СЊ РЅРѕРІСѓСЋ РЅРѕРІРѕСЃС‚СЊ
  */
 export const createNews = asyncHandler(async (req, res) => {
   logger.request(req, 'Create news request');
   
-  // Валидация
+  // Р’Р°Р»РёРґР°С†РёСЏ
   const validatedData = validateNewsInput(req.body);
   
-  // Добавляем author_id из токена
+  // Р”РѕР±Р°РІР»СЏРµРј author_id РёР· С‚РѕРєРµРЅР°
   validatedData.author_id = req.user.id;
   
-  // Создаём новость
+  // РЎРѕР·РґР°С‘Рј РЅРѕРІРѕСЃС‚СЊ
   const news = NewsModel.createNews(validatedData);
   
   res.status(201).json(news);
@@ -72,8 +72,8 @@ export const createNews = asyncHandler(async (req, res) => {
 
 /**
  * PUT /api/news/:id
- * Обновить новость
- * UPDATED: Теперь передаёт updated_by
+ * РћР±РЅРѕРІРёС‚СЊ РЅРѕРІРѕСЃС‚СЊ
+ * UPDATED: РўРµРїРµСЂСЊ РїРµСЂРµРґР°С‘С‚ updated_by
  */
 export const updateNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -81,78 +81,44 @@ export const updateNews = asyncHandler(async (req, res) => {
   
   logger.request(req, `Update news request for ID ${newsId}`);
   
-  // Проверяем существование
+  // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ
   const existingNews = NewsModel.getNewsById(newsId);
   if (!existingNews) {
     throw new ApiError(404, 'News not found');
   }
   
-  // Проверяем права: админ может всё, автор — только свои
+  // РџСЂРѕРІРµСЂСЏРµРј РїСЂР°РІР°: Р°РґРјРёРЅ РјРѕР¶РµС‚ РІСЃС‘, Р°РІС‚РѕСЂ вЂ” С‚РѕР»СЊРєРѕ СЃРІРѕРё
   if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
     throw new ApiError(403, 'You can only edit your own news');
   }
   
-  // Валидация
+  // Р’Р°Р»РёРґР°С†РёСЏ
   const validatedData = validateNewsInput(req.body, true);
   
-  // Добавляем updated_by (кто редактирует)
+  // Р”РѕР±Р°РІР»СЏРµРј updated_by (РєС‚Рѕ СЂРµРґР°РєС‚РёСЂСѓРµС‚)
   validatedData.updated_by = req.user.id;
   
-  // Обновляем
+  // РћР±РЅРѕРІР»СЏРµРј
   const news = NewsModel.updateNews(newsId, validatedData);
   
   res.json(news);
 });
 
 /**
- * POST /api/news/admin/reorder
- * Переупорядочить новости (drag-and-drop)
- * Body: { newsIds: [1, 3, 2, 4] }
- */
-export const reorderNews = asyncHandler(async (req, res) => {
-  const { newsIds } = req.body;
-  
-  logger.info('Reorder request', { newsIds, user: req.user?.username });
-  
-  if (!Array.isArray(newsIds) || newsIds.length === 0) {
-    logger.warn('Invalid reorder request - newsIds not array or empty', { newsIds });
-    throw new ApiError(400, 'newsIds must be a non-empty array');
-  }
-  
-  logger.request(req, `Reorder news: ${newsIds.length} items`);
-  
-  try {
-    const result = NewsModel.reorderNews(newsIds);
-    
-    if (!result.success) {
-      logger.error('Reorder failed', { error: result.error, newsIds });
-      throw new ApiError(500, result.error);
-    }
-    
-    // Возвращаем обновленный список
-    const news = NewsModel.getAllNewsAdmin();
-    res.json({ success: true, message: result.message, news });
-  } catch (error) {
-    logger.error('Reorder exception:', { error: error.message, newsIds });
-    throw new ApiError(500, `Reorder error: ${error.message}`);
-  }
-});
-
-/**
  * DELETE /api/news/:id
- * Мягкое удаление новости
+ * РњСЏРіРєРѕРµ СѓРґР°Р»РµРЅРёРµ РЅРѕРІРѕСЃС‚Рё
  */
 export const deleteNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
   
-  // Проверяем существование
+  // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ
   const existingNews = NewsModel.getNewsById(newsId);
   if (!existingNews) {
     throw new ApiError(404, 'News not found');
   }
   
-  // Проверяем права: админ может всё, автор — только свои
+  // РџСЂРѕРІРµСЂСЏРµРј РїСЂР°РІР°: Р°РґРјРёРЅ РјРѕР¶РµС‚ РІСЃС‘, Р°РІС‚РѕСЂ вЂ” С‚РѕР»СЊРєРѕ СЃРІРѕРё
   if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
     throw new ApiError(403, 'You can only delete your own news');
   }
@@ -163,13 +129,13 @@ export const deleteNews = asyncHandler(async (req, res) => {
 
 /**
  * PATCH /api/news/:id/restore
- * Восстановить удалённую новость (только админ)
+ * Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ СѓРґР°Р»С‘РЅРЅСѓСЋ РЅРѕРІРѕСЃС‚СЊ (С‚РѕР»СЊРєРѕ Р°РґРјРёРЅ)
  */
 export const restoreNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
   
-  // Проверяем существование
+  // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ
   const existingNews = NewsModel.getNewsById(newsId);
   if (!existingNews) {
     throw new ApiError(404, 'News not found');
@@ -181,33 +147,79 @@ export const restoreNews = asyncHandler(async (req, res) => {
 
 /**
  * PUT /api/news/:id/publish
- * Опубликовать новость (установить published_at)
- * НЕ ТРЕБУЕТ title/content - обновляет только published_at
+ * РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ РЅРѕРІРѕСЃС‚СЊ (СѓСЃС‚Р°РЅРѕРІРёС‚СЊ published_at)
+ * РќР• РўР Р•Р‘РЈР•Рў title/content - РѕР±РЅРѕРІР»СЏРµС‚ С‚РѕР»СЊРєРѕ published_at
  */
 export const publishNews = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
-  
+
   logger.info(`Publish news request for ID ${newsId}`, { user: req.user?.username });
-  
+
   const existingNews = NewsModel.getNewsById(newsId);
   if (!existingNews) {
     logger.error(`News not found for publish: ${newsId}`);
     throw new ApiError(404, 'News not found');
   }
-  
-  // Проверяем права: админ может всё, автор — только свои
+
+  // РџСЂРѕРІРµСЂСЏРµРј РїСЂР°РІР°: Р°РґРјРёРЅ РјРѕР¶РµС‚ РІСЃС‘, Р°РІС‚РѕСЂ вЂ” С‚РѕР»СЊРєРѕ СЃРІРѕРё
   if (req.user.role !== 'admin' && existingNews.author_id !== req.user.id) {
     logger.error(`Unauthorized publish attempt for news ${newsId}`, { user: req.user });
     throw new ApiError(403, 'You can only publish your own news');
   }
-  
-  // Используем специальный метод для публикации
+
+  // РСЃРїРѕР»СЊР·СѓРµРј СЃРїРµС†РёР°Р»СЊРЅС‹Р№ РјРµС‚РѕРґ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё
   const news = NewsModel.publishNews(newsId);
-  
+
   logger.info(`News published successfully: ${newsId}`, { title: news.title });
-  
+
   res.json(news);
+});
+
+/**
+ * POST /api/news/:id/move-up
+ * РџРµСЂРµРјРµСЃС‚РёС‚СЊ РЅРѕРІРѕСЃС‚СЊ РІРІРµСЂС…
+ */
+export const moveNewsUp = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const newsId = parseInt(id, 10);
+
+  logger.info(`Move up news request for ID ${newsId}`, { user: req.user?.username });
+
+  const existingNews = NewsModel.getNewsById(newsId);
+  if (!existingNews) {
+    throw new ApiError(404, 'News not found');
+  }
+
+  const news = NewsModel.moveNewsUp(newsId);
+  if (!news) {
+    return res.json({ success: false, message: 'Already at top' });
+  }
+
+  res.json({ success: true, news });
+});
+
+/**
+ * POST /api/news/:id/move-down
+ * РџРµСЂРµРјРµСЃС‚РёС‚СЊ РЅРѕРІРѕСЃС‚СЊ РІРЅРёР·
+ */
+export const moveNewsDown = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const newsId = parseInt(id, 10);
+
+  logger.info(`Move down news request for ID ${newsId}`, { user: req.user?.username });
+
+  const existingNews = NewsModel.getNewsById(newsId);
+  if (!existingNews) {
+    throw new ApiError(404, 'News not found');
+  }
+
+  const news = NewsModel.moveNewsDown(newsId);
+  if (!news) {
+    return res.json({ success: false, message: 'Already at bottom' });
+  }
+
+  res.json({ success: true, news });
 });
 
 export default {
@@ -217,8 +229,10 @@ export default {
   getNewsById,
   createNews,
   updateNews,
-  reorderNews,
+  moveNewsUp,
+  moveNewsDown,
   deleteNews,
   restoreNews,
   publishNews
 };
+

@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+﻿import { useEffect, useState } from 'react';
+import { Trash2, Edit, Plus, Eye, EyeOff, Loader2, Send, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { newsAPI, News } from '@/lib/api';
-import { Trash2, Edit, Plus, Eye, EyeOff, Loader2, Send, Menu } from 'lucide-react';
 import NewsForm from './NewsForm';
 
 type TabType = 'published' | 'drafts';
+
+const ITEMS_PER_PAGE = 10;
+
+const sortByIdDesc = (items: News[]) => [...items].sort((a, b) => b.id - a.id);
+const stripHtml = (value?: string) => (value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
 const NewsAdmin = () => {
   const [news, setNews] = useState<News[]>([]);
@@ -13,18 +18,16 @@ const NewsAdmin = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingNews, setEditingNews] = useState<News | null>(null);
   const [publishingId, setPublishingId] = useState<number | null>(null);
+  const [movingId, setMovingId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('published');
-  const [draggedId, setDraggedId] = useState<number | null>(null);
-  const [isReordering, setIsReordering] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
 
   const loadNews = async () => {
     try {
       setIsLoading(true);
       const data = await newsAPI.getAdminList();
       setNews(data);
-    } catch (error) {
+    } catch {
       toast.error('Ошибка загрузки новостей');
     } finally {
       setIsLoading(false);
@@ -35,29 +38,25 @@ const NewsAdmin = () => {
     loadNews();
   }, []);
 
-  // Фильтрация по вкладкам
-  const draftNews = news.filter(n => !n.published_at && !n.is_deleted);
-  const publishedNews = news.filter(n => n.published_at && !n.is_deleted);
-  const currentNews = activeTab === 'drafts' ? draftNews : publishedNews;
-  
-  // Пагинация
-  const totalPages = Math.ceil(currentNews.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedNews = currentNews.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  
-  // Сброс на первую страницу при смене вкладки
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab]);
 
+  const draftNews = news.filter((n) => !n.published_at && !n.is_deleted);
+  const publishedNews = news.filter((n) => !!n.published_at && !n.is_deleted);
+  const currentNews = activeTab === 'drafts' ? sortByIdDesc(draftNews) : sortByIdDesc(publishedNews);
+
+  const totalPages = Math.ceil(currentNews.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedNews = currentNews.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить эту новость?')) return;
-    
     try {
       await newsAPI.delete(id);
       toast.success('Новость удалена');
       loadNews();
-    } catch (error) {
+    } catch {
       toast.error('Ошибка удаления');
     }
   };
@@ -68,10 +67,44 @@ const NewsAdmin = () => {
       await newsAPI.publish(item.id);
       toast.success('Новость опубликована');
       loadNews();
-    } catch (error) {
+    } catch {
       toast.error('Ошибка публикации');
     } finally {
       setPublishingId(null);
+    }
+  };
+
+  const handleMoveUp = async (id: number) => {
+    setMovingId(id);
+    try {
+      const result = await newsAPI.moveUp(id);
+      if (result.success) {
+        toast.success('Новость перемещена вверх');
+      } else {
+        toast.info('Эта новость уже в самом верху');
+      }
+      loadNews();
+    } catch {
+      toast.error('Ошибка перемещения');
+    } finally {
+      setMovingId(null);
+    }
+  };
+
+  const handleMoveDown = async (id: number) => {
+    setMovingId(id);
+    try {
+      const result = await newsAPI.moveDown(id);
+      if (result.success) {
+        toast.success('Новость перемещена вниз');
+      } else {
+        toast.info('Эта новость уже в самом низу');
+      }
+      loadNews();
+    } catch {
+      toast.error('Ошибка перемещения');
+    } finally {
+      setMovingId(null);
     }
   };
 
@@ -90,79 +123,24 @@ const NewsAdmin = () => {
     loadNews();
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, id: number) => {
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetId: number) => {
-    e.preventDefault();
-    
-    if (draggedId === null || draggedId === targetId) {
-      setDraggedId(null);
-      return;
-    }
-
-    setIsReordering(true);
-
-    try {
-      // Создаём новый порядок
-      const newOrder = [...currentNews];
-      const draggedIndex = newOrder.findIndex(n => n.id === draggedId);
-      const targetIndex = newOrder.findIndex(n => n.id === targetId);
-
-      if (draggedIndex !== -1 && targetIndex !== -1) {
-        // Перемещаем элемент
-        const [dragged] = newOrder.splice(draggedIndex, 1);
-        newOrder.splice(targetIndex, 0, dragged);
-
-        // Отправляем новый порядок на сервер
-        const newsIds = newOrder.map(n => n.id);
-        
-        const result = await newsAPI.reorder(newsIds);
-
-        toast.success('Порядок обновлён');
-        setNews(result.news);
-      }
-    } catch (error: any) {
-      toast.error(`Ошибка: ${error.message}`);
-    } finally {
-      setDraggedId(null);
-      setIsReordering(false);
-    }
-  };
-
   if (showForm) {
-    return (
-      <NewsForm
-        news={editingNews}
-        onCancel={handleFormClose}
-        onSuccess={handleFormSuccess}
-      />
-    );
+    return <NewsForm news={editingNews} onCancel={handleFormClose} onSuccess={handleFormSuccess} />;
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Управление новостями</h2>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button type="button" onClick={() => setShowForm(true)}>
+          <Plus className="mr-2 h-4 w-4" />
           Добавить новость
         </Button>
       </div>
 
-      {/* Вкладки */}
-      <div className="flex gap-2 mb-6 border-b border-border">
-        <button
+      <div className="mb-6 flex gap-2 border-b border-border">
+        <button type="button"
           onClick={() => setActiveTab('published')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+          className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'published'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -170,9 +148,9 @@ const NewsAdmin = () => {
         >
           Опубликованные ({publishedNews.length})
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('drafts')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+          className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'drafts'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -184,7 +162,7 @@ const NewsAdmin = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : currentNews.length === 0 ? (
         <p className="text-muted-foreground">
@@ -193,155 +171,167 @@ const NewsAdmin = () => {
       ) : (
         <>
           <div className="space-y-3">
-            {paginatedNews.map((item) => {
-              // Проверяем было ли редактирование
-              const wasEdited = item.updated_at && item.created_at &&
+            {paginatedNews.map((item, index) => {
+              const wasEdited =
+                !!item.updated_at &&
+                !!item.created_at &&
                 new Date(item.updated_at).getTime() > new Date(item.created_at).getTime();
+
+              const absoluteIndex = startIndex + index;
+              const isFirst = absoluteIndex === 0;
+              const isLast = absoluteIndex === currentNews.length - 1;
+              const showArrows = activeTab === 'published';
 
               return (
                 <div
                   key={item.id}
-                  draggable={activeTab === 'published' && !isReordering}
-                  onDragStart={(e) => handleDragStart(e, item.id)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, item.id)}
-                  className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
-                    item.published_at
-                      ? 'bg-green-500/5 border-green-500/20'
-                      : 'bg-muted/50 border-border'
-                  } ${
-                    draggedId === item.id
-                      ? 'opacity-50 cursor-grabbing'
-                      : activeTab === 'published'
-                      ? 'cursor-grab hover:shadow-md'
-                      : ''
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-all ${
+                    item.published_at ? 'border-green-500/20 bg-green-500/5' : 'border-border bg-muted/50'
                   }`}
                 >
-                {/* Drag handle для опубликованных новостей */}
-                {activeTab === 'published' && !isReordering && (
-                  <div className="flex items-center gap-3 mr-3">
-                    <Menu className="w-5 h-5 text-muted-foreground opacity-70 hover:opacity-100 transition-opacity flex-shrink-0" />
-                  </div>
-                )}
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium truncate">
-                      {item.title}
-                    </h3>
-                    {item.published_at ? (
-                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-600">
-                        <Eye className="w-3 h-3" />
-                        Опубликовано
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                        <EyeOff className="w-3 h-3" />
-                        Черновик
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1 truncate">
-                    {item.excerpt || item.content?.substring(0, 100)}
-                  </p>
-                  <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                    <p>
-                      {item.published_at 
-                        ? `Опубликовано: ${new Date(item.published_at).toLocaleDateString('ru-RU')}`
-                        : `Создано: ${new Date(item.created_at).toLocaleDateString('ru-RU')}`
-                      }
-                      {item.author && ` • ${item.author}`}
+                  {showArrows && (
+                    <div className="mr-3 flex flex-col gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMoveUp(item.id)}
+                        disabled={movingId !== null || isFirst}
+                        title="Переместить вверх"
+                        className="h-8 w-8 p-0"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMoveDown(item.id)}
+                        disabled={movingId !== null || isLast}
+                        title="Переместить вниз"
+                        className="h-8 w-8 p-0"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate font-medium">{item.title}</h3>
+                      {item.published_at ? (
+                        <span className="flex items-center gap-1 rounded bg-green-500/20 px-2 py-0.5 text-xs text-green-600">
+                          <Eye className="h-3 w-3" />
+                          Опубликовано
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                          <EyeOff className="h-3 w-3" />
+                          Черновик
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 truncate text-sm text-muted-foreground">
+                      {stripHtml(item.excerpt || item.content).substring(0, 100)}
                     </p>
-                    {wasEdited && item.updated_by_username && (
-                      <p className="text-amber-600 dark:text-amber-400">
-                        Ред.: {new Date(item.updated_at).toLocaleDateString('ru-RU')} • {item.updated_by_username}
+                    <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                      <p>
+                        {item.published_at
+                          ? `Опубликовано: ${new Date(item.published_at).toLocaleDateString('ru-RU')}`
+                          : `Создано: ${new Date(item.created_at).toLocaleDateString('ru-RU')}`}
+                        {item.author && ` • ${item.author}`}
                       </p>
-                    )}
-                    {item.views_count !== undefined && (
-                      <p className="flex items-center gap-1 text-muted-foreground">
-                        <Eye className="w-3 h-3" />
-                        Просмотры: <span className="text-foreground font-medium">{item.views_count}</span>
-                      </p>
-                    )}
+                      {wasEdited && item.updated_by_username && (
+                        <p className="text-amber-600 dark:text-amber-400">
+                          Ред.: {new Date(item.updated_at).toLocaleDateString('ru-RU')} • {item.updated_by_username}
+                        </p>
+                      )}
+                      {item.views_count !== undefined && (
+                        <p className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          Просмотры: <span className="font-medium text-foreground">{item.views_count}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2 ml-4">
-                  {!item.published_at && (
-                    <Button
+
+                  <div className="ml-4 flex items-center gap-2">
+                    {!item.published_at && (
+                      <Button type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePublish(item)}
+                        disabled={publishingId === item.id || movingId !== null}
+                        className="border-green-600/30 text-green-600 hover:bg-green-500/10"
+                        title="Опубликовать"
+                      >
+                        {publishingId === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                    <Button type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handlePublish(item)}
-                      disabled={publishingId === item.id}
-                      className="text-green-600 border-green-600/30 hover:bg-green-500/10"
-                      title="Опубликовать"
+                      onClick={() => handleEdit(item)}
+                      disabled={movingId !== null}
+                      title="Редактировать"
                     >
-                      {publishingId === item.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
+                      <Edit className="h-4 w-4" />
                     </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(item)}
-                    title="Редактировать"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                    title="Удалить"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    <Button type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(item.id)}
+                      disabled={movingId !== null}
+                      title="Удалить"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Пагинация */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-border">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              ← Назад
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Страница {currentPage} из {totalPages}
-            </span>
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCurrentPage(page)}
-                  className="w-8 h-8 p-0"
-                >
-                  {page}
-                </Button>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Вперёд →
-            </Button>
+              );
+            })}
           </div>
-        )}
+
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-2 border-t border-border pt-4">
+              <Button type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                ← Назад
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Страница {currentPage} из {totalPages}
+              </span>
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button type="button"
+                    key={page}
+                    variant={currentPage === page ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              <Button type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Вперёд →
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -349,4 +339,5 @@ const NewsAdmin = () => {
 };
 
 export default NewsAdmin;
+
 

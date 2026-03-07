@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Menu, X, LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { clearToken } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -19,9 +18,9 @@ interface NavigationProps {
 
 const Navigation = ({ onHover }: NavigationProps) => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const loggedIn = isAuthenticated();
+  const loggedIn = isAuthenticated;
 
   const navItems = [
     { label: 'О нас', href: '#about', isExternal: false },
@@ -33,8 +32,8 @@ const Navigation = ({ onHover }: NavigationProps) => {
   const handleMouseEnter = () => onHover(true);
   const handleMouseLeave = () => onHover(false);
 
-  const handleLogout = () => {
-    clearToken();
+  const handleLogout = async () => {
+    await logout();
     toast.success('Вы вышли из системы');
     navigate('/');
   };
@@ -43,9 +42,9 @@ const Navigation = ({ onHover }: NavigationProps) => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <a href="#" className="font-display text-2xl tracking-wider text-foreground">
+          <Link to="/" className="font-display text-2xl tracking-wider text-foreground">
             СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-2">
@@ -148,6 +147,57 @@ const Navigation = ({ onHover }: NavigationProps) => {
                 </a>
               )
             ))}
+            
+            {/* Mobile Auth Button */}
+            {loggedIn ? (
+              <div className="border-t border-border mt-2 pt-2">
+                <div className="block py-3 px-4 font-heading uppercase tracking-wider text-foreground">
+                  <UserIcon className="inline h-4 w-4 mr-2" />
+                  {user?.displayName || user?.username || 'Профиль'}
+                </div>
+                <button
+                  className="w-full text-left py-3 px-4 font-heading uppercase tracking-wider text-foreground hover:text-primary hover:bg-secondary transition-colors"
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate('/profile');
+                  }}
+                >
+                  Профиль
+                </button>
+                {(user?.role === 'admin' || user?.role === 'author') && (
+                  <button
+                    className="w-full text-left py-3 px-4 font-heading uppercase tracking-wider text-foreground hover:text-primary hover:bg-secondary transition-colors"
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate('/admin');
+                    }}
+                  >
+                    Админка
+                  </button>
+                )}
+                <button
+                  className="w-full text-left py-3 px-4 font-heading uppercase tracking-wider text-red-500 hover:text-red-400 hover:bg-secondary transition-colors"
+                  onClick={() => {
+                    setIsOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  <LogOut className="inline h-4 w-4 mr-2" />
+                  Выйти
+                </button>
+              </div>
+            ) : (
+              <button
+                className="w-full text-left py-3 px-4 font-heading uppercase tracking-wider text-primary hover:text-primary/80 hover:bg-secondary transition-colors border-t border-border mt-2"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/auth');
+                }}
+              >
+                <LogIn className="inline h-4 w-4 mr-2" />
+                Войти
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -156,3 +206,6 @@ const Navigation = ({ onHover }: NavigationProps) => {
 };
 
 export default Navigation;
+
+
+

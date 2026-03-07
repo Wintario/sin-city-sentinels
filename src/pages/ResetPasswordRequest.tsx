@@ -17,6 +17,17 @@ import {
 } from '@/components/ui/card';
 import { Loader2, CheckCircle2, XCircle, KeyRound } from 'lucide-react';
 
+const isApehaHost = (hostname: string) => hostname === 'apeha.ru' || hostname.endsWith('.apeha.ru');
+const isCharacterPagePath = (pathname: string) => pathname.includes('info') || pathname.includes('pers');
+const isApehaCharacterUrl = (value: string) => {
+  try {
+    const parsed = new URL(value);
+    return isApehaHost(parsed.hostname) && isCharacterPagePath(parsed.pathname);
+  } catch {
+    return false;
+  }
+};
+
 const resetPasswordRequestSchema = z.object({
   username: z.string()
     .min(2, 'Ник должен быть не менее 2 символов')
@@ -24,7 +35,7 @@ const resetPasswordRequestSchema = z.object({
   characterUrl: z.string()
     .url('Неверный формат URL')
     .refine(
-      url => url.includes('apeha.ru') && (url.includes('info') || url.includes('pers')),
+      isApehaCharacterUrl,
       'URL должен вести на страницу персонажа на apeha.ru'
     ),
 });
@@ -55,8 +66,7 @@ const ResetPasswordRequest = () => {
       setIsCheckingUrl(true);
       try {
         const url = new URL(characterUrl);
-        const isValid = url.hostname.includes('apeha.ru') &&
-          (url.pathname.includes('info') || url.pathname.includes('pers'));
+        const isValid = isApehaHost(url.hostname) && isCharacterPagePath(url.pathname);
         setIsUrlValid(isValid);
       } catch {
         setIsUrlValid(false);
@@ -245,3 +255,4 @@ const ResetPasswordRequest = () => {
 };
 
 export default ResetPasswordRequest;
+

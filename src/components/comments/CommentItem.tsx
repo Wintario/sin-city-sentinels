@@ -82,7 +82,7 @@ export const CommentItem = ({
     <article
       id={`comment-${comment.id}`}
       className={`
-        p-3 rounded-lg border space-y-2
+        p-2.5 rounded-lg border space-y-1.5
         ${isHidden 
           ? 'bg-muted/30 border-amber-500/30' 
           : isDeleted 
@@ -94,8 +94,8 @@ export const CommentItem = ({
       style={{ marginLeft: depth > 0 ? `${depth * 16}px` : undefined }}
     >
       {/* Header */}
-      <div className="flex items-start justify-between gap-1.5">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-start justify-between gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           {/* Автор */}
           {comment.author_character_url ? (
             <a

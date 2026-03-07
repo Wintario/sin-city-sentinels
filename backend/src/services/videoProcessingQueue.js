@@ -39,6 +39,19 @@ const runFfmpeg = (args) => {
   });
 };
 
+const isFfmpegUnavailableError = (error) => {
+  const code = error?.code;
+  const message = String(error?.message || '');
+  return (
+    code === 'ENOENT' ||
+    code === 'EPERM' ||
+    code === 'EACCES' ||
+    message.includes('ENOENT') ||
+    message.includes('EPERM') ||
+    message.includes('EACCES')
+  );
+};
+
 const processJob = async (job) => {
   const outputBase = uuidv4();
   const outputVideo = path.join(getVideosDir(), `${outputBase}.mp4`);
@@ -104,7 +117,7 @@ const processJob = async (job) => {
       video: outputVideo
     });
   } catch (error) {
-    const isFfmpegMissing = error?.code === 'ENOENT' || String(error?.message || '').includes('ENOENT');
+    const isFfmpegMissing = isFfmpegUnavailableError(error);
 
     if (isFfmpegMissing) {
       try {

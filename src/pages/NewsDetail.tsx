@@ -10,6 +10,13 @@ import { CommentsContainer } from '@/components/comments';
 import heroRabbit from '@/assets/hero-rabbit.png';
 import './NewsDetail.css';
 
+const normalizeUploadUrl = (url: string) => {
+  if (url.startsWith('/uploads/')) {
+    return `/api${url}`;
+  }
+  return url;
+};
+
 const NewsDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -102,11 +109,12 @@ const NewsDetail = () => {
       if (type === 'external') {
         block.dataset.embed = value;
       } else {
-        block.dataset.video = value;
+        block.dataset.video = normalizeUploadUrl(value);
       }
 
       const thumb = document.createElement('img');
-      thumb.src = img.src;
+      const rawThumbSrc = img.getAttribute('src') || '';
+      thumb.src = rawThumbSrc ? normalizeUploadUrl(rawThumbSrc) : img.src;
       thumb.alt = 'Video preview';
       thumb.className = 'video-thumb';
       thumb.loading = 'lazy';
@@ -120,6 +128,18 @@ const NewsDetail = () => {
       block.appendChild(thumb);
       block.appendChild(play);
       img.replaceWith(block);
+    });
+
+    // Для иконки клана: если title не сохранился после редактора, восстанавливаем из alt
+    const clanIcons = root.querySelectorAll('img');
+    clanIcons.forEach((imgNode) => {
+      const img = imgNode as HTMLImageElement;
+      const alt = (img.alt || '').trim();
+      if (img.title) return;
+
+      if (/^Логотип\s+/i.test(alt)) {
+        img.title = alt.replace(/^Логотип\s+/i, '').trim();
+      }
     });
 
     const handleVideoClick = (event: Event) => {

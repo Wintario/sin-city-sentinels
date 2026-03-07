@@ -1,18 +1,22 @@
 import { z } from 'zod';
+const isApehaHost = (hostname) => hostname === 'apeha.ru' || hostname.endsWith('.apeha.ru');
+const isApehaUrl = (url) => {
+  try {
+    return isApehaHost(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+};
 
 // Схема для валидации регистрации
 export const registerSchema = z.object({
-  username: z.string()
-    .min(2, 'Ник должен быть не менее 2 символов')
-    .max(50, 'Ник слишком длинный')
-    .regex(/^[a-zA-Zа-яА-Я0-9_ !№%:*?()@#$^&\[\]{}|\\'".,+-]+$/, 'Ник содержит недопустимые символы'),
   password: z.string()
     .min(6, 'Пароль должен быть не менее 6 символов')
     .max(72, 'Пароль слишком длинный'),
   characterUrl: z.string()
     .url('Неверный формат URL')
     .refine(
-      url => url.includes('apeha.ru'),
+      isApehaUrl,
       'URL должен вести на страницу персонажа на apeha.ru'
     )
 });
@@ -36,7 +40,7 @@ export const resetPasswordRequestSchema = z.object({
   characterUrl: z.string()
     .url('Неверный формат URL')
     .refine(
-      url => url.includes('apeha.ru'),
+      isApehaUrl,
       'URL должен вести на страницу персонажа на apeha.ru'
     )
 });
@@ -245,3 +249,6 @@ export default {
   validateResetPasswordRequestMiddleware,
   validateResetPasswordMiddleware
 };
+
+
+

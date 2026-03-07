@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usersAPI, reportsAPI, UserWithProfileExtended, BanInfo } from '@/lib/api';
 import { toast } from 'sonner';
@@ -245,7 +245,7 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
           </p>
         </div>
         {isAdminUser && (
-          <Button onClick={() => navigate('/admin/reports')}>
+          <Button type="button" onClick={() => navigate('/admin/reports')}>
             Перейти к жалобам
           </Button>
         )}
@@ -367,7 +367,7 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
+                        <Button type="button" variant="ghost" size="sm">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -494,10 +494,10 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+            <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
               Отмена
             </Button>
-            <Button onClick={handleSaveEdit} disabled={isActionLoading}>
+            <Button type="button" onClick={handleSaveEdit} disabled={isActionLoading}>
               {isActionLoading ? 'Сохранение...' : 'Сохранить'}
             </Button>
           </DialogFooter>
@@ -528,13 +528,13 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
+            <Button type="button" variant="outline" onClick={() => {
               setShowResetPassword(false);
               setNewPassword('');
             }}>
               Отмена
             </Button>
-            <Button onClick={handleResetPassword} disabled={isActionLoading || !newPassword}>
+            <Button type="button" onClick={handleResetPassword} disabled={isActionLoading || !newPassword}>
               {isActionLoading ? 'Сброс...' : 'Сбросить пароль'}
             </Button>
           </DialogFooter>
@@ -607,14 +607,14 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
+            <Button type="button" variant="outline" onClick={() => {
               setShowBanDialog(false);
               setBanDuration('1h');
               setBanReason('');
             }} disabled={isActionLoading}>
               Отмена
             </Button>
-            <Button onClick={handleBan} disabled={isActionLoading} variant={banDuration === 'permanent' ? 'destructive' : 'default'}>
+            <Button type="button" onClick={handleBan} disabled={isActionLoading} variant={banDuration === 'permanent' ? 'destructive' : 'default'}>
               {isActionLoading ? 'Бан...' : (banDuration === 'permanent' ? 'Забанить навсегда' : 'Забанить')}
             </Button>
           </DialogFooter>
@@ -625,3 +625,5 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
 };
 
 export default UsersAdmin;
+
+

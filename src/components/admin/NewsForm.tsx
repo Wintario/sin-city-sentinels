@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -21,6 +21,13 @@ interface NewsFormProps {
 }
 
 const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
+  const hasMediaContent = (html: string) => {
+    const value = String(html || '');
+    return /<(video|iframe|img|source)\b/i.test(value)
+      || /video:(upload|external):/i.test(value)
+      || /\/uploads\/videos\/[^\s"'<>]+\.(mp4|mov|webm|mkv)/i.test(value);
+  };
+
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<NewsCreateInput>({
     title: news?.title || '',
@@ -66,6 +73,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = formData.content;
     const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    const hasMediaTag = hasMediaContent(formData.content);
     
     // Берём первые 150 символов или 30% если текст короткий
     const length = textContent.length <= 500 
@@ -126,8 +134,9 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = formData.content;
     const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    const hasMediaTag = hasMediaContent(formData.content);
     
-    if (!textContent.trim() || textContent.length < 10) {
+    if ((!textContent.trim() || textContent.length < 10) && !hasMediaTag) {
       toast.error('Содержание должно быть минимум 10 символов. Сейчас: ' + textContent.length);
       console.log('Content validation failed:', {
         htmlLength: formData.content.length,
@@ -179,7 +188,7 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
 
   return (
     <div>
-      <button
+      <button type="button"
         onClick={onCancel}
         className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
@@ -355,3 +364,8 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
 };
 
 export default NewsForm;
+
+
+
+
+

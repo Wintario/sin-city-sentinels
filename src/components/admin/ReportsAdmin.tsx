@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReports, usePendingReportsCount, useUpdateReportStatus, useReviewReport, getStatusBadgeVariant } from '@/hooks/useReports';
 import { useHideComment } from '@/hooks/useComments';
@@ -162,11 +162,11 @@ const ReportsAdmin = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/admin/comments')}>
+          <Button type="button" variant="outline" onClick={() => navigate('/admin/comments')}>
             <MessageSquare className="h-4 w-4 mr-2" />
             Все комментарии
           </Button>
-          <Button variant="outline" onClick={() => navigate('/admin/users')}>
+          <Button type="button" variant="outline" onClick={() => navigate('/admin/users')}>
             <ExternalLink className="h-4 w-4 mr-2" />
             Пользователи
           </Button>
@@ -216,7 +216,7 @@ const ReportsAdmin = () => {
                           <div className="truncate max-w-[250px] text-sm text-muted-foreground">
                             {report.comment_content?.substring(0, 80) || '...'}
                           </div>
-                          <Button
+                          <Button type="button"
                             variant="ghost"
                             size="sm"
                             className="h-6 w-6 p-0 shrink-0"
@@ -247,7 +247,7 @@ const ReportsAdmin = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button
+                          <Button type="button"
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
@@ -258,7 +258,7 @@ const ReportsAdmin = () => {
                           </Button>
                           {activeTab === 'pending' && (
                             <>
-                              <Button
+                              <Button type="button"
                                 variant="outline"
                                 size="sm"
                                 className="h-8 px-2 text-xs"
@@ -270,7 +270,7 @@ const ReportsAdmin = () => {
                               >
                                 Скрыть
                               </Button>
-                              <Button
+                              <Button type="button"
                                 variant="secondary"
                                 size="sm"
                                 className="h-8 w-8 p-0"
@@ -280,7 +280,7 @@ const ReportsAdmin = () => {
                               >
                                 <XCircle className="h-4 w-4" />
                               </Button>
-                              <Button
+                              <Button type="button"
                                 variant="default"
                                 size="sm"
                                 className="h-8 w-8 p-0"
@@ -378,7 +378,7 @@ const ReportsAdmin = () => {
           <DialogFooter>
             {selectedReport?.status === 'pending' && (
               <>
-                <Button
+                <Button type="button"
                   variant="outline"
                   onClick={() => {
                     handleReviewReport('rejected');
@@ -389,7 +389,7 @@ const ReportsAdmin = () => {
                   <XCircle className="h-4 w-4 mr-2" />
                   Отклонить
                 </Button>
-                <Button
+                <Button type="button"
                   variant="default"
                   onClick={() => {
                     handleReviewReport('resolved');
@@ -402,7 +402,7 @@ const ReportsAdmin = () => {
                 </Button>
               </>
             )}
-            <Button
+            <Button type="button"
               variant="secondary"
               onClick={() => setShowViewDialog(false)}
             >
@@ -434,14 +434,14 @@ const ReportsAdmin = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
+            <Button type="button"
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
               disabled={reviewReportMutation.isPending || hideCommentMutation.isPending}
             >
               Отмена
             </Button>
-            <Button
+            <Button type="button"
               variant={confirmAction === 'rejected' ? 'secondary' : 'default'}
               onClick={
                 confirmAction === 'hide'
@@ -467,3 +467,5 @@ const ReportsAdmin = () => {
 };
 
 export default ReportsAdmin;
+
+

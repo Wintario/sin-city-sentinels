@@ -347,6 +347,34 @@ export function runMigrations() {
     }
 
     // ============================================
+    // Миграция 003b: Pending character registrations
+    // ============================================
+    const pendingCharacterRegsExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='pending_character_registrations'"
+    ).get();
+
+    if (!pendingCharacterRegsExists) {
+      console.log('>> Creating pending_character_registrations table...');
+      db.exec(`
+        CREATE TABLE pending_character_registrations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NOT NULL,
+          password_hash TEXT NOT NULL,
+          character_url TEXT NOT NULL,
+          character_name TEXT NOT NULL,
+          character_image TEXT,
+          token TEXT NOT NULL UNIQUE,
+          expires_at DATETIME NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_pending_char_reg_token ON pending_character_registrations(token)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_pending_char_reg_username ON pending_character_registrations(username)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_pending_char_reg_character_url ON pending_character_registrations(character_url)`);
+      console.log('>> pending_character_registrations table created');
+    }
+
+    // ============================================
     // Миграция 004: User bans (временные блокировки)
     // ============================================
     const userBansExists = db.prepare(

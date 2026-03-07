@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -123,7 +123,7 @@ export const CommentHistoryInAdmin = ({
                   </div>
                 )}
                 {newsId && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     size="sm"
                     onClick={handleGoToComment}
@@ -240,7 +240,7 @@ export const CommentHistoryInAdmin = ({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Закрыть
             </Button>
           </DialogFooter>
@@ -249,3 +249,5 @@ export const CommentHistoryInAdmin = ({
     </>
   );
 };
+
+

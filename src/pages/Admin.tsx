@@ -4,16 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LogOut, Newspaper, Users, Shield, TrendingUp, MessageSquareWarning, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
-import { isAuthenticated, authAPI, getStoredUser } from '@/lib/api';
+import { isAuthenticated, getStoredUser } from '@/lib/api';
 import NewsAdmin from '@/components/admin/NewsAdmin';
 import MembersAdmin from '@/components/admin/MembersAdmin';
 import UsersAdmin from '@/components/admin/UsersAdmin';
 import ReportsAdmin from '@/components/admin/ReportsAdmin';
 import StatsAdmin from '@/components/admin/StatsAdmin';
 import CommentsAdmin from '@/components/admin/CommentsAdmin';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Admin = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const user = getStoredUser();
@@ -41,7 +43,7 @@ const Admin = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await authAPI.logout();
+      await logout();
       toast.success('Выход выполнен');
       navigate('/');
     } catch (error) {

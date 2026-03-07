@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -190,7 +190,7 @@ const CommentsAdmin = () => {
             Управление всеми комментариями на сайте
           </p>
         </div>
-        <Button variant="outline" onClick={handleExport}>
+        <Button type="button" variant="outline" onClick={handleExport}>
           <Download className="h-4 w-4 mr-2" />
           Экспорт статистики
         </Button>
@@ -226,7 +226,7 @@ const CommentsAdmin = () => {
           </Select>
         </div>
 
-        <Button onClick={handleSearch} disabled={isLoading}>
+        <Button type="button" onClick={handleSearch} disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -248,7 +248,7 @@ const CommentsAdmin = () => {
             Выбрано: {selectedComments.length}
           </span>
           <div className="flex gap-2">
-            <Button
+            <Button type="button"
               variant="outline"
               size="sm"
               onClick={() => handleBulkAction('hide')}
@@ -257,7 +257,7 @@ const CommentsAdmin = () => {
               <EyeOff className="h-3 w-3 mr-2" />
               Скрыть
             </Button>
-            <Button
+            <Button type="button"
               variant="outline"
               size="sm"
               onClick={() => handleBulkAction('restore')}
@@ -266,7 +266,7 @@ const CommentsAdmin = () => {
               <RotateCcw className="h-3 w-3 mr-2" />
               Восстановить
             </Button>
-            <Button
+            <Button type="button"
               variant="destructive"
               size="sm"
               onClick={() => handleBulkAction('delete')}
@@ -365,7 +365,7 @@ const CommentsAdmin = () => {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -461,7 +461,7 @@ const CommentsAdmin = () => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewingComment(null)}>
+            <Button type="button" variant="outline" onClick={() => setViewingComment(null)}>
               Закрыть
             </Button>
           </DialogFooter>
@@ -485,7 +485,7 @@ const CommentsAdmin = () => {
             <p>История загружается... (требуется backend API)</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowHistoryDialog(false)}>
+            <Button type="button" variant="outline" onClick={() => setShowHistoryDialog(false)}>
               Закрыть
             </Button>
           </DialogFooter>
@@ -496,3 +496,5 @@ const CommentsAdmin = () => {
 };
 
 export default CommentsAdmin;
+
+

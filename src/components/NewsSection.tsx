@@ -10,6 +10,7 @@ const NewsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [news, setNews] = useState<News[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
@@ -34,14 +35,14 @@ const NewsSection = () => {
     const loadNews = async () => {
       try {
         const data = await newsAPI.getAll();
-        const sortedNews = [...data].sort((a, b) => {
-          const dateA = new Date(a.published_at || a.created_at).getTime();
-          const dateB = new Date(b.published_at || b.created_at).getTime();
-          return dateB - dateA;
-        });
+        // Сортировка по id DESC (новые сверху, как на сервере)
+        const sortedNews = [...data].sort((a, b) => b.id - a.id);
         setNews(sortedNews);
+        setIsRateLimited(false);
       } catch (error) {
         console.error('Failed to load news:', error);
+        const message = error instanceof Error ? error.message : '';
+        setIsRateLimited(message.includes('429') || message.includes('Слишком много запросов'));
         setNews([]);
       } finally {
         setIsLoading(false);
@@ -93,6 +94,10 @@ const NewsSection = () => {
 
           {isLoading ? (
             <div className="text-center py-8 text-noir-gray">Загрузка новостей...</div>
+          ) : isRateLimited ? (
+            <div className="text-center py-8 text-noir-gray">
+              Слишком много запросов. Попробуйте через несколько минут.
+            </div>
           ) : currentNews.length === 0 ? (
             <div className="text-center py-8 text-noir-gray">Новостей пока нет</div>
           ) : (

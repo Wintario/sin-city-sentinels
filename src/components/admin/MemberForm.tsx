@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -67,7 +67,7 @@ const MemberForm = ({ member, onCancel, onSuccess }: MemberFormProps) => {
 
   return (
     <div>
-      <button
+      <button type="button"
         onClick={onCancel}
         className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
@@ -148,3 +148,4 @@ const MemberForm = ({ member, onCancel, onSuccess }: MemberFormProps) => {
 };
 
 export default MemberForm;
+

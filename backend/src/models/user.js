@@ -67,6 +67,20 @@ export async function createUser(username, email, password, role = 'user') {
 }
 
 /**
+ * Создать нового пользователя с уже захешированным паролем
+ */
+export function createUserWithPasswordHash(username, email, passwordHash, role = 'user') {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    INSERT INTO users (username, email, password_hash, role, is_active)
+    VALUES (?, ?, ?, ?, 1)
+  `);
+
+  const result = stmt.run(username, email, passwordHash, role);
+  return findById(result.lastInsertRowid);
+}
+
+/**
  * Обновить поля пользователя (username, email)
  */
 export function updateUserFields(userId, updates) {
@@ -200,6 +214,7 @@ export default {
   verifyPassword,
   hashPassword,
   createUser,
+  createUserWithPasswordHash,
   updateUserFields,
   updatePassword,
   deactivateUser,

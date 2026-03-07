@@ -18,7 +18,6 @@ interface AuthContextType {
   isAuthor: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (data: {
-    username: string;
     password: string;
     characterUrl: string;
   }) => Promise<{ verificationToken?: string }>;
@@ -89,7 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (data: {
-    username: string;
     password: string;
     characterUrl: string;
   }) => {

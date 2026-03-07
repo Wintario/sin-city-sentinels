@@ -78,7 +78,7 @@ export const getVideoTempDir = () => VIDEO_TEMP_DIR;
  * Получить публичный URL для файла
  */
 export const getPublicUrl = (filename, type = 'news-images') => {
-  return `/uploads/${type}/${filename}`;
+  return `/api/uploads/${type}/${filename}`;
 };
 
 /**

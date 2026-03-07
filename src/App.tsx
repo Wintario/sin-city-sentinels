@@ -40,26 +40,28 @@ function AppContent() {
   }
 
   return (
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/members" element={<Members />} />
-        <Route path="/charter" element={<Charter />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/auth/reset-password-request" element={<ResetPasswordRequest />} />
-        <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/adminka" element={<AdminLogin />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/users" element={<UsersAdmin isAdminUser={false} />} />
-        <Route path="/admin/reports" element={<ReportsAdmin />} />
-        <Route path="/news/:id" element={<NewsDetail />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/charter" element={<Charter />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/reset-password-request" element={<ResetPasswordRequest />} />
+          <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/adminka" element={<AdminLogin />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/users" element={<UsersAdmin isAdminUser={false} />} />
+          <Route path="/admin/reports" element={<ReportsAdmin />} />
+          <Route path="/news/:id" element={<NewsDetail />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 }
 

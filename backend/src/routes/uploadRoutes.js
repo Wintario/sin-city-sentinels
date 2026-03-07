@@ -4,6 +4,7 @@ import { writeLimiter } from '../middleware/rateLimiter.js';
 import {
   uploadNewsImage,
   uploadHeaderImage,
+  uploadExternalImage,
   uploadNewsVideo,
   getVideoUploadStatus,
   deleteImage
@@ -42,6 +43,15 @@ router.post(
   uploadHeaderMiddleware.single('image'),
   handleMulterError,
   uploadHeaderImage
+);
+
+// POST /api/upload/external-image - скачать внешнее изображение и сохранить локально
+router.post(
+  '/external-image',
+  authenticate,
+  requireRole(['admin', 'author']),
+  writeLimiter,
+  uploadExternalImage
 );
 
 // POST /api/upload/video - Р—Р°РіСЂСѓР·РёС‚СЊ РІРёРґРµРѕ РІ РЅРѕРІРѕСЃС‚СЊ (1 С„Р°Р№Р», РѕР±СЂР°Р±РѕС‚РєР° РІ РѕС‡РµСЂРµРґРё)

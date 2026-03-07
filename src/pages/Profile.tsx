@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStoredUser, clearToken, authAPI } from '@/lib/api';
+import { getStoredUser, authAPI } from '@/lib/api';
 import { commentsAPI } from '@/lib/api/comments';
 import type { Comment } from '@/types/comments';
 import { toast } from 'sonner';
@@ -11,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, LogOut, User, MessageSquare, Calendar } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const storedUser = getStoredUser();
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -49,8 +51,8 @@ const Profile = () => {
     }
   };
 
-  const handleLogout = () => {
-    clearToken();
+  const handleLogout = async () => {
+    await logout();
     toast.success('Вы вышли из системы');
     navigate('/');
   };

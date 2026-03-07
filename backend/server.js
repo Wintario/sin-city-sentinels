@@ -7,7 +7,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,19 +64,30 @@ app.use(helmet({
 
 // CORS настройки
 // При использовании credentials нельзя указывать '*', нужно явно указать origins
-const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:8080,http://localhost:5173')
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:8080,http://localhost:5173,http://127.0.0.1:8080,http://127.0.0.1:5173')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 const allowAllOrigins = corsOrigins.includes('*');
+const normalizeOrigin = (value) => {
+  try {
+    const url = new URL(value);
+    const hostname = (url.hostname === '127.0.0.1') ? 'localhost' : url.hostname;
+    const port = url.port ? `:${url.port}` : '';
+    return `${url.protocol}//${hostname}${port}`;
+  } catch {
+    return value;
+  }
+};
+const normalizedCorsOrigins = new Set(corsOrigins.map(normalizeOrigin));
 
 // Основная CORS конфигурация для всех маршрутов
 const corsOptions = {
-  origin: allowAllOrigins ? '*' : function (origin, callback) {
+  origin: allowAllOrigins ? true : function (origin, callback) {
     // Разрешить запросы без origin (mobile apps, POST requests)
     if (!origin) return callback(null, true);
 
-    if (corsOrigins.includes(origin)) {
+    if (corsOrigins.includes(origin) || normalizedCorsOrigins.has(normalizeOrigin(origin))) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -100,6 +111,7 @@ app.use('/api/proxy', cors({
 // Парсинг JSON тела запросов
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/uploads', express.static(join(__dirname, 'uploads')));
 
 // Rate limiting для всех API запросов
 app.use('/api/', apiLimiter);

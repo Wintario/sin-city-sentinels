@@ -1,8 +1,8 @@
-import { Editor } from '@tiptap/react';
+﻿import { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { uploadVideoForNews } from '@/lib/api';
+import { apiCall, uploadVideoForNews } from '@/lib/api';
 import {
   buildExternalVideoMarker,
   buildUploadedVideoMarker,
@@ -152,8 +152,8 @@ const generateVideoThumbnailFromFile = (file: File): Promise<string | null> =>
     };
 
     video.addEventListener('loadeddata', () => {
-      if (video.duration > 1) {
-        video.currentTime = 1;
+      if (video.duration > 2) {
+        video.currentTime = 2;
       } else {
         capture();
       }
@@ -164,6 +164,26 @@ const generateVideoThumbnailFromFile = (file: File): Promise<string | null> =>
       resolve(null);
     });
   });
+
+const dataUrlToFile = (dataUrl: string, filename: string): File | null => {
+  const parts = dataUrl.split(',');
+  if (parts.length !== 2) return null;
+
+  const meta = parts[0].match(/data:(.*?);base64/);
+  if (!meta) return null;
+
+  try {
+    const mime = meta[1] || 'image/jpeg';
+    const binary = atob(parts[1]);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new File([bytes], filename, { type: mime });
+  } catch {
+    return null;
+  }
+};
 
 export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
   const [linkOpen, setLinkOpen] = useState(false);
@@ -178,6 +198,28 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
   const [characterImageUrl, setCharacterImageUrl] = useState('');
   const [showCharacterImage, setShowCharacterImage] = useState(false);
 
+  const ensureLocalImageUrl = async (sourceUrl: string): Promise<string> => {
+    if (!sourceUrl || sourceUrl.startsWith('/api/uploads/') || sourceUrl.startsWith('/uploads/')) {
+      return sourceUrl;
+    }
+
+    const result = await apiCall<{
+      success: boolean;
+      file?: { url?: string };
+      url?: string;
+    }>('/upload/external-image', {
+      method: 'POST',
+      body: JSON.stringify({ url: sourceUrl }),
+    });
+
+    const localUrl = result?.file?.url || result?.url;
+    if (!localUrl) {
+      throw new Error('Upload external image failed: empty URL');
+    }
+
+    return localUrl;
+  };
+
   const addLink = () => {
     if (linkUrl) {
       editor.chain().focus().setLink({ href: linkUrl }).run();
@@ -188,7 +230,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
   const addImageByUrl = () => {
     if (imageUrl) {
-      // Вставляем изображение после курсора, а не заменяем выделение
+      // Insert image after cursor instead of replacing current selection.
       editor.chain().focus().insertContent({
         type: 'image',
         attrs: { src: imageUrl }
@@ -228,7 +270,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         const url = await onImageUpload(file);
         console.log('Toolbar: got URL:', url);
         if (url) {
-          // Вставляем изображение после курсора, а не заменяем выделение
+          // Insert image after cursor instead of replacing current selection.
           editor.chain().focus().insertContent({
             type: 'image',
             attrs: { src: url }
@@ -249,23 +291,36 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
     setIsVideoUploading(true);
     setVideoStatus('Uploading video...');
+    const localThumbnailPromise = generateVideoThumbnailFromFile(file);
     const processingTimer = setTimeout(() => {
       setVideoStatus('Processing video...');
     }, 500);
 
     try {
-      const localThumbnail = await generateVideoThumbnailFromFile(file);
       const result = await uploadVideoForNews(file);
       clearTimeout(processingTimer);
+      let thumbnailSrc = result.thumbnailUrl;
 
-      const thumbnailSrc =
-        result.thumbnailUrl === '/video-placeholder.svg' && localThumbnail
-          ? localThumbnail
-          : result.thumbnailUrl;
+      if (thumbnailSrc === '/video-placeholder.svg') {
+        const localThumbnail = await localThumbnailPromise;
+        if (localThumbnail) {
+          const thumbFile = dataUrlToFile(localThumbnail, `video-thumb-${Date.now()}.jpg`);
+          if (thumbFile && onImageUpload) {
+            try {
+              thumbnailSrc = await onImageUpload(thumbFile);
+            } catch {
+              thumbnailSrc = localThumbnail;
+            }
+          } else {
+            thumbnailSrc = localThumbnail;
+          }
+        }
+      }
 
       editor.chain().focus().insertContent({
         type: 'image',
         attrs: {
+          // Prefer uploaded thumbnail URL, fallback to local data URL only if needed.
           src: thumbnailSrc,
           alt: buildUploadedVideoMarker(result.videoUrl),
         }
@@ -314,38 +369,49 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
     try {
       console.log('Fetching character image from:', characterImageUrl);
+      let finalPageUrl = characterImageUrl;
 
-      // Первый запрос
+      // First request
       let html = await fetchHtml(characterImageUrl);
       
-      // Проверяем на JavaScript редирект
+      // Handle JavaScript redirect if present
       const redirectMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
       if (redirectMatch && redirectMatch[1]) {
         let redirectUrl = redirectMatch[1];
         console.log('Found JavaScript redirect to:', redirectUrl);
         
-        // Если URL относительный - преобразуем в абсолютный
+        // Convert relative redirect URL to absolute.
         if (!redirectUrl.startsWith('http://') && !redirectUrl.startsWith('https://')) {
           redirectUrl = new URL(redirectUrl, characterImageUrl).href;
           console.log('Converted to absolute URL:', redirectUrl);
         }
         
-        // Делаем второй запрос по URL редиректа
+        // Fetch redirected page.
         html = await fetchHtml(redirectUrl);
+        finalPageUrl = redirectUrl;
       }
 
-      // Парсим HTML для поиска образа
+      // Parse HTML to locate character portrait.
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       
       let imageUrl: string | null = null;
+      const isPortraitContainer = (style: string) => {
+        const normalized = (style || '').toLowerCase().replace(/\s+/g, ' ');
+        const hasSize = normalized.includes('width: 210px') && normalized.includes('height: 190px');
+        const hasPosition = normalized.includes('left: 20px') && normalized.includes('top: 20px');
+        return hasSize && hasPosition;
+      };
 
-      // Способ 1: Ищем div с pers/N_XXXXX.gif в background
+      // Method 1: portrait div with unique image pers/N_XXXXX.gif in background.
       const allDivs = doc.querySelectorAll('div');
       for (const div of allDivs) {
         const style = div.getAttribute('style') || '';
+        if (!isPortraitContainer(style)) {
+          continue;
+        }
         
-        // Ищем pers/номер.gif в background
+        // Match unique portrait URL in background.
         const match = style.match(/background(?:-image)?\s*:\s*url\(['"]?([^'")\s]+pers\/\d+_\d+\.gif)['"]?\)/i);
         if (match && match[1]) {
           imageUrl = match[1];
@@ -354,7 +420,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         }
       }
 
-      // Способ 2: Если не нашли, ищем img с pers/N_XXXXX.gif
+      // Method 2: fallback to img with pers/N_XXXXX.gif.
       if (!imageUrl) {
         const imgs = doc.querySelectorAll('img');
         for (const img of imgs) {
@@ -367,7 +433,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         }
       }
 
-      // Способ 3: Ищем любой img с .gif в pers/
+      // Method 3: any resources.apeha.ru/pers/*.gif image.
       if (!imageUrl) {
         const imgs = doc.querySelectorAll('img');
         for (const img of imgs) {
@@ -380,9 +446,35 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         }
       }
 
+      // Method 4: default race portrait in portrait block, e.g. img/Hm.gif.
+      if (!imageUrl) {
+        const allDivs = doc.querySelectorAll('div');
+        for (const div of allDivs) {
+          const style = div.getAttribute('style') || '';
+          if (!isPortraitContainer(style)) {
+            continue;
+          }
+          const match = style.match(/background(?:-image)?\s*:[^;]*url\(['"]?([^'")\s]*img\/[A-Za-z]{2}\.gif)['"]?\)/i);
+          if (match && match[1]) {
+            imageUrl = match[1];
+            console.log('Found character image URL (method 4):', imageUrl);
+            break;
+          }
+        }
+      }
+
       if (imageUrl) {
+        // Convert relative path (e.g. img/Hm.gif) to absolute URL.
+        if (!/^https?:\/\//i.test(imageUrl) && !/^data:/i.test(imageUrl) && !/^blob:/i.test(imageUrl)) {
+          imageUrl = new URL(imageUrl, finalPageUrl).href;
+        }
+        try {
+          imageUrl = await ensureLocalImageUrl(imageUrl);
+        } catch (e) {
+          console.warn('Failed to localize character image, using source URL:', e);
+        }
         console.log('Inserting image:', imageUrl);
-        // Вставляем изображение
+        // Insert image into editor.
         editor.chain().focus().setImage({ src: imageUrl }).run();
         setShowCharacterImage(false);
         setCharacterImageUrl('');
@@ -398,7 +490,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
     }
   };
 
-  // Функция для загрузки HTML через backend proxy
+  // Fetch HTML via backend proxy.
   const fetchHtml = async (fetchUrl: string): Promise<string> => {
     const response = await fetch('/api/proxy/fetch', {
       method: 'POST',
@@ -419,7 +511,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
   return (
     <div className="editor-toolbar border border-border rounded-t-lg bg-muted/30 p-2 flex flex-wrap gap-1">
-      {/* История */}
+      {/* History */}
       <TooltipButton
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
@@ -437,7 +529,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
       <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Выпадающий список: Шрифт */}
+      {/* Dropdown: Font family */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -496,7 +588,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Выпадающий список: Размер шрифта */}
+      {/* Dropdown: Font size */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -562,7 +654,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Выпадающий список: Междустрочный интервал */}
+      {/* Dropdown: Line height */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -570,9 +662,9 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
             variant="ghost"
             size="sm"
             className="h-7 w-auto px-2"
-            title="Междустрочный интервал"
+            title="Межстрочный интервал"
           >
-            <span className="text-xs leading-none">A≋A</span>
+            <span className="text-xs leading-none">A↕A</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -623,7 +715,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
       <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Форматирование текста */}
+      {/* Text formatting */}
       <TooltipButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         content="Жирный (Ctrl+B)"
@@ -640,20 +732,20 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
       </TooltipButton>
       <TooltipButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        content="Подчёркнутый (Ctrl+U)"
+        content="Подчеркнутый (Ctrl+U)"
         variant={editor.isActive('underline') ? 'default' : 'ghost'}
       >
         <Underline className="h-4 w-4" />
       </TooltipButton>
       <TooltipButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        content="Зачёркнутый"
+        content="Зачеркнутый"
         variant={editor.isActive('strike') ? 'default' : 'ghost'}
       >
         <Strikethrough className="h-4 w-4" />
       </TooltipButton>
 
-      {/* Эмодзи */}
+      {/* Emoji */}
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <Popover>
@@ -665,7 +757,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                 className="h-8 w-8 p-0"
                 title="Вставить эмодзи"
               >
-                <span className="text-xl">😄</span>
+                <Smile className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -688,30 +780,47 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         </TooltipContent>
       </Tooltip>
 
-      {/* Импорт персонажа */}
+      {/* Character import */}
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <ImportCharacter
-            onImport={(data, iconUrl, characterUrl) => {
-              // Формируем HTML для вставки одним блоком
+            onImport={async (data, iconUrl, characterUrl) => {
+              // Build a single inline block for insertion.
               let html = '<span style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">';
               
-              // Если есть клан - добавляем иконку клана
+              // Add clan icon if available.
               if (data.clanIcon) {
-                html += `<img src="${data.clanIcon}" alt="${data.clanName || 'Clan'}" style="width: 16px; height: 16px; display: inline;" /> `;
+                let clanIconSrc = data.clanIcon;
+                try {
+                  clanIconSrc = new URL(clanIconSrc, characterUrl).href;
+                } catch {
+                  // keep source as-is
+                }
+                try {
+                  clanIconSrc = await ensureLocalImageUrl(clanIconSrc);
+                } catch (e) {
+                  console.warn('Failed to localize clan icon, using source URL:', e);
+                }
+                const clanTitle = data.clanName || 'Клан';
+                html += `<img src="${clanIconSrc}" alt="Логотип ${clanTitle}" title="${clanTitle}" style="width: 16px; height: 16px; display: inline;" /> `;
+              }
+
+              // Add race code with original styling from character page.
+              if (data.raceCode) {
+                html += `<span title="${data.raceTitle || data.raceCode}" style="${data.raceStyle || 'font-weight: bold;'} font-family: Arial, Verdana;">${data.raceCode}</span> `;
               }
               
-              // Добавляем никнейм
+              // Add nickname.
               html += `<strong style="color: navy; font-family: Arial, Verdana;">${data.nickname}</strong> `;
               
-              // Добавляем уровень
+              // Add level.
               html += `<strong>${data.level}</strong> `;
               
-              // Вставляем иконку инфо как ссылку
+              // Add info icon link.
               html += `<a href="${characterUrl}" target="_blank" rel="noopener noreferrer"><img src="${iconUrl}" alt="info" style="width: 16px; height: 16px; display: inline;" /></a>`;
               html += '</span>';
               
-              // Вставляем всё одним вызовом
+              // Insert all content in one operation.
               editor.chain().focus().insertContent(html).run();
             }}
           />
@@ -721,7 +830,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         </TooltipContent>
       </Tooltip>
 
-      {/* Цвет текста */}
+      {/* Text color */}
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <Popover>
@@ -733,7 +842,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                 className="h-8 w-8 p-0 relative"
                 title="Цвет текста"
               >
-                <span className="text-lg font-bold text-black">A</span>
+                <span className="text-lg font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">A</span>
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-green-500 to-blue-500" />
               </Button>
             </PopoverTrigger>
@@ -758,7 +867,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                   />
                 ))}
               </div>
-              <Button
+              <Button type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => {
@@ -777,7 +886,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         </TooltipContent>
       </Tooltip>
 
-      {/* Цвет фона (highlight) */}
+      {/* Highlight color */}
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <Popover>
@@ -789,7 +898,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                 className="h-8 w-8 p-0 relative"
                 title="Цвет фона (заливка)"
               >
-                <span className="text-lg font-bold text-black">A</span>
+                <span className="text-lg font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">A</span>
                 <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-yellow-300 via-pink-300 to-cyan-300" />
               </Button>
             </PopoverTrigger>
@@ -814,7 +923,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                   />
                 ))}
               </div>
-              <Button
+              <Button type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => {
@@ -835,10 +944,10 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
       <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Выравнивание */}
+      {/* Alignment */}
       <TooltipButton
         onClick={() => {
-          // Для изображений — оборачиваем в параграф с text-align
+          // For images, wrap content in a paragraph with explicit text-align.
           if (editor.isActive('image')) {
             const { state } = editor;
             const { selection } = state;
@@ -847,7 +956,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
             const currentSrc = node.type.name === 'image' ? node.attrs.src : null;
             
             if (currentSrc) {
-              // Заменяем изображение на параграф с изображением внутри
+              // Reinsert image wrapped by aligned paragraph.
               editor.chain().focus()
                 .insertContent(`<p style="text-align: left;"><img src="${currentSrc}" ${currentWidth ? `width="${currentWidth}"` : ''} /></p>`)
                 .run();
@@ -919,7 +1028,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
       <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Списки */}
+      {/* Lists */}
       <TooltipButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         content="Маркированный список"
@@ -937,7 +1046,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
       <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Вставка */}
+      {/* Insert tools */}
       <Popover open={linkOpen} onOpenChange={setLinkOpen}>
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
@@ -964,7 +1073,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
               onChange={(e) => setLinkUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addLink()}
             />
-            <Button onClick={addLink} size="sm">OK</Button>
+            <Button type="button" onClick={addLink} size="sm">OK</Button>
           </div>
         </PopoverContent>
       </Popover>
@@ -1026,7 +1135,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                   onChange={(e) => setImageUrl(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addImageByUrl()}
                 />
-                <Button onClick={addImageByUrl} size="sm">OK</Button>
+                <Button type="button" onClick={addImageByUrl} size="sm">OK</Button>
               </div>
             </div>
             <div className="relative">
@@ -1048,7 +1157,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                   onChange={(e) => setCharacterImageUrl(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && insertCharacterImage()}
                 />
-                <Button onClick={insertCharacterImage} size="sm">OK</Button>
+                <Button type="button" onClick={insertCharacterImage} size="sm">OK</Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Введите URL страницы персонажа для извлечения изображения
@@ -1073,13 +1182,13 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p className="text-xs">Insert Video</p>
+              <p className="text-xs">Вставить видео</p>
             </TooltipContent>
           </Tooltip>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Insert Video</DialogTitle>
+            <DialogTitle>Вставить видео</DialogTitle>
             <DialogDescription>
               Добавьте ссылку YouTube/VK/Rutube или загрузите файл (mp4, mov, webm, mkv до 100MB)
             </DialogDescription>
@@ -1096,7 +1205,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                   onChange={(e) => setVideoUrl(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addVideoByUrl()}
                 />
-                <Button onClick={addVideoByUrl} size="sm">OK</Button>
+                <Button type="button" onClick={addVideoByUrl} size="sm">OK</Button>
               </div>
             </div>
             <div className="relative">
@@ -1141,7 +1250,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
       <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Очистка форматирования */}
+      {/* Clear formatting */}
       <TooltipButton
         onClick={clearFormatting}
         content="Очистить форматирование"
@@ -1151,7 +1260,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
       <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Размер изображений - выпадающий список */}
+      {/* Image size dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -1212,3 +1321,5 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
     </div>
   );
 };
+
+

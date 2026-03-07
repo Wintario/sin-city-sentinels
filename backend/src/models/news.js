@@ -24,19 +24,20 @@ function generateSlug(title) {
 
 /**
  * Получить все опубликованные новости (публичный эндпоинт)
- * Сортировка по display_order (если установлен) или по published_at
+ * Сортировка по id DESC (новые сверху)
  */
 export function getPublishedNews() {
   const db = getDatabase();
   const stmt = db.prepare(`
-    SELECT 
-      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url, n.published_at,
+    SELECT
+      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url,
+      n.published_at,
       u.username as author
     FROM news n
     LEFT JOIN users u ON n.author_id = u.id
-    WHERE n.published_at IS NOT NULL 
+    WHERE n.published_at IS NOT NULL
       AND n.is_deleted = 0
-    ORDER BY COALESCE(n.display_order, 9999) ASC, n.published_at DESC
+    ORDER BY n.id DESC
   `);
   return stmt.all();
 }
@@ -47,14 +48,14 @@ export function getPublishedNews() {
 export function getPublishedNewsById(id) {
   const db = getDatabase();
   const stmt = db.prepare(`
-    SELECT 
-      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url, 
+    SELECT
+      n.id, n.title, n.slug, n.content, n.excerpt, n.image_url,
       n.published_at, n.created_at,
       u.username as author
     FROM news n
     LEFT JOIN users u ON n.author_id = u.id
-    WHERE n.id = ? 
-      AND n.published_at IS NOT NULL 
+    WHERE n.id = ?
+      AND n.published_at IS NOT NULL
       AND n.is_deleted = 0
   `);
   return stmt.get(id);
@@ -62,22 +63,22 @@ export function getPublishedNewsById(id) {
 
 /**
  * Получить все новости для админки
- * Сортировка по display_order (для drag-and-drop), потом по published_at
+ * Сортировка по id DESC (новые сверху)
  */
 export function getAllNewsAdmin() {
   const db = getDatabase();
   const stmt = db.prepare(`
-    SELECT 
+    SELECT
       n.id, n.title, n.slug, n.excerpt, n.content, n.image_url,
-      n.published_at, n.is_deleted, n.created_at, n.updated_at, n.updated_by, n.display_order,
-      n.author_id, 
+      n.published_at, n.is_deleted, n.created_at, n.updated_at, n.updated_by,
+      n.author_id,
       u.username as author,
       u2.username as updated_by_username
     FROM news n
     LEFT JOIN users u ON n.author_id = u.id
     LEFT JOIN users u2 ON n.updated_by = u2.id
     WHERE n.is_deleted = 0
-    ORDER BY COALESCE(n.display_order, 9999) ASC, n.published_at DESC
+    ORDER BY n.id DESC
   `);
   return stmt.all();
 }
@@ -106,29 +107,24 @@ export function getNewsById(id) {
 export function createNews({ title, content, excerpt, image_url, published_at, author_id }) {
   const db = getDatabase();
   const slug = generateSlug(title);
-  
-  // Получаем максимальный display_order
-  const maxOrder = db.prepare('SELECT MAX(display_order) as max FROM news WHERE is_deleted = 0').get();
-  const display_order = (maxOrder.max || 0) + 1;
-  
+
   const stmt = db.prepare(`
-    INSERT INTO news (title, slug, content, excerpt, image_url, published_at, author_id, updated_by, display_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO news (title, slug, content, excerpt, image_url, published_at, author_id, updated_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  
+
   const result = stmt.run(
-    title, 
-    slug, 
-    content, 
-    excerpt || null, 
-    image_url || null, 
-    published_at || null, 
+    title,
+    slug,
+    content,
+    excerpt || null,
+    image_url || null,
+    published_at || null,
     author_id,
-    author_id,
-    display_order
+    author_id
   );
-  
-  logger.info(`News created: ${title}`, { id: result.lastInsertRowid, published: !!published_at, display_order });
+
+  logger.info(`News created: ${title}`, { id: result.lastInsertRowid, published: !!published_at });
   return getNewsById(result.lastInsertRowid);
 }
 
@@ -179,25 +175,45 @@ export function updateNews(id, { title, content, excerpt, image_url, published_a
 }
 
 /**
- * Переупорядочить новости (drag-and-drop в админке)
- * Устанавливает display_order для группы новостей
+ * Переместить новость вверх (увеличить id для перемещения вверх списка)
+ * Меняем id местами с предыдущей новостью (с меньшим id)
  */
-export function reorderNews(newsIds) {
+export function moveNewsUp(id) {
   const db = getDatabase();
   
-  try {
-    const stmt = db.prepare(`UPDATE news SET display_order = ? WHERE id = ?`);
-    
-    newsIds.forEach((id, index) => {
-      stmt.run(index + 1, id);
-    });
-    
-    logger.info(`News reordered`, { count: newsIds.length });
-    return { success: true, message: 'News reordered' };
-  } catch (error) {
-    logger.error('Reorder error:', error);
-    return { success: false, error: error.message };
-  }
+  const news = getNewsById(id);
+  if (!news) return null;
+  
+  // Для списка id DESC "вверх" = к большему id
+  const upperNews = db.prepare('SELECT id FROM news WHERE id > ? AND is_deleted = 0 ORDER BY id ASC LIMIT 1').get(id);
+  if (!upperNews) return null; // Уже первая
+
+  // Меняем id местами через временную таблицу
+  swapNewsIds(db, id, upperNews.id);
+
+  logger.info(`News moved up: ${news.title}`, { id, swapped_with: upperNews.id });
+  return getNewsById(upperNews.id);
+}
+
+/**
+ * Переместить новость вниз (уменьшить id для перемещения вниз списка)
+ * Меняем id местами со следующей новостью (с большим id)
+ */
+export function moveNewsDown(id) {
+  const db = getDatabase();
+  
+  const news = getNewsById(id);
+  if (!news) return null;
+  
+  // Для списка id DESC "вниз" = к меньшему id
+  const lowerNews = db.prepare('SELECT id FROM news WHERE id < ? AND is_deleted = 0 ORDER BY id DESC LIMIT 1').get(id);
+  if (!lowerNews) return null; // Уже последняя
+
+  // Меняем id местами через временную таблицу
+  swapNewsIds(db, id, lowerNews.id);
+
+  logger.info(`News moved down: ${news.title}`, { id, swapped_with: lowerNews.id });
+  return getNewsById(lowerNews.id);
 }
 
 /**
@@ -255,6 +271,57 @@ export function restoreNews(id) {
   return getNewsById(id);
 }
 
+function swapNewsIds(db, sourceId, targetId) {
+  const tempId = -Math.floor(Date.now() % 1000000000) - 1;
+
+  const hasTable = (tableName) => {
+    const result = db.prepare(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?"
+    ).get(tableName);
+    return !!result;
+  };
+
+  const swapTx = db.transaction(() => {
+    db.exec(`
+      CREATE TEMPORARY TABLE IF NOT EXISTS news_id_swap (
+        source_id INTEGER NOT NULL,
+        target_id INTEGER NOT NULL,
+        temp_id INTEGER NOT NULL
+      );
+      DELETE FROM news_id_swap;
+    `);
+
+    db.prepare(
+      'INSERT INTO news_id_swap (source_id, target_id, temp_id) VALUES (?, ?, ?)'
+    ).run(sourceId, targetId, tempId);
+
+    db.prepare('UPDATE news SET id = ? WHERE id = ?').run(tempId, sourceId);
+    db.prepare('UPDATE news SET id = ? WHERE id = ?').run(sourceId, targetId);
+    db.prepare('UPDATE news SET id = ? WHERE id = ?').run(targetId, tempId);
+
+    if (hasTable('comments')) {
+      db.prepare('UPDATE comments SET news_id = ? WHERE news_id = ?').run(tempId, sourceId);
+      db.prepare('UPDATE comments SET news_id = ? WHERE news_id = ?').run(sourceId, targetId);
+      db.prepare('UPDATE comments SET news_id = ? WHERE news_id = ?').run(targetId, tempId);
+    }
+
+    if (hasTable('page_views')) {
+      db.prepare("UPDATE page_views SET page_id = ? WHERE page_type = 'news' AND page_id = ?").run(tempId, sourceId);
+      db.prepare("UPDATE page_views SET page_id = ? WHERE page_type = 'news' AND page_id = ?").run(sourceId, targetId);
+      db.prepare("UPDATE page_views SET page_id = ? WHERE page_type = 'news' AND page_id = ?").run(targetId, tempId);
+    }
+
+    db.exec('DELETE FROM news_id_swap');
+  });
+
+  db.exec('PRAGMA foreign_keys = OFF');
+  try {
+    swapTx();
+  } finally {
+    db.exec('PRAGMA foreign_keys = ON');
+  }
+}
+
 export default {
   getPublishedNews,
   getPublishedNewsById,
@@ -262,7 +329,8 @@ export default {
   getNewsById,
   createNews,
   updateNews,
-  reorderNews,
+  moveNewsUp,
+  moveNewsDown,
   publishNews,
   deleteNews,
   restoreNews

@@ -93,7 +93,24 @@ export const apiLimiter = rateLimit({
     retryAfter: Math.ceil(config.rateLimitWindowMs / 1000)
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => {
+    // Публичные новости не ограничиваем общим API лимитом, чтобы не ломать ленту при активной навигации
+    if (req.method === 'GET' && req.originalUrl?.startsWith('/api/news')) {
+      return true;
+    }
+
+    if (config.nodeEnv === 'production') return false;
+    const ip = req.ip || '';
+    const host = req.hostname || '';
+    return (
+      ip === '::1' ||
+      ip.includes('127.0.0.1') ||
+      ip.includes('::ffff:127.0.0.1') ||
+      host === 'localhost' ||
+      host === '127.0.0.1'
+    );
+  }
 });
 
 /**
@@ -119,3 +136,4 @@ export default {
   apiLimiter,
   writeLimiter
 };
+

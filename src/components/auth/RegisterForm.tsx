@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { authAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,11 +18,16 @@ import {
 } from '@/components/ui/card';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 
+const isApehaHost = (hostname: string) => hostname === 'apeha.ru' || hostname.endsWith('.apeha.ru');
+const isApehaUrl = (value: string) => {
+  try {
+    return isApehaHost(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+};
+
 const registerSchema = z.object({
-  username: z.string()
-    .min(2, 'Ник должен быть не менее 2 символов')
-    .max(50, 'Ник слишком длинный')
-    .regex(/^[a-zA-Zа-яА-Я0-9_ ]+$/, 'Ник может содержать только буквы, цифры, пробелы и подчеркивание'),
   password: z.string()
     .min(6, 'Пароль должен быть не менее 6 символов')
     .max(72, 'Пароль слишком длинный'),
@@ -29,7 +35,7 @@ const registerSchema = z.object({
   characterUrl: z.string()
     .url('Неверный формат URL')
     .refine(
-      url => url.includes('apeha.ru'),
+      isApehaUrl,
       'URL должен вести на страницу персонажа на apeha.ru'
     ),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -69,7 +75,7 @@ const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFormProps)
       setIsCheckingUrl(true);
       try {
         const url = new URL(characterUrl);
-        const isValid = url.hostname.includes('apeha.ru');
+        const isValid = isApehaHost(url.hostname);
         setIsUrlValid(isValid);
       } catch {
         setIsUrlValid(false);
@@ -86,7 +92,6 @@ const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFormProps)
 
     try {
       const result = await registerUser({
-        username: data.username,
         password: data.password,
         characterUrl: data.characterUrl,
       });
@@ -115,7 +120,6 @@ const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFormProps)
 
     setIsLoading(true);
     try {
-      const { authAPI } = await import('@/lib/api');
       await authAPI.verifyCharacter(verificationToken);
       toast.success('Верификация успешна! Теперь вы можете комментировать новости.');
       onRegisterSuccess?.();
@@ -158,8 +162,8 @@ const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFormProps)
             </ol>
           </div>
 
-          <Button 
-            onClick={handleVerifyCharacter} 
+          <Button
+            onClick={handleVerifyCharacter}
             className="w-full"
             disabled={isLoading}
           >
@@ -191,22 +195,6 @@ const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFormProps)
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Ник в Арене</Label>
-            <Input
-              id="username"
-              type="text"
-              placeholder="Ваш никнейм в игре (как на странице персонажа)"
-              disabled={isLoading}
-              {...register('username')}
-            />
-            {errors.username && (
-              <p className="text-sm text-red-500">{errors.username.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Должен совпадать с именем персонажа на странице
-            </p>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="characterUrl">

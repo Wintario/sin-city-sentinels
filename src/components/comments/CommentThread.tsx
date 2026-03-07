@@ -87,7 +87,7 @@ export const CommentThread = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <CommentItem
         comment={comment}
         currentUser={currentUser}
@@ -106,7 +106,7 @@ export const CommentThread = ({
 
       {isReplying && !isEditing && !isDeleted && !isHidden && (
         <div
-          className="border rounded-lg p-3 bg-card"
+          className="border rounded-lg p-2.5 bg-card"
           style={{ marginLeft: depth > 0 ? `${depth * 16}px` : undefined }}
         >
           <CommentEditor
@@ -119,7 +119,7 @@ export const CommentThread = ({
       )}
 
       {hasReplies && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {comment.replies!.map((reply) => (
             <CommentThread
               key={reply.id}
