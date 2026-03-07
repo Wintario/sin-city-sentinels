@@ -21,7 +21,7 @@ export const register = asyncHandler(async (req, res) => {
 
   // РџСЂРѕРІРµСЂСЏРµРј, РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ Р»Рё СѓР¶Рµ СЃСЃС‹Р»РєР° РЅР° РїРµСЂСЃРѕРЅР°Р¶Р°
   if (existsByCharacterUrl(characterUrl)) {
-    throw new ApiError(400, 'Р­С‚РѕС‚ РїРµСЂСЃРѕРЅР°Р¶ СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ');
+    throw new ApiError(400, 'Этот персонаж уже зарегистрирован');
   }
 
   // РџР°СЂСЃРёРј СЃС‚СЂР°РЅРёС†Сѓ РїРµСЂСЃРѕРЅР°Р¶Р° РџР•Р Р•Р” СЃРѕР·РґР°РЅРёРµРј РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
@@ -30,13 +30,13 @@ export const register = asyncHandler(async (req, res) => {
     html = await fetchCharacterPage(characterUrl);
   } catch (error) {
     logger.error('Failed to fetch character page:', error.message);
-    throw new ApiError(400, 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ РїРµСЂСЃРѕРЅР°Р¶Р°. РџСЂРѕРІРµСЂСЊС‚Рµ СЃСЃС‹Р»РєСѓ.');
+    throw new ApiError(400, 'Не удалось загрузить страницу персонажа. Проверьте ссылку.');
   }
 
   // РР·РІР»РµРєР°РµРј РЅРёРє РїРµСЂСЃРѕРЅР°Р¶Р° Рё СЃСЂР°РІРЅРёРІР°РµРј СЃ РІРІРµРґС‘РЅРЅС‹Рј
   const characterName = extractCharacterName(html);
   if (!characterName) {
-    throw new ApiError(400, 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РЅРёРє РїРµСЂСЃРѕРЅР°Р¶Р° РЅР° СЃС‚СЂР°РЅРёС†Рµ');
+    throw new ApiError(400, 'Не удалось определить ник персонажа на странице');
   }
 
   const username = characterName.trim();
@@ -44,7 +44,7 @@ export const register = asyncHandler(async (req, res) => {
   // Проверяем уникальность по реальному нику из страницы персонажа
   const existingByUsername = findByUsername(username);
   if (existingByUsername) {
-    throw new ApiError(400, 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј РЅРёРєРѕРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚');
+    throw new ApiError(400, 'Пользователь с таким ником уже существует');
   }
 
   // РР·РІР»РµРєР°РµРј РёР·РѕР±СЂР°Р¶РµРЅРёРµ РїРµСЂСЃРѕРЅР°Р¶Р°
@@ -64,7 +64,7 @@ export const register = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Р РµРіРёСЃС‚СЂР°С†РёСЏ СѓСЃРїРµС€РЅР°. Р Р°Р·РјРµСЃС‚РёС‚Рµ РєРѕРґ РІРµСЂРёС„РёРєР°С†РёРё РІ РїСЂРѕС„РёР»Рµ РїРµСЂСЃРѕРЅР°Р¶Р°.',
+    message: 'Регистрация успешна. Разместите код верификации в профиле персонажа.',
     verificationToken, // РџРѕРєР°Р·С‹РІР°РµРј РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ РґР»СЏ СЂР°Р·РјРµС‰РµРЅРёСЏ РІ РїСЂРѕС„РёР»Рµ
     user: {
       id: 0,
@@ -91,17 +91,17 @@ export const verifyCharacter = asyncHandler(async (req, res) => {
   if (pending) {
     const isTokenPresent = await verifyTokenOnCharacterPage(pending.character_url, token);
     if (!isTokenPresent) {
-      throw new ApiError(400, 'РўРѕРєРµРЅ РЅРµ РЅР°Р№РґРµРЅ РІ РїСЂРѕС„РёР»Рµ РїРµСЂСЃРѕРЅР°Р¶Р°. РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ РІС‹ СЂР°Р·РјРµСЃС‚РёР»Рё РµРіРѕ РІ СЂР°Р·РґРµР»Рµ "Рћ СЃРµР±Рµ"');
+      throw new ApiError(400, 'Токен не найден в профиле персонажа. Убедитесь, что вы разместили его в разделе "О себе"');
     }
 
     // Имя и персонаж НЕ резервируются до верификации - проверяем уникальность в момент активации
     if (findByUsername(pending.username)) {
       deletePendingRegistrationById(pending.id);
-      throw new ApiError(409, 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј РЅРёРєРѕРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚. РџРѕРІС‚РѕСЂРёС‚Рµ СЂРµРіРёСЃС‚СЂР°С†РёСЋ.');
+      throw new ApiError(409, 'Пользователь с таким ником уже существует. Повторите регистрацию.');
     }
     if (existsByCharacterUrl(pending.character_url)) {
       deletePendingRegistrationById(pending.id);
-      throw new ApiError(409, 'Р­С‚РѕС‚ РїРµСЂСЃРѕРЅР°Р¶ СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ. РџРѕРІС‚РѕСЂРёС‚Рµ СЂРµРіРёСЃС‚СЂР°С†РёСЋ.');
+      throw new ApiError(409, 'Этот персонаж уже зарегистрирован. Повторите регистрацию.');
     }
 
     const user = createUserWithPasswordHash(pending.username, null, pending.password_hash, 'user');
@@ -118,7 +118,7 @@ export const verifyCharacter = asyncHandler(async (req, res) => {
     logger.info('Character verification successful (pending flow)', { userId: user.id, username: user.username });
     return res.json({
       success: true,
-      message: 'Р’РµСЂРёС„РёРєР°С†РёСЏ СѓСЃРїРµС€РЅР°! РўРµРїРµСЂСЊ РІС‹ РјРѕР¶РµС‚Рµ РєРѕРјРјРµРЅС‚РёСЂРѕРІР°С‚СЊ РЅРѕРІРѕСЃС‚Рё.'
+      message: 'Верификация успешна! Теперь вы можете комментировать новости.'
     });
   }
 
