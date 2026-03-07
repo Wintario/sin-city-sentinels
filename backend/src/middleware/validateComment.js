@@ -1,5 +1,17 @@
 import DOMPurify from 'isomorphic-dompurify';
 import { z } from 'zod';
+const getZodMessages = (zodError) => {
+  const issues = zodError?.issues || zodError?.errors || [];
+  if (!Array.isArray(issues)) {
+    return ['Validation error'];
+  }
+
+  const messages = issues
+    .map((issue) => issue?.message)
+    .filter((message) => typeof message === 'string' && message.trim().length > 0);
+
+  return messages.length > 0 ? messages : ['Validation error'];
+};
 
 // Разрешённые теги для форматирования
 const ALLOWED_TAGS = ['b', 'i', 'em', 'strong', 'blockquote', 'p', 'br'];
@@ -58,7 +70,7 @@ export function validateComment(data) {
   if (!result.success) {
     return {
       valid: false,
-      errors: result.error.errors.map(e => e.message)
+      errors: getZodMessages(result.error)
     };
   }
 
@@ -89,7 +101,7 @@ export function validateUpdateComment(data) {
   if (!result.success) {
     return {
       valid: false,
-      errors: result.error.errors.map(e => e.message)
+      errors: getZodMessages(result.error)
     };
   }
 
@@ -120,7 +132,7 @@ export function validateReport(data) {
   if (!result.success) {
     return {
       valid: false,
-      errors: result.error.errors.map(e => e.message)
+      errors: getZodMessages(result.error)
     };
   }
 

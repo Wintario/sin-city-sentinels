@@ -85,7 +85,7 @@ export const apiCall = async <T>(
   const data = await parseResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(data?.error || data?.message || `API Error (${response.status})`);
+    throw new Error(extractErrorMessage(data, response.status));
   }
   
   return data as T;
@@ -122,7 +122,7 @@ export const apiUpload = async <T>(
   const data = await parseResponseBody(response);
   
   if (!response.ok) {
-    throw new Error(data?.error || data?.message || `Upload Error (${response.status})`);
+    throw new Error(extractErrorMessage(data, response.status, 'Upload Error'));
   }
   
   return data as T;
@@ -145,6 +145,30 @@ const parseResponseBody = async (response: Response): Promise<Record<string, any
   }
 
   return { message: raw };
+};
+
+const extractErrorMessage = (
+  data: Record<string, any>,
+  status: number,
+  fallbackPrefix = 'API Error'
+): string => {
+  const arrayLikeErrors = [data?.details, data?.errors].find(Array.isArray);
+  if (arrayLikeErrors && arrayLikeErrors.length > 0) {
+    return arrayLikeErrors
+      .map((item) => (typeof item === 'string' ? item : item?.message))
+      .filter((item) => typeof item === 'string' && item.trim().length > 0)
+      .join(', ');
+  }
+
+  if (typeof data?.error === 'string' && data.error.trim().length > 0) {
+    return data.error;
+  }
+
+  if (typeof data?.message === 'string' && data.message.trim().length > 0) {
+    return data.message;
+  }
+
+  return `${fallbackPrefix} (${status})`;
 };
 
 export interface VideoUploadJob {
