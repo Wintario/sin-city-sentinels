@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import AboutSection from '@/components/AboutSection';
@@ -10,10 +11,28 @@ import heroRabbit from '@/assets/hero-rabbit.png';
 
 const Index = () => {
   const [rainIntensity, setRainIntensity] = useState(1);
+  const location = useLocation();
 
   const handleNavHover = useCallback((isHovering: boolean) => {
     setRainIntensity(isHovering ? 2 : 1);
   }, []);
+
+  useEffect(() => {
+    const hash = location.hash?.replace('#', '');
+    if (!hash) return;
+
+    const scrollToSection = () => {
+      const section = document.getElementById(hash);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    requestAnimationFrame(scrollToSection);
+    const retryTimer = window.setTimeout(scrollToSection, 250);
+
+    return () => window.clearTimeout(retryTimer);
+  }, [location.hash]);
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
