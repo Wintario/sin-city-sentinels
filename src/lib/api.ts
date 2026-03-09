@@ -228,6 +228,8 @@ export interface News {
   updated_by_username?: string;
   author?: string;
   author_id?: number;
+  comments_total?: number;
+  comments_new?: number;
   card_width?: 'wide' | 'narrow';
 }
 

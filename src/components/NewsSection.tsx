@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, MessageCircle, User } from 'lucide-react';
 import { newsAPI, News } from '@/lib/api';
 
 const ITEMS_PER_PAGE = 10;
@@ -132,12 +132,22 @@ const NewsSection = () => {
                         </p>
                       )}
 
-                      <div className="flex items-center gap-2 text-noir-gray/70">
+                      <div className="flex flex-wrap items-center gap-2 text-noir-gray/70">
                         <Calendar size={14} className="flex-shrink-0" />
                         <span className="font-body text-sm">
                           {item.published_at
                             ? new Date(item.published_at).toLocaleDateString('ru-RU')
                             : new Date(item.created_at).toLocaleDateString('ru-RU')}
+                        </span>
+                        <span className="text-noir-gray/40">•</span>
+                        <User size={14} className="flex-shrink-0" />
+                        <span className="font-body text-sm">{item.author || 'Не указан'}</span>
+                        <span className="text-noir-gray/40">•</span>
+                        <MessageCircle size={14} className="flex-shrink-0" />
+                        <span className="font-body text-sm">
+                          {(item.comments_new ?? 0) > 0
+                            ? `${item.comments_total ?? 0}/${item.comments_new ?? 0}`
+                            : `${item.comments_total ?? 0}`}
                         </span>
                       </div>
                     </div>

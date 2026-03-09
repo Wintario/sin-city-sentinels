@@ -32,7 +32,22 @@ export function getPublishedNews() {
     SELECT
       n.id, n.title, n.slug, n.content, n.excerpt, n.image_url, n.header_image_meta,
       n.published_at,
-      u.username as author
+      u.username as author,
+      (
+        SELECT COUNT(*)
+        FROM comments c
+        WHERE c.news_id = n.id
+          AND c.is_deleted = 0
+          AND c.is_hidden = 0
+      ) as comments_total,
+      (
+        SELECT COUNT(*)
+        FROM comments c
+        WHERE c.news_id = n.id
+          AND c.is_deleted = 0
+          AND c.is_hidden = 0
+          AND datetime(c.created_at) >= datetime('now', '-1 day')
+      ) as comments_new
     FROM news n
     LEFT JOIN users u ON n.author_id = u.id
     WHERE n.published_at IS NOT NULL
