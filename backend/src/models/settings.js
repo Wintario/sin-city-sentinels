@@ -52,9 +52,25 @@ export function updateBackgroundSettings(data) {
   return getBackgroundSettings();
 }
 
+export function getMembersVisibilitySettings() {
+  return {
+    visible: getSetting('members_visible') === '1',
+  };
+}
+
+export function updateMembersVisibilitySettings(data) {
+  if (data.visible !== undefined) {
+    setSetting('members_visible', data.visible ? '1' : '0');
+  }
+
+  return getMembersVisibilitySettings();
+}
+
 export default {
   getSetting,
   setSetting,
   getBackgroundSettings,
-  updateBackgroundSettings
+  updateBackgroundSettings,
+  getMembersVisibilitySettings,
+  updateMembersVisibilitySettings
 };

@@ -329,6 +329,10 @@ export interface ImportResult {
   processed: Array<{ name: string; action: string; error?: string }>;
 }
 
+export interface MembersVisibilitySettings {
+  visible: boolean;
+}
+
 // Members API
 export const membersAPI = {
   // Public endpoints
@@ -370,6 +374,17 @@ export const membersAPI = {
     apiCall<ImportResult>('/members/import', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+};
+
+export const settingsAPI = {
+  getMembersVisibility: () =>
+    apiCall<MembersVisibilitySettings>('/settings/members-visibility'),
+
+  updateMembersVisibility: (visible: boolean) =>
+    apiCall<MembersVisibilitySettings>('/settings/members-visibility', {
+      method: 'PUT',
+      body: JSON.stringify({ visible }),
     }),
 };
 

@@ -2,8 +2,9 @@
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { membersAPI, Member } from '@/lib/api';
+import { membersAPI, settingsAPI, Member } from '@/lib/api';
 import { Trash2, Edit, Plus, Star, Upload, CheckCircle, Sparkles, AlertCircle, Crown } from 'lucide-react';
 import MemberForm from './MemberForm';
 
@@ -20,6 +21,9 @@ const MembersAdmin = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [cardScale, setCardScale] = useState(100);
+  const [membersVisible, setMembersVisible] = useState(false);
+  const [isVisibilityLoading, setIsVisibilityLoading] = useState(true);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   
   // Массовая загрузка
   const [isImporting, setIsImporting] = useState(false);
@@ -55,6 +59,21 @@ const MembersAdmin = () => {
 
   useEffect(() => {
     loadMembers();
+  }, []);
+
+  useEffect(() => {
+    const loadMembersVisibility = async () => {
+      try {
+        const settings = await settingsAPI.getMembersVisibility();
+        setMembersVisible(settings.visible);
+      } catch (error) {
+        toast.error('Ошибка загрузки видимости состава');
+      } finally {
+        setIsVisibilityLoading(false);
+      }
+    };
+
+    loadMembersVisibility();
   }, []);
 
   const handleDelete = async (id: number, name: string) => {
@@ -173,6 +192,23 @@ const MembersAdmin = () => {
     setImportResult(null);
   };
 
+  const handleVisibilityChange = async (checked: boolean) => {
+    const previousValue = membersVisible;
+    setMembersVisible(checked);
+    setIsSavingVisibility(true);
+
+    try {
+      const settings = await settingsAPI.updateMembersVisibility(checked);
+      setMembersVisible(settings.visible);
+      toast.success(settings.visible ? 'Состав отображается на сайте' : 'Состав скрыт на сайте');
+    } catch (error) {
+      setMembersVisible(previousValue);
+      toast.error('Не удалось обновить видимость состава');
+    } finally {
+      setIsSavingVisibility(false);
+    }
+  };
+
   // Определяем главу клана по полю is_leader
   const isLeader = (member: Member) => !!member.is_leader;
 
@@ -281,21 +317,46 @@ const MembersAdmin = () => {
       )}
 
       {/* Ползунок масштабирования */}
-      <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-        <label className="block text-sm font-medium text-muted-foreground mb-3">
-          Размер карточек на сайте: {cardScale}%
-        </label>
-        <Slider
-          value={[cardScale]}
-          onValueChange={(value) => setCardScale(value[0])}
-          min={50}
-          max={150}
-          step={5}
-          className="w-full max-w-md"
-        />
-        <p className="text-xs text-muted-foreground mt-2">
-          Применяется на сайте и в админке
-        </p>
+      <div className="mb-6 rounded-lg bg-muted/50 p-4">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <label className="mb-3 block text-sm font-medium text-muted-foreground">
+              Размер карточек на сайте: {cardScale}%
+            </label>
+            <Slider
+              value={[cardScale]}
+              onValueChange={(value) => setCardScale(value[0])}
+              min={50}
+              max={150}
+              step={5}
+              className="w-full max-w-md"
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Применяется на сайте и в админке
+            </p>
+          </div>
+
+          <div className="flex min-w-[260px] items-start justify-between gap-4 rounded-lg border border-border bg-background/70 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Видимость состава</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {membersVisible ? 'Состав отображается на сайте' : 'Страница состава заменена на 404-заглушку'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                {membersVisible ? 'Отобразить' : 'Скрыть'}
+              </span>
+              <Switch
+                checked={membersVisible}
+                onCheckedChange={handleVisibilityChange}
+                disabled={isVisibilityLoading || isSavingVisibility}
+                aria-label="Переключить видимость состава"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (

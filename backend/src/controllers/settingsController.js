@@ -85,8 +85,34 @@ export async function uploadBackground(req, res, next) {
   }
 }
 
+export async function getMembersVisibility(req, res, next) {
+  try {
+    const settings = settingsModel.getMembersVisibilitySettings();
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateMembersVisibility(req, res, next) {
+  try {
+    const { visible } = req.body;
+
+    if (typeof visible !== 'boolean') {
+      return res.status(400).json({ error: 'visible must be a boolean' });
+    }
+
+    const settings = settingsModel.updateMembersVisibilitySettings({ visible });
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   getBackground,
   updateBackground,
-  uploadBackground
+  uploadBackground,
+  getMembersVisibility,
+  updateMembersVisibility
 };
