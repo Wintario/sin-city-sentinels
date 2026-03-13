@@ -209,6 +209,86 @@ export function extractCharacterImage(html, baseUrl = 'https://apeha.ru/') {
 }
 
 /**
+ * Извлечь данные клана из HTML страницы персонажа
+ * @param {string} html - HTML содержимое страницы
+ * @param {string} baseUrl - Базовый URL для относительных ссылок
+ * @returns {{ clanName?: string, clanUrl?: string, clanIcon?: string } | null}
+ */
+export function extractClanInfo(html, baseUrl = 'https://apeha.ru/') {
+  if (!html) return null;
+
+  let clanName;
+  let clanUrl;
+  let clanIcon;
+
+  const clanRowRegex = /<td[^>]*class=["']writer["'][^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]{0,2000}?)<\/td>/gi;
+  let clanRowMatch = null;
+  while ((clanRowMatch = clanRowRegex.exec(html)) !== null) {
+    const rawLabel = clanRowMatch[1] || '';
+    const clanCell = clanRowMatch[2] || '';
+    const labelText = rawLabel
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    const hasClanMarkup = /<img[^>]+>\s*<a[^>]+>[^<]+<\/a>/i.test(clanCell)
+      || /alt="(?:Логотип\s+)?[^"]+"/i.test(clanCell);
+
+    const isClanStatusRow = labelText.includes('состоит')
+      || labelText.includes('глава')
+      || labelText.includes('зам. главы')
+      || labelText.includes('зам главы')
+      || labelText.includes('советник');
+
+    if (!isClanStatusRow && !hasClanMarkup) {
+      continue;
+    }
+
+    const iconMatch = clanCell.match(/<img[^>]*src="([^"]+)"/i);
+    if (iconMatch && iconMatch[1]) {
+      clanIcon = iconMatch[1];
+    }
+
+    const linkMatch = clanCell.match(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i);
+    if (linkMatch) {
+      clanUrl = linkMatch[1]?.trim();
+      clanName = linkMatch[2]?.trim();
+    }
+
+    if (!clanName) {
+      const altNameMatch = clanCell.match(/<img[^>]*alt="(?:Логотип\s+)?([^"]+)"[^>]*>/i);
+      if (altNameMatch && altNameMatch[1]) {
+        clanName = altNameMatch[1].trim();
+      }
+    }
+
+    break;
+  }
+
+  if (!clanName && !clanUrl && !clanIcon) {
+    return null;
+  }
+
+  const normalizeUrl = (value) => {
+    if (!value) return value;
+    if (/^https?:\/\//i.test(value)) return value;
+    try {
+      return new URL(value, baseUrl).href;
+    } catch {
+      return value;
+    }
+  };
+
+  return {
+    clanName,
+    clanUrl: normalizeUrl(clanUrl),
+    clanIcon: normalizeUrl(clanIcon),
+  };
+}
+
+/**
  * Извлечь "О себе" из HTML страницы персонажа
  * @param {string} html - HTML содержимое страницы
  * @returns {string|null} Текст из раздела "О себе" или null
@@ -250,6 +330,7 @@ export default {
   verifyTokenOnCharacterPage,
   extractCharacterName,
   extractCharacterImage,
+  extractClanInfo,
   extractAboutSection,
   parseCharacterInfo
 };

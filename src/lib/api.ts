@@ -34,6 +34,9 @@ export interface StoredUser {
   arena_nickname?: string;
   is_active?: number;
   is_verified?: boolean;
+  clan_name?: string | null;
+  is_target_clan_member?: boolean;
+  clan_checked_at?: string | null;
 }
 
 // Get stored user
@@ -333,6 +336,12 @@ export interface MembersVisibilitySettings {
   visible: boolean;
 }
 
+export interface ClanWidgetSettings {
+  enabled: boolean;
+  title: string;
+  body: string;
+}
+
 // Members API
 export const membersAPI = {
   // Public endpoints
@@ -385,6 +394,15 @@ export const settingsAPI = {
     apiCall<MembersVisibilitySettings>('/settings/members-visibility', {
       method: 'PUT',
       body: JSON.stringify({ visible }),
+    }),
+
+  getClanWidget: () =>
+    apiCall<ClanWidgetSettings>('/settings/clan-widget'),
+
+  updateClanWidget: (data: ClanWidgetSettings) =>
+    apiCall<ClanWidgetSettings>('/settings/clan-widget', {
+      method: 'PUT',
+      body: JSON.stringify(data),
     }),
 };
 
@@ -462,6 +480,9 @@ export interface UserWithProfile {
   arena_nickname?: string;
   is_active?: number;
   is_verified?: boolean;
+  clan_name?: string | null;
+  is_target_clan_member?: boolean;
+  clan_checked_at?: string | null;
 }
 
 export const authAPI = {
@@ -633,6 +654,7 @@ export interface UserWithProfileExtended extends UserWithProfile {
   email?: string;
   display_name?: string;
   arena_nickname?: string;
+  character_url?: string;
 }
 
 export interface BanInfo {

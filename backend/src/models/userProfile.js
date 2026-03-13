@@ -54,6 +54,30 @@ export function updateProfile(userId, updates) {
     fields.push('character_url = ?');
     values.push(updates.character_url);
   }
+  if (updates.character_image !== undefined) {
+    fields.push('character_image = ?');
+    values.push(updates.character_image);
+  }
+  if (updates.clan_name !== undefined) {
+    fields.push('clan_name = ?');
+    values.push(updates.clan_name);
+  }
+  if (updates.clan_url !== undefined) {
+    fields.push('clan_url = ?');
+    values.push(updates.clan_url);
+  }
+  if (updates.clan_icon !== undefined) {
+    fields.push('clan_icon = ?');
+    values.push(updates.clan_icon);
+  }
+  if (updates.is_target_clan_member !== undefined) {
+    fields.push('is_target_clan_member = ?');
+    values.push(updates.is_target_clan_member ? 1 : 0);
+  }
+  if (updates.clan_checked_at !== undefined) {
+    fields.push('clan_checked_at = ?');
+    values.push(updates.clan_checked_at);
+  }
 
   if (fields.length === 0) return getProfileByUserId(userId);
 

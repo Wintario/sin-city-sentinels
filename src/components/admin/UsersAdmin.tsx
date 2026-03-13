@@ -119,9 +119,8 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
     try {
       await usersAPI.update(editingUser.id, {
         username: editingUser.username,
-        email: editingUser.email,
-        arenaNickname: editingUser.arena_nickname,
         role: editingUser.role,
+        characterUrl: editingUser.character_url || '',
       });
       toast.success('Пользователь обновлён');
       setShowEditDialog(false);
@@ -445,17 +444,6 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
           {editingUser && (
             <div className="space-y-4">
               <div>
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={editingUser.email || ''}
-                  onChange={(e) =>
-                    setEditingUser({ ...editingUser, email: e.target.value })
-                  }
-                  placeholder="user@example.com"
-                />
-              </div>
-              <div>
                 <Label>Ник в Арене (логин)</Label>
                 <Input
                   value={editingUser.username}
@@ -465,12 +453,13 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
                 />
               </div>
               <div>
-                <Label>Отображаемое имя</Label>
+                <Label>Ссылка на персонажа</Label>
                 <Input
-                  value={editingUser.arena_nickname || ''}
+                  value={editingUser.character_url || ''}
                   onChange={(e) =>
-                    setEditingUser({ ...editingUser, arena_nickname: e.target.value })
+                    setEditingUser({ ...editingUser, character_url: e.target.value })
                   }
+                  placeholder="https://kovcheg2.apeha.ru/info.html?user=77148"
                 />
               </div>
               <div>

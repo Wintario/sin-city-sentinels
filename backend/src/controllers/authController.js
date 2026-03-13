@@ -9,8 +9,26 @@ import {
   verifyTokenOnCharacterPage, 
   extractCharacterName,
   extractCharacterImage,
+  extractClanInfo,
   fetchCharacterPage 
 } from '../services/characterVerificationService.js';
+
+const TARGET_CLAN_NAME_NORMALIZED = 'свирепые кролики';
+
+const normalizeClanName = (value) => {
+  if (!value) return '';
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+};
+
+const mapAuthUser = (user, profile) => ({
+  id: user.id,
+  username: user.username,
+  role: user.role,
+  is_verified: profile?.email_verified ? true : false,
+  clan_name: profile?.clan_name || null,
+  is_target_clan_member: profile?.is_target_clan_member ? true : false,
+  clan_checked_at: profile?.clan_checked_at || null
+});
 
 /**
  * POST /api/auth/register - Р РµРіРёСЃС‚СЂР°С†РёСЏ РЅРѕРІРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
@@ -195,8 +213,31 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(401, 'РќРµРІРµСЂРЅС‹Р№ РЅРёРє РёР»Рё РїР°СЂРѕР»СЊ');
   }
 
-  // РџРѕР»СѓС‡Р°РµРј РїСЂРѕС„РёР»СЊ РґР»СЏ is_verified
-  const profile = getProfileByUserId(user.id);
+  // РџРѕР»СѓС‡Р°РµРј РїСЂРѕС„РёР»СЊ РґР»СЏ is_verified Рё РєР»Р°РЅР°
+  let profile = getProfileByUserId(user.id);
+
+  if (profile?.character_url) {
+    try {
+      const html = await fetchCharacterPage(profile.character_url);
+      const clanInfo = extractClanInfo(html, profile.character_url);
+      const normalizedClanName = normalizeClanName(clanInfo?.clanName);
+      const isTargetClanMember = normalizedClanName === TARGET_CLAN_NAME_NORMALIZED;
+
+      profile = updateProfile(user.id, {
+        clan_name: clanInfo?.clanName || null,
+        clan_url: clanInfo?.clanUrl || null,
+        clan_icon: clanInfo?.clanIcon || null,
+        is_target_clan_member: isTargetClanMember,
+        clan_checked_at: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.warn('Failed to check clan on login, using cached clan info', {
+        userId: user.id,
+        username: user.username,
+        error: error.message
+      });
+    }
+  }
 
   // Р“РµРЅРµСЂР°С†РёСЏ JWT С‚РѕРєРµРЅР°
   const token = generateToken(user);
@@ -208,12 +249,7 @@ export const login = asyncHandler(async (req, res) => {
     success: true,
     message: 'Р’С…РѕРґ СѓСЃРїРµС€РµРЅ',
     token,
-    user: {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      is_verified: profile?.email_verified ? true : false
-    }
+    user: mapAuthUser(user, profile)
   });
 });
 
@@ -237,10 +273,7 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
   
   res.json({
     success: true,
-    user: {
-      ...req.user,
-      is_verified: profile?.email_verified ? true : false
-    }
+    user: mapAuthUser(req.user, profile)
   });
 });
 
@@ -253,10 +286,7 @@ export const verifyToken = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     valid: true,
-    user: {
-      ...req.user,
-      is_verified: profile?.email_verified ? true : false
-    }
+    user: mapAuthUser(req.user, profile)
   });
 });
 

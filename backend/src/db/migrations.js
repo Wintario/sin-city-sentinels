@@ -89,6 +89,11 @@ export function runMigrations() {
           arena_nickname TEXT NOT NULL,
           character_url TEXT NOT NULL,
           character_image TEXT,
+          clan_name TEXT,
+          clan_url TEXT,
+          clan_icon TEXT,
+          is_target_clan_member INTEGER DEFAULT 0,
+          clan_checked_at DATETIME,
           email_verified INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -105,6 +110,36 @@ export function runMigrations() {
         console.log('>> Adding column character_image to user_profiles...');
         db.exec('ALTER TABLE user_profiles ADD COLUMN character_image TEXT');
         console.log('>> Added character_image column to user_profiles');
+      }
+
+      if (!existingColumns.includes('clan_name')) {
+        console.log('>> Adding column clan_name to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN clan_name TEXT');
+        console.log('>> Added clan_name column to user_profiles');
+      }
+
+      if (!existingColumns.includes('clan_url')) {
+        console.log('>> Adding column clan_url to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN clan_url TEXT');
+        console.log('>> Added clan_url column to user_profiles');
+      }
+
+      if (!existingColumns.includes('clan_icon')) {
+        console.log('>> Adding column clan_icon to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN clan_icon TEXT');
+        console.log('>> Added clan_icon column to user_profiles');
+      }
+
+      if (!existingColumns.includes('is_target_clan_member')) {
+        console.log('>> Adding column is_target_clan_member to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN is_target_clan_member INTEGER DEFAULT 0');
+        console.log('>> Added is_target_clan_member column to user_profiles');
+      }
+
+      if (!existingColumns.includes('clan_checked_at')) {
+        console.log('>> Adding column clan_checked_at to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN clan_checked_at DATETIME');
+        console.log('>> Added clan_checked_at column to user_profiles');
       }
     }
 

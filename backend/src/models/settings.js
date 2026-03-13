@@ -66,11 +66,35 @@ export function updateMembersVisibilitySettings(data) {
   return getMembersVisibilitySettings();
 }
 
+export function getClanWidgetSettings() {
+  return {
+    enabled: getSetting('clan_widget_enabled') !== '0',
+    title: getSetting('clan_widget_title') || 'Информация для сокланов',
+    body: getSetting('clan_widget_body') || ''
+  };
+}
+
+export function updateClanWidgetSettings(data) {
+  if (data.enabled !== undefined) {
+    setSetting('clan_widget_enabled', data.enabled ? '1' : '0');
+  }
+  if (data.title !== undefined) {
+    setSetting('clan_widget_title', data.title);
+  }
+  if (data.body !== undefined) {
+    setSetting('clan_widget_body', data.body);
+  }
+
+  return getClanWidgetSettings();
+}
+
 export default {
   getSetting,
   setSetting,
   getBackgroundSettings,
   updateBackgroundSettings,
   getMembersVisibilitySettings,
-  updateMembersVisibilitySettings
+  updateMembersVisibilitySettings,
+  getClanWidgetSettings,
+  updateClanWidgetSettings
 };

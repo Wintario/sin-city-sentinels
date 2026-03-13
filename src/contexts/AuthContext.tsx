@@ -7,6 +7,9 @@ export interface User {
   role: string;
   is_active?: number;
   is_verified?: boolean;
+  clan_name?: string | null;
+  is_target_clan_member?: boolean;
+  clan_checked_at?: string | null;
 }
 
 interface AuthContextType {

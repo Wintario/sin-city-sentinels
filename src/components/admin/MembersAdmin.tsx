@@ -3,8 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { membersAPI, settingsAPI, Member } from '@/lib/api';
+import { membersAPI, settingsAPI, Member, type ClanWidgetSettings } from '@/lib/api';
 import { Trash2, Edit, Plus, Star, Upload, CheckCircle, Sparkles, AlertCircle, Crown } from 'lucide-react';
 import MemberForm from './MemberForm';
 
@@ -24,6 +27,12 @@ const MembersAdmin = () => {
   const [membersVisible, setMembersVisible] = useState(false);
   const [isVisibilityLoading, setIsVisibilityLoading] = useState(true);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const [clanWidget, setClanWidget] = useState<ClanWidgetSettings>({
+    enabled: true,
+    title: 'Информация для сокланов',
+    body: ''
+  });
+  const [isSavingClanWidget, setIsSavingClanWidget] = useState(false);
   
   // Массовая загрузка
   const [isImporting, setIsImporting] = useState(false);
@@ -74,6 +83,19 @@ const MembersAdmin = () => {
     };
 
     loadMembersVisibility();
+  }, []);
+
+  useEffect(() => {
+    const loadClanWidgetSettings = async () => {
+      try {
+        const settings = await settingsAPI.getClanWidget();
+        setClanWidget(settings);
+      } catch (error) {
+        toast.error('Ошибка загрузки настроек окна сокланов');
+      }
+    };
+
+    loadClanWidgetSettings();
   }, []);
 
   const handleDelete = async (id: number, name: string) => {
@@ -206,6 +228,19 @@ const MembersAdmin = () => {
       toast.error('Не удалось обновить видимость состава');
     } finally {
       setIsSavingVisibility(false);
+    }
+  };
+
+  const handleClanWidgetSave = async () => {
+    setIsSavingClanWidget(true);
+    try {
+      const saved = await settingsAPI.updateClanWidget(clanWidget);
+      setClanWidget(saved);
+      toast.success('Настройки окна сокланов сохранены');
+    } catch (error) {
+      toast.error('Не удалось сохранить настройки окна сокланов');
+    } finally {
+      setIsSavingClanWidget(false);
     }
   };
 
@@ -356,6 +391,51 @@ const MembersAdmin = () => {
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-lg border border-border bg-muted/50 p-4 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Окно для сокланов на главной</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Показывается только авторизованным участникам клана «Свирепые кролики».
+            </p>
+          </div>
+          <Switch
+            checked={clanWidget.enabled}
+            onCheckedChange={(checked) => setClanWidget((prev) => ({ ...prev, enabled: checked }))}
+            disabled={isSavingClanWidget}
+            aria-label="Включить окно сокланов"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="clan-widget-title">Заголовок</Label>
+          <Input
+            id="clan-widget-title"
+            value={clanWidget.title}
+            onChange={(e) => setClanWidget((prev) => ({ ...prev, title: e.target.value }))}
+            disabled={isSavingClanWidget}
+            maxLength={120}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="clan-widget-body">Текст</Label>
+          <Textarea
+            id="clan-widget-body"
+            value={clanWidget.body}
+            onChange={(e) => setClanWidget((prev) => ({ ...prev, body: e.target.value }))}
+            disabled={isSavingClanWidget}
+            rows={4}
+          />
+        </div>
+
+        <div className="flex justify-end">
+          <Button type="button" onClick={handleClanWidgetSave} disabled={isSavingClanWidget}>
+            {isSavingClanWidget ? 'Сохранение...' : 'Сохранить окно сокланов'}
+          </Button>
         </div>
       </div>
 

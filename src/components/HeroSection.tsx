@@ -8,9 +8,9 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen md:min-h-screen flex items-end justify-center overflow-hidden py-8 md:py-0">
+    <section className="relative min-h-[84vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden pt-16 md:pt-20 pb-6">
       {/* Text Block WITH Logo - Bottom Third */}
-      <div className="relative z-20 text-center px-2 sm:px-4 mb-16 md:mb-20">
+      <div className="relative z-20 text-center px-2 sm:px-4">
         {/* Logo - centered above text */}
         <div 
           className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-primary flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgba(255,0,0,0.7)] flex-shrink-0 mx-auto mb-4 sm:mb-6 md:mb-8"

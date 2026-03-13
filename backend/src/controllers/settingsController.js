@@ -109,10 +109,46 @@ export async function updateMembersVisibility(req, res, next) {
   }
 }
 
+export async function getClanWidget(req, res, next) {
+  try {
+    const settings = settingsModel.getClanWidgetSettings();
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateClanWidget(req, res, next) {
+  try {
+    const { enabled, title, body } = req.body;
+
+    if (enabled !== undefined && typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+    if (title !== undefined && typeof title !== 'string') {
+      return res.status(400).json({ error: 'title must be a string' });
+    }
+    if (body !== undefined && typeof body !== 'string') {
+      return res.status(400).json({ error: 'body must be a string' });
+    }
+
+    const settings = settingsModel.updateClanWidgetSettings({
+      enabled,
+      title,
+      body
+    });
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   getBackground,
   updateBackground,
   uploadBackground,
   getMembersVisibility,
-  updateMembersVisibility
+  updateMembersVisibility,
+  getClanWidget,
+  updateClanWidget
 };

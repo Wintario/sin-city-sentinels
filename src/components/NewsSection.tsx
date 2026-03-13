@@ -76,7 +76,7 @@ const NewsSection = () => {
   };
 
   return (
-    <section id="news" ref={sectionRef} className="relative py-12 md:py-24 px-2 sm:px-4">
+    <section id="news" ref={sectionRef} className="relative scroll-mt-20 md:scroll-mt-24 pt-2 md:pt-4 pb-12 md:pb-24 px-2 sm:px-4">
       <div className="container mx-auto max-w-4xl">
         <div
           className={`newspaper-bg p-4 sm:p-6 md:p-8 lg:p-12 shadow-noir transition-all duration-700 ${
