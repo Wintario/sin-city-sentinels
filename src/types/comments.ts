@@ -19,6 +19,16 @@ export interface Comment {
   author_display_name?: string | null;
   author_arena_nickname?: string | null;
   author_character_url?: string | null;
+  author_character_level?: number | null;
+  author_race_code?: string | null;
+  author_race_class?: string | null;
+  author_race_title?: string | null;
+  author_race_style?: string | null;
+  author_clan_name?: string | null;
+  author_clan_url?: string | null;
+  author_clan_icon?: string | null;
+  news_title?: string | null;
+  news_slug?: string | null;
   // Вложенные комментарии (заполняется на фронтенде)
   replies?: Comment[];
   // Флаг оптимистичного обновления

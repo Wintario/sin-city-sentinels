@@ -71,7 +71,15 @@ export function getById(id) {
            u.username as author_username,
            u.email as author_email,
            p.arena_nickname as author_arena_nickname,
-           p.character_url as author_character_url
+           p.character_url as author_character_url,
+           p.character_level as author_character_level,
+           p.race_code as author_race_code,
+           p.race_class as author_race_class,
+           p.race_title as author_race_title,
+           p.race_style as author_race_style,
+           p.clan_name as author_clan_name,
+           p.clan_url as author_clan_url,
+           p.clan_icon as author_clan_icon
     FROM comments c
     JOIN users u ON c.user_id = u.id
     LEFT JOIN user_profiles p ON c.user_id = p.user_id
@@ -104,7 +112,15 @@ export function getByNewsId(newsId, page = 1, limit = 20, includeHidden = false)
            comments.created_at,
            u.username as author_username,
            p.arena_nickname as author_arena_nickname,
-           p.character_url as author_character_url
+           p.character_url as author_character_url,
+           p.character_level as author_character_level,
+           p.race_code as author_race_code,
+           p.race_class as author_race_class,
+           p.race_title as author_race_title,
+           p.race_style as author_race_style,
+           p.clan_name as author_clan_name,
+           p.clan_url as author_clan_url,
+           p.clan_icon as author_clan_icon
     FROM comments
     JOIN users u ON comments.user_id = u.id
     LEFT JOIN user_profiles p ON comments.user_id = p.user_id
@@ -275,6 +291,47 @@ export function getRecentByUserId(userId, limit = 10) {
 }
 
 /**
+ * Получить комментарии пользователя с пагинацией
+ */
+export function getByUserIdPaginated(userId, page = 1, limit = 10) {
+  const db = getDatabase();
+  const offset = (page - 1) * limit;
+
+  const stmt = db.prepare(`
+    SELECT c.id,
+           c.news_id,
+           c.user_id,
+           c.parent_id,
+           c.content,
+           c.is_deleted,
+           c.is_hidden,
+           c.hidden_by,
+           c.hidden_at,
+           c.hidden_reason,
+           c.edited_at,
+           c.created_at,
+           n.title as news_title,
+           n.slug as news_slug
+    FROM comments c
+    JOIN news n ON c.news_id = n.id
+    WHERE c.user_id = ? AND c.is_deleted = 0
+    ORDER BY c.created_at DESC
+    LIMIT ? OFFSET ?
+  `);
+
+  const comments = stmt.all(userId, limit, offset);
+
+  const countStmt = db.prepare(`
+    SELECT COUNT(*) as count
+    FROM comments
+    WHERE user_id = ? AND is_deleted = 0
+  `);
+  const { count } = countStmt.get(userId);
+
+  return { comments, total: count, page, limit };
+}
+
+/**
  * Проверить, может ли пользователь редактировать комментарий
  */
 export function canEdit(comment, userId, userRole) {
@@ -322,6 +379,7 @@ export default {
   getEditHistory,
   getCountByUserId,
   getRecentByUserId,
+  getByUserIdPaginated,
   validateEmojiCount,
   canEdit,
   canDelete,

@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { MoreHorizontal, Flag, Trash2, Eye, EyeOff, Edit, Reply } from 'lucide-react';
 import { toast } from 'sonner';
 
+const INFO_ICON_URL = '/info.gif';
 interface CommentCardProps {
   comment: Comment;
   currentUser?: { id: number; role: string };
@@ -68,6 +69,13 @@ const CommentCard = ({
     author_display_name,
     author_arena_nickname,
     author_character_url,
+    author_character_level,
+    author_race_code: _authorRaceCode,
+    author_race_class: _authorRaceClass,
+    author_race_title: _authorRaceTitle,
+    author_clan_name: _authorClanName,
+    author_clan_url: _authorClanUrl,
+    author_clan_icon,
   } = rawComment;
 
   // Преобразуем числа в булевы значения для корректного рендеринга
@@ -91,6 +99,7 @@ const CommentCard = ({
 
   // Форматируем дату в точное время: "ДД.ММ.ГГГГ ЧЧ:ММ"
   const formattedDate = format(new Date(created_at), 'dd.MM.yyyy HH:mm');
+  const authorName = author_display_name || author_arena_nickname || author_username;
 
   // Создаём объект комментария только с нужными полями для передачи в callback'и
   const comment: Comment = {
@@ -110,6 +119,13 @@ const CommentCard = ({
     author_display_name,
     author_arena_nickname,
     author_character_url,
+    author_character_level,
+    author_race_code: _authorRaceCode,
+    author_race_class: _authorRaceClass,
+    author_race_title: _authorRaceTitle,
+    author_clan_name: _authorClanName,
+    author_clan_url: _authorClanUrl,
+    author_clan_icon,
   };
 
   const handleDelete = async () => {
@@ -209,6 +225,7 @@ const CommentCard = ({
 
   return (
     <div
+      id={`comment-${id}`}
       className={`p-4 rounded-lg border ${
         isHidden
           ? 'bg-muted/50 border-yellow-500/30'
@@ -221,8 +238,35 @@ const CommentCard = ({
         <div className="flex-1">
           {/* Header */}
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="font-semibold text-sm">
-              {author_username}
+            <span className="inline-flex items-center gap-1.5 flex-wrap text-sm">
+              {author_clan_icon && (
+                <img
+                  src={author_clan_icon}
+                  alt="Логотип клана"
+                  className="w-4 h-4 inline-block"
+                />
+              )}
+              {author_character_url ? (
+                <a
+                  href={author_character_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold hover:underline text-primary"
+                  style={{ fontFamily: 'Arial, Verdana' }}
+                >
+                  {authorName}
+                </a>
+              ) : (
+                <span className="font-semibold text-primary" style={{ fontFamily: 'Arial, Verdana' }}>
+                  {authorName}
+                </span>
+              )}
+              {author_character_level && <strong>{author_character_level}</strong>}
+              {author_character_url && (
+                <a href={author_character_url} target="_blank" rel="noopener noreferrer">
+                  <img src={INFO_ICON_URL} alt="info" className="w-4 h-4 inline-block" />
+                </a>
+              )}
             </span>
             {edited_at && (
               <span className="text-xs text-muted-foreground">(ред.)</span>

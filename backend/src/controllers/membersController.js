@@ -45,7 +45,7 @@ export const createMember = asyncHandler(async (req, res) => {
   const validatedData = validateMemberInput(req.body);
   
   // Создаём участника
-  const member = MembersModel.createMember(validatedData);
+  const member = await MembersModel.createMember(validatedData);
   
   res.status(201).json(member);
 });
@@ -68,7 +68,7 @@ export const updateMember = asyncHandler(async (req, res) => {
   const validatedData = validateMemberInput(req.body, true);
   
   // Обновляем
-  const member = MembersModel.updateMember(memberId, validatedData);
+  const member = await MembersModel.updateMember(memberId, validatedData);
   
   res.json(member);
 });
@@ -162,7 +162,7 @@ export const importMembers = asyncHandler(async (req, res) => {
   }
   
   // Выполняем массовое обновление/создание
-  const results = MembersModel.bulkUpsertMembers(members);
+  const results = await MembersModel.bulkUpsertMembers(members);
   
   res.json({
     success: true,

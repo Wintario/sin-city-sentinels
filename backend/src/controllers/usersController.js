@@ -1,5 +1,14 @@
 import userModel from '../models/user.js';
 import userBanModel from '../models/userBan.js';
+import { getProfileByUserId, createProfile, updateProfile } from '../models/userProfile.js';
+import { fetchCharacterPage, parseCharacterInfo } from '../services/characterVerificationService.js';
+
+const TARGET_CLAN_NAME_NORMALIZED = 'свирепые кролики';
+
+const normalizeClanName = (value) => {
+  if (!value) return '';
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+};
 
 /**
  * Получить список всех пользователей (с профилями)
@@ -111,13 +120,53 @@ export async function update(req, res, next) {
       userModel.updateUserRole(parseInt(id), role);
     }
 
-    // Обновляем профиль (arena_nickname, character_url) если переданы
+    // Обновляем профиль (arena_nickname, character_url) если переданы.
+    // Для старых пользователей профиль может отсутствовать — создаём его при первой установке characterUrl.
     if (arenaNickname !== undefined || characterUrl !== undefined) {
-      const profileUpdates = {};
-      if (arenaNickname !== undefined) profileUpdates.arena_nickname = arenaNickname;
-      if (characterUrl !== undefined) profileUpdates.character_url = characterUrl;
-      const userProfileModel = await import('../models/userProfile.js');
-      userProfileModel.updateProfile(parseInt(id), profileUpdates);
+      const userId = parseInt(id);
+      const existingProfile = getProfileByUserId(userId);
+
+      if (!existingProfile) {
+        const initialCharacterUrl = (characterUrl || '').trim();
+        if (initialCharacterUrl) {
+          const initialArenaNickname = (arenaNickname || username || user.username || '').trim();
+          await createProfile(userId, initialArenaNickname || user.username, initialCharacterUrl);
+        }
+      }
+
+      const profileForUpdate = getProfileByUserId(userId);
+      if (profileForUpdate) {
+        const profileUpdates = {};
+        if (arenaNickname !== undefined) profileUpdates.arena_nickname = arenaNickname;
+        if (characterUrl !== undefined) profileUpdates.character_url = characterUrl;
+        updateProfile(userId, profileUpdates);
+
+        const updatedProfile = getProfileByUserId(userId);
+        if (updatedProfile?.character_url) {
+          try {
+            const html = await fetchCharacterPage(updatedProfile.character_url);
+            const parsed = parseCharacterInfo(html, updatedProfile.character_url);
+            const normalizedClanName = normalizeClanName(parsed?.clanName);
+            const isTargetClanMember = normalizedClanName === TARGET_CLAN_NAME_NORMALIZED;
+
+            updateProfile(userId, {
+              character_image: parsed?.imageUrl || null,
+              character_level: parsed?.level ?? null,
+              race_code: parsed?.raceCode || null,
+              race_class: parsed?.raceClass || null,
+              race_title: parsed?.raceTitle || null,
+              race_style: parsed?.raceStyle || null,
+              clan_name: parsed?.clanName || null,
+              clan_url: parsed?.clanUrl || null,
+              clan_icon: parsed?.clanIcon || null,
+              is_target_clan_member: isTargetClanMember,
+              clan_checked_at: new Date().toISOString(),
+            });
+          } catch (error) {
+            console.warn('Failed to refresh character metadata in user update:', error.message);
+          }
+        }
+      }
     }
 
     const updatedUser = userModel.findById(parseInt(id));

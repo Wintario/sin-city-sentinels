@@ -34,7 +34,15 @@ export interface StoredUser {
   arena_nickname?: string;
   is_active?: number;
   is_verified?: boolean;
+  character_image?: string | null;
+  character_level?: number | null;
+  race_code?: string | null;
+  race_class?: string | null;
+  race_title?: string | null;
+  race_style?: string | null;
   clan_name?: string | null;
+  clan_url?: string | null;
+  clan_icon?: string | null;
   is_target_clan_member?: boolean;
   clan_checked_at?: string | null;
 }
@@ -309,6 +317,15 @@ export interface Member {
   profile_url?: string;
   status: string;
   avatar_url?: string;
+  character_image?: string | null;
+  character_level?: number | null;
+  race_code?: string | null;
+  race_class?: string | null;
+  race_title?: string | null;
+  race_style?: string | null;
+  clan_name?: string | null;
+  clan_url?: string | null;
+  clan_icon?: string | null;
   order_index?: number;
   is_leader?: number;
   created_at: string;
@@ -480,7 +497,15 @@ export interface UserWithProfile {
   arena_nickname?: string;
   is_active?: number;
   is_verified?: boolean;
+  character_image?: string | null;
+  character_level?: number | null;
+  race_code?: string | null;
+  race_class?: string | null;
+  race_title?: string | null;
+  race_style?: string | null;
   clan_name?: string | null;
+  clan_url?: string | null;
+  clan_icon?: string | null;
   is_target_clan_member?: boolean;
   clan_checked_at?: string | null;
 }
@@ -547,6 +572,14 @@ export interface Comment {
   author_display_name?: string;
   author_arena_nickname?: string;
   author_character_url?: string;
+  author_character_level?: number | null;
+  author_race_code?: string | null;
+  author_race_class?: string | null;
+  author_race_title?: string | null;
+  author_race_style?: string | null;
+  author_clan_name?: string | null;
+  author_clan_url?: string | null;
+  author_clan_icon?: string | null;
 }
 
 export interface CommentsResponse {

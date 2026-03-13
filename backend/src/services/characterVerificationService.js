@@ -1,5 +1,18 @@
-import { exec } from 'child_process';
 import iconv from 'iconv-lite';
+import http from 'http';
+import https from 'https';
+
+const RACE_STYLES = {
+  rOr: 'color: black; font-weight: bold;',
+  rEl: 'color: green; font-weight: bold;',
+  rGn: 'color: gray; font-weight: bold;',
+  rHb: 'color: maroon; font-weight: bold;',
+  rHm: 'color: #BC2EEA; font-weight: bold;',
+  rDr: 'color: red; font-weight: bold;',
+  rAr: 'color: #0066cc; font-weight: bold;',
+  rAb: 'color: #0800B9; font-weight: bold;',
+  rWm: 'color: black; font-weight: bold;',
+};
 
 /**
  * Получить HTML страницы персонажа через curl
@@ -7,86 +20,115 @@ import iconv from 'iconv-lite';
  * @returns {Promise<string>} HTML содержимое
  */
 export async function fetchCharacterPage(characterUrl) {
-  return new Promise((resolve, reject) => {
-    console.log('[characterVerificationService] Fetching character page:', characterUrl);
+  console.log('[characterVerificationService] Fetching character page:', characterUrl);
 
-    // Экранируем кавычки в URL для безопасности curl команды
-    const escapedUrl = characterUrl.replace(/"/g, '\\"');
+  const raw = await fetchRawPage(characterUrl);
+  console.log('[characterVerificationService] Received', raw.length, 'bytes');
 
-    // curl запрос с -L для следования редиректам и -k для игнорирования SSL ошибок
-    const curlCommand = `curl -sLk --max-time 15 -4 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "${escapedUrl}"`;
+  let html = '';
+  try {
+    html = iconv.decode(raw, 'win-1251');
+  } catch (e) {
+    console.error('[characterVerificationService] Conversion error:', e.message);
+    html = raw.toString('utf8');
+  }
 
-    exec(curlCommand, { encoding: 'buffer', timeout: 20000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('[characterVerificationService] curl error:', error.message);
+  if (!html || html.trim().length < 50) {
+    throw new Error('Сервер Арены вернул пустую страницу. Попробуйте позже.');
+  }
 
-        if (error.code === 'ENOTFOUND') {
-          reject(new Error('Не удалось найти сервер. Проверьте подключение к интернету.'));
-          return;
-        }
-
-        if (error.killed || error.code === 'ETIMEDOUT') {
-          reject(new Error('Превышено время ожидания ответа от сервера (20 сек). Сайт Арены может быть недоступен.'));
-          return;
-        }
-
-        reject(new Error('Не удалось загрузить страницу персонажа: ' + error.message));
-        return;
-      }
-
-      console.log('[characterVerificationService] Received', stdout.length, 'bytes');
-
-      // Конвертируем из Windows-1251 в UTF-8
-      let html = '';
+  const redirectMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
+  if (redirectMatch && redirectMatch[1]) {
+    let redirectUrl = redirectMatch[1];
+    if (!redirectUrl.startsWith('http://') && !redirectUrl.startsWith('https://')) {
       try {
-        html = iconv.decode(stdout, 'win-1251');
-      } catch (e) {
-        console.error('[characterVerificationService] Conversion error:', e.message);
-        html = stdout.toString('utf8');
+        redirectUrl = new URL(redirectUrl, characterUrl).href;
+      } catch {
+        // keep raw redirect url
       }
+    }
+    if (redirectUrl !== characterUrl) {
+      return fetchCharacterPage(redirectUrl);
+    }
+  }
 
-      console.log('[characterVerificationService] First 300 chars:', html.substring(0, 300));
+  return html;
+}
 
-      // Проверяем, не пустая ли страница
-      if (!html || html.trim().length < 50) {
-        console.error('[characterVerificationService] Empty or too short response');
-        reject(new Error('Сервер Арены вернул пустую страницу. Попробуйте позже.'));
-        return;
-      }
+async function fetchRawPage(targetUrl, redirects = 0) {
+  if (redirects > 5) {
+    throw new Error('Слишком много перенаправлений при загрузке страницы персонажа.');
+  }
 
-      // Проверяем на JavaScript редирект (как в ImportCharacter.tsx)
-      const redirectMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
-      if (redirectMatch && redirectMatch[1]) {
-        let redirectUrl = redirectMatch[1];
-        console.log('[characterVerificationService] Found JavaScript redirect to:', redirectUrl);
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try {
+      parsed = new URL(targetUrl);
+    } catch {
+      reject(new Error('Некорректный URL страницы персонажа.'));
+      return;
+    }
 
-        // Если URL относительный - преобразуем в абсолютный
-        if (!redirectUrl.startsWith('http://') && !redirectUrl.startsWith('https://')) {
-          try {
-            redirectUrl = new URL(redirectUrl, characterUrl).href;
-          } catch {
-            // Игнорируем ошибки парсинга URL
+    const client = parsed.protocol === 'https:' ? https : http;
+    const req = client.request(
+      parsed,
+      {
+        method: 'GET',
+        timeout: 20000,
+        rejectUnauthorized: false,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      },
+      (res) => {
+        const status = res.statusCode || 0;
+
+        if (status >= 300 && status < 400 && res.headers.location) {
+          let redirectUrl = res.headers.location;
+          if (!/^https?:\/\//i.test(redirectUrl)) {
+            try {
+              redirectUrl = new URL(redirectUrl, targetUrl).href;
+            } catch {
+              reject(new Error('Ошибка обработки URL редиректа.'));
+              return;
+            }
           }
-        }
 
-        console.log('[characterVerificationService] Following redirect to:', redirectUrl);
-
-        // Защита от зацикливания - не переходим если URL совпадает с исходным
-        if (redirectUrl === characterUrl) {
-          console.log('[characterVerificationService] Redirect URL is the same as original, ignoring redirect');
-          resolve(html);
+          res.resume();
+          fetchRawPage(redirectUrl, redirects + 1).then(resolve).catch(reject);
           return;
         }
 
-        // Рекурсивно загружаем страницу по URL редиректа
-        fetchCharacterPage(redirectUrl)
-          .then(resolve)
-          .catch(reject);
+        if (status < 200 || status >= 400) {
+          res.resume();
+          reject(new Error(`Сервер вернул код ${status}`));
+          return;
+        }
+
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        res.on('end', () => resolve(Buffer.concat(chunks)));
+      }
+    );
+
+    req.on('timeout', () => {
+      req.destroy(new Error('ECONNABORTED'));
+    });
+
+    req.on('error', (error) => {
+      const code = error?.code || '';
+      if (code === 'ENOTFOUND') {
+        reject(new Error('Не удалось найти сервер. Проверьте подключение к интернету.'));
         return;
       }
-
-      resolve(html);
+      if (code === 'ECONNABORTED') {
+        reject(new Error('Превышено время ожидания ответа от сервера (20 сек). Сайт Арены может быть недоступен.'));
+        return;
+      }
+      reject(new Error('Не удалось загрузить страницу персонажа: ' + (error?.message || 'unknown error')));
     });
+
+    req.end();
   });
 }
 
@@ -166,6 +208,56 @@ export function extractCharacterName(html) {
 
   console.log('[characterVerificationService] Character name not found');
   return null;
+}
+
+/**
+ * Извлечь уровень персонажа из HTML
+ * @param {string} html - HTML содержимое страницы
+ * @returns {number|null}
+ */
+export function extractCharacterLevel(html) {
+  if (!html) return null;
+
+  const titleMatch = html.match(/<title[^>]*>([^<]+?)\s*-\s*[^\[]+\s*\[(\d+)\]/i);
+  if (titleMatch && titleMatch[2]) {
+    return parseInt(titleMatch[2], 10);
+  }
+
+  const persContainerMatch = html.match(/verh_persa\.png[^>]*>[\s\S]{0,500}?(\d{1,3})[\s\S]{0,200}?<span[^>]*class=cnavy[^>]*>[^<]+<\/span>/i);
+  if (persContainerMatch && persContainerMatch[1]) {
+    return parseInt(persContainerMatch[1], 10);
+  }
+
+  return null;
+}
+
+/**
+ * Извлечь данные расы из HTML
+ * @param {string} html - HTML содержимое страницы
+ * @returns {{ raceCode?: string, raceClass?: string, raceTitle?: string, raceStyle?: string } | null}
+ */
+export function extractRaceInfo(html) {
+  if (!html) return null;
+
+  const raceMatch = html.match(
+    /<span([^>]*)class\s*=\s*["']?(r(?:Or|El|Gn|Hb|Hm|Dr|Ar|Ab|Wm))["']?([^>]*)>\s*([A-Za-z]{2})\s*<\/span>/i
+  );
+
+  if (!raceMatch) {
+    return null;
+  }
+
+  const attrs = `${raceMatch[1]} ${raceMatch[3]}`;
+  const raceClass = raceMatch[2];
+  const raceCode = raceMatch[4]?.trim();
+  const raceTitle = attrs.match(/title\s*=\s*["']([^"']+)["']/i)?.[1]?.trim();
+
+  return {
+    raceCode,
+    raceClass,
+    raceTitle,
+    raceStyle: RACE_STYLES[raceClass] || 'font-weight: bold;',
+  };
 }
 
 /**
@@ -314,12 +406,24 @@ export function extractAboutSection(html) {
 /**
  * Распарсить всю информацию о персонаже
  * @param {string} html - HTML содержимое страницы
+ * @param {string} [baseUrl]
  * @returns {object} { name, imageUrl, about }
  */
-export function parseCharacterInfo(html) {
+export function parseCharacterInfo(html, baseUrl = 'https://apeha.ru/') {
+  const raceInfo = extractRaceInfo(html);
+  const clanInfo = extractClanInfo(html, baseUrl);
+
   return {
     name: extractCharacterName(html),
-    imageUrl: extractCharacterImage(html),
+    level: extractCharacterLevel(html),
+    raceCode: raceInfo?.raceCode,
+    raceClass: raceInfo?.raceClass,
+    raceTitle: raceInfo?.raceTitle,
+    raceStyle: raceInfo?.raceStyle,
+    clanName: clanInfo?.clanName,
+    clanUrl: clanInfo?.clanUrl,
+    clanIcon: clanInfo?.clanIcon,
+    imageUrl: extractCharacterImage(html, baseUrl),
     about: extractAboutSection(html)
   };
 }
@@ -329,6 +433,8 @@ export default {
   findVerificationTokenInHtml,
   verifyTokenOnCharacterPage,
   extractCharacterName,
+  extractCharacterLevel,
+  extractRaceInfo,
   extractCharacterImage,
   extractClanInfo,
   extractAboutSection,

@@ -48,7 +48,7 @@ const RainEffect = ({ intensity = 1 }: RainEffectProps) => {
           y: Math.random() * canvas.height,
           length: Math.random() * 20 + 10,
           speed: Math.random() * 15 + 10,
-          opacity: Math.random() * 0.3 + 0.1,
+          opacity: Math.random() * 0.12 + 0.05,
         });
       }
     };
@@ -92,7 +92,7 @@ const RainEffect = ({ intensity = 1 }: RainEffectProps) => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-10"
-      style={{ mixBlendMode: 'screen' }}
+      style={{ opacity: 0.55 }}
     />
   );
 };

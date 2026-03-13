@@ -31,6 +31,19 @@ export const getComments = async (
 };
 
 /**
+ * Получить комментарии текущего пользователя (для профиля)
+ */
+export const getMyComments = async (
+  page = 1,
+  limit = 10
+): Promise<CommentsResponse> => {
+  const response = await apiCall<CommentsResponse>(
+    `/comments/me?page=${page}&limit=${limit}`
+  );
+  return response;
+};
+
+/**
  * Создать комментарий
  */
 export const createComment = async (
@@ -244,6 +257,7 @@ export const hideAllUserComments = async (
  */
 export const commentsAPI = {
   getByNewsId: getComments,
+  getMy: getMyComments,
   create: createComment,
   update: updateComment,
   delete: deleteComment,

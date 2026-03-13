@@ -85,7 +85,15 @@ router.get('/admin/all',
              c.created_at,
              u.username as author_username,
              p.arena_nickname as author_arena_nickname,
-             p.character_url as author_character_url
+             p.character_url as author_character_url,
+             p.character_level as author_character_level,
+             p.race_code as author_race_code,
+             p.race_class as author_race_class,
+             p.race_title as author_race_title,
+             p.race_style as author_race_style,
+             p.clan_name as author_clan_name,
+             p.clan_url as author_clan_url,
+             p.clan_icon as author_clan_icon
       FROM comments c
       JOIN users u ON c.user_id = u.id
       LEFT JOIN user_profiles p ON c.user_id = p.user_id

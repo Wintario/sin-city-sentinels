@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { MouseEvent, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -55,6 +55,17 @@ const Admin = () => {
     }
   };
 
+  const handleLogoClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    navigate('/');
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    });
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }, 120);
+  };
+
   if (!isLoggedIn) {
     return null; // Покажем пусто в время редиректа
   }
@@ -66,6 +77,7 @@ const Admin = () => {
         <div className="flex items-center justify-between mb-8">
           <Link 
             to="/" 
+            onClick={handleLogoClick}
             className="font-display text-2xl tracking-wider hover:text-primary transition-colors"
           >
             СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>

@@ -78,6 +78,26 @@ export function updateProfile(userId, updates) {
     fields.push('clan_checked_at = ?');
     values.push(updates.clan_checked_at);
   }
+  if (updates.character_level !== undefined) {
+    fields.push('character_level = ?');
+    values.push(updates.character_level);
+  }
+  if (updates.race_code !== undefined) {
+    fields.push('race_code = ?');
+    values.push(updates.race_code);
+  }
+  if (updates.race_class !== undefined) {
+    fields.push('race_class = ?');
+    values.push(updates.race_class);
+  }
+  if (updates.race_title !== undefined) {
+    fields.push('race_title = ?');
+    values.push(updates.race_title);
+  }
+  if (updates.race_style !== undefined) {
+    fields.push('race_style = ?');
+    values.push(updates.race_style);
+  }
 
   if (fields.length === 0) return getProfileByUserId(userId);
 

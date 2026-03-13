@@ -57,6 +57,8 @@ interface UsersAdminProps {
   isAdminUser: boolean;
 }
 
+const INFO_ICON_URL = '/info.gif';
+
 const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserWithProfileExtended[]>([]);
@@ -254,7 +256,7 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
       <div className="flex gap-4">
         <div className="flex-1">
           <Input
-            placeholder="Поиск по email, нику..."
+            placeholder="Поиск по нику..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -277,8 +279,8 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Ник в Арене</TableHead>
+              <TableHead>Пользователь</TableHead>
+              <TableHead>Персонаж</TableHead>
               <TableHead>Роль</TableHead>
               <TableHead>Верификация</TableHead>
               <TableHead>Дата регистрации</TableHead>
@@ -304,9 +306,29 @@ const UsersAdmin = ({ isAdminUser }: UsersAdminProps) => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {user.arena_nickname || (
-                      <span className="text-muted-foreground">Не указан</span>
-                    )}
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 flex-wrap text-sm">
+                        {user.clan_icon && (
+                          <img
+                            src={user.clan_icon}
+                            alt="Логотип клана"
+                            className="w-4 h-4 inline-block"
+                          />
+                        )}
+                        <span className="font-semibold text-primary" style={{ fontFamily: 'Arial, Verdana' }}>
+                          {user.arena_nickname || user.username}
+                        </span>
+                        {user.character_level && <strong>{user.character_level}</strong>}
+                        {user.character_url && (
+                          <a href={user.character_url} target="_blank" rel="noopener noreferrer">
+                            <img src={INFO_ICON_URL} alt="info" className="w-4 h-4 inline-block" />
+                          </a>
+                        )}
+                      </div>
+                      {!user.character_url && (
+                        <span className="text-xs text-muted-foreground">Ссылка на персонажа не указана</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {banInfoMap.has(user.id) ? (

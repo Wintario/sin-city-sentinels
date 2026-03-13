@@ -6,6 +6,8 @@ import { CommentActions } from './CommentActions';
 import CommentEditor from './CommentEditor';
 import type { Comment } from '@/types/comments';
 
+const INFO_ICON_URL = '/info.gif';
+
 interface CommentItemProps {
   comment: Comment;
   currentUser?: { id: number; role: string };
@@ -96,19 +98,36 @@ export const CommentItem = ({
       {/* Header */}
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1 flex-wrap">
-          {/* Автор */}
-          {comment.author_character_url ? (
-            <a
-              href={comment.author_character_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-sm hover:underline text-primary"
-            >
-              {authorName}
-            </a>
-          ) : (
-            <span className="font-semibold text-sm">{authorName}</span>
-          )}
+          <span className="inline-flex items-center gap-1.5 flex-wrap text-sm">
+            {comment.author_clan_icon && (
+              <img
+                src={comment.author_clan_icon}
+                alt="Логотип клана"
+                className="w-4 h-4 inline-block"
+              />
+            )}
+            {comment.author_character_url ? (
+              <a
+                href={comment.author_character_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold hover:underline text-primary"
+                style={{ fontFamily: 'Arial, Verdana' }}
+              >
+                {authorName}
+              </a>
+            ) : (
+              <span className="font-semibold text-primary" style={{ fontFamily: 'Arial, Verdana' }}>
+                {authorName}
+              </span>
+            )}
+            {comment.author_character_level && <strong>{comment.author_character_level}</strong>}
+            {comment.author_character_url && (
+              <a href={comment.author_character_url} target="_blank" rel="noopener noreferrer">
+                <img src={INFO_ICON_URL} alt="info" className="w-4 h-4 inline-block" />
+              </a>
+            )}
+          </span>
 
           {/* Бейдж автора новости */}
           {/* Можно добавить проверку на автора новости */}

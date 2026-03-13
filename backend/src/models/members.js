@@ -1,5 +1,37 @@
 import { getDatabase } from '../db/db.js';
 import logger from '../utils/logger.js';
+import { fetchCharacterPage, parseCharacterInfo } from '../services/characterVerificationService.js';
+
+const mapCharacterMeta = (parsed) => ({
+  character_image: parsed?.imageUrl || null,
+  character_level: parsed?.level ?? null,
+  race_code: parsed?.raceCode || null,
+  race_class: parsed?.raceClass || null,
+  race_title: parsed?.raceTitle || null,
+  race_style: parsed?.raceStyle || null,
+  clan_name: parsed?.clanName || null,
+  clan_url: parsed?.clanUrl || null,
+  clan_icon: parsed?.clanIcon || null,
+});
+
+async function enrichMemberWithCharacterMeta(data) {
+  const profileUrl = data?.profile_url?.trim();
+  if (!profileUrl) {
+    return data;
+  }
+
+  try {
+    const html = await fetchCharacterPage(profileUrl);
+    const parsed = parseCharacterInfo(html, profileUrl);
+    return {
+      ...data,
+      ...mapCharacterMeta(parsed),
+    };
+  } catch (error) {
+    logger.warn('Failed to import member character metadata', { profile_url: profileUrl, error: error.message });
+    return data;
+  }
+}
 
 /**
  * Получить всех активных участников (публичный эндпоинт)
@@ -8,7 +40,9 @@ import logger from '../utils/logger.js';
 export function getActiveMembers() {
   const db = getDatabase();
   const stmt = db.prepare(`
-    SELECT id, name, role, profile_url, status, avatar_url, order_index, is_leader
+    SELECT id, name, role, profile_url, status, avatar_url, order_index, is_leader,
+           character_image, character_level, race_code, race_class, race_title, race_style,
+           clan_name, clan_url, clan_icon
     FROM members
     WHERE status != 'deleted'
     ORDER BY 
@@ -68,27 +102,41 @@ function getMaxOrderIndex() {
 /**
  * Создать нового участника
  */
-export function createMember({ name, role, profile_url, status, avatar_url, order_index, is_leader }) {
+export async function createMember({ name, role, profile_url, status, avatar_url, order_index, is_leader }) {
   const db = getDatabase();
+  const payload = await enrichMemberWithCharacterMeta({ name, role, profile_url, status, avatar_url, order_index, is_leader });
   
-  const finalOrderIndex = order_index ?? (getMaxOrderIndex() + 1);
+  const finalOrderIndex = payload.order_index ?? (getMaxOrderIndex() + 1);
   
   const stmt = db.prepare(`
-    INSERT INTO members (name, role, profile_url, status, avatar_url, order_index, is_leader)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO members (
+      name, role, profile_url, status, avatar_url, order_index, is_leader,
+      character_image, character_level, race_code, race_class, race_title, race_style,
+      clan_name, clan_url, clan_icon
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
   const result = stmt.run(
-    name,
-    role || 'Боец',
-    profile_url || null,
-    status || 'active',
-    avatar_url || null,
+    payload.name,
+    payload.role || 'Боец',
+    payload.profile_url || null,
+    payload.status || 'active',
+    payload.avatar_url || null,
     finalOrderIndex,
-    is_leader ? 1 : 0
+    payload.is_leader ? 1 : 0,
+    payload.character_image || null,
+    payload.character_level ?? null,
+    payload.race_code || null,
+    payload.race_class || null,
+    payload.race_title || null,
+    payload.race_style || null,
+    payload.clan_name || null,
+    payload.clan_url || null,
+    payload.clan_icon || null
   );
   
-  logger.info(`Member created: ${name}`, { id: result.lastInsertRowid });
+  logger.info(`Member created: ${payload.name}`, { id: result.lastInsertRowid });
   
   return getMemberById(result.lastInsertRowid);
 }
@@ -96,11 +144,17 @@ export function createMember({ name, role, profile_url, status, avatar_url, orde
 /**
  * Обновить участника (только name, avatar_url, profile_url)
  */
-export function updateMember(id, { name, avatar_url, profile_url }) {
+export async function updateMember(id, { name, avatar_url, profile_url }) {
   const db = getDatabase();
   
   const current = getMemberById(id);
   if (!current) return null;
+
+  const payload = await enrichMemberWithCharacterMeta({
+    name: name ?? current.name,
+    profile_url: profile_url !== undefined ? profile_url : current.profile_url,
+    avatar_url: avatar_url !== undefined ? avatar_url : current.avatar_url,
+  });
   
   const stmt = db.prepare(`
     UPDATE members 
@@ -108,14 +162,32 @@ export function updateMember(id, { name, avatar_url, profile_url }) {
       name = COALESCE(?, name),
       avatar_url = ?,
       profile_url = ?,
+      character_image = ?,
+      character_level = ?,
+      race_code = ?,
+      race_class = ?,
+      race_title = ?,
+      race_style = ?,
+      clan_name = ?,
+      clan_url = ?,
+      clan_icon = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `);
   
   stmt.run(
-    name || null,
-    avatar_url !== undefined ? avatar_url : current.avatar_url,
-    profile_url !== undefined ? profile_url : current.profile_url,
+    payload.name || null,
+    payload.avatar_url !== undefined ? payload.avatar_url : current.avatar_url,
+    payload.profile_url !== undefined ? payload.profile_url : current.profile_url,
+    payload.character_image !== undefined ? payload.character_image : current.character_image,
+    payload.character_level !== undefined ? payload.character_level : current.character_level,
+    payload.race_code !== undefined ? payload.race_code : current.race_code,
+    payload.race_class !== undefined ? payload.race_class : current.race_class,
+    payload.race_title !== undefined ? payload.race_title : current.race_title,
+    payload.race_style !== undefined ? payload.race_style : current.race_style,
+    payload.clan_name !== undefined ? payload.clan_name : current.clan_name,
+    payload.clan_url !== undefined ? payload.clan_url : current.clan_url,
+    payload.clan_icon !== undefined ? payload.clan_icon : current.clan_icon,
     id
   );
   
@@ -127,8 +199,7 @@ export function updateMember(id, { name, avatar_url, profile_url }) {
 /**
  * Массовое обновление или создание участников (для импорта)
  */
-export function bulkUpsertMembers(members) {
-  const db = getDatabase();
+export async function bulkUpsertMembers(members) {
   const results = { updated: 0, created: 0, processed: [] };
   
   for (const member of members) {
@@ -140,7 +211,7 @@ export function bulkUpsertMembers(members) {
       
       if (existing) {
         // Обновляем существующего
-        updateMember(existing.id, {
+        await updateMember(existing.id, {
           avatar_url: avatarUrl,
           profile_url: profileUrl
         });
@@ -148,7 +219,7 @@ export function bulkUpsertMembers(members) {
         results.processed.push({ name: member.nickname, action: 'updated' });
       } else {
         // Создаём нового
-        createMember({
+        await createMember({
           name: member.nickname,
           avatar_url: avatarUrl,
           profile_url: profileUrl,

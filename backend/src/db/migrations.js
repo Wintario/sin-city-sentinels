@@ -89,6 +89,11 @@ export function runMigrations() {
           arena_nickname TEXT NOT NULL,
           character_url TEXT NOT NULL,
           character_image TEXT,
+          character_level INTEGER,
+          race_code TEXT,
+          race_class TEXT,
+          race_title TEXT,
+          race_style TEXT,
           clan_name TEXT,
           clan_url TEXT,
           clan_icon TEXT,
@@ -140,6 +145,68 @@ export function runMigrations() {
         console.log('>> Adding column clan_checked_at to user_profiles...');
         db.exec('ALTER TABLE user_profiles ADD COLUMN clan_checked_at DATETIME');
         console.log('>> Added clan_checked_at column to user_profiles');
+      }
+
+      if (!existingColumns.includes('character_level')) {
+        console.log('>> Adding column character_level to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN character_level INTEGER');
+        console.log('>> Added character_level column to user_profiles');
+      }
+
+      if (!existingColumns.includes('race_code')) {
+        console.log('>> Adding column race_code to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN race_code TEXT');
+        console.log('>> Added race_code column to user_profiles');
+      }
+
+      if (!existingColumns.includes('race_class')) {
+        console.log('>> Adding column race_class to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN race_class TEXT');
+        console.log('>> Added race_class column to user_profiles');
+      }
+
+      if (!existingColumns.includes('race_title')) {
+        console.log('>> Adding column race_title to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN race_title TEXT');
+        console.log('>> Added race_title column to user_profiles');
+      }
+
+      if (!existingColumns.includes('race_style')) {
+        console.log('>> Adding column race_style to user_profiles...');
+        db.exec('ALTER TABLE user_profiles ADD COLUMN race_style TEXT');
+        console.log('>> Added race_style column to user_profiles');
+      }
+    }
+
+    // ============================================
+    // Проверяем и расширяем таблицу members
+    // ============================================
+    const membersExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='members'"
+    ).get();
+
+    if (membersExists) {
+      const membersTable = db.prepare("PRAGMA table_info(members)").all();
+      const existingMembersColumns = membersTable.map(col => col.name);
+
+      const requiredMembersColumns = [
+        { name: 'character_image', sql: 'TEXT' },
+        { name: 'character_level', sql: 'INTEGER' },
+        { name: 'race_code', sql: 'TEXT' },
+        { name: 'race_class', sql: 'TEXT' },
+        { name: 'race_title', sql: 'TEXT' },
+        { name: 'race_style', sql: 'TEXT' },
+        { name: 'clan_name', sql: 'TEXT' },
+        { name: 'clan_url', sql: 'TEXT' },
+        { name: 'clan_icon', sql: 'TEXT' },
+      ];
+
+      for (const col of requiredMembersColumns) {
+        if (!existingMembersColumns.includes(col.name)) {
+          console.log(`>> Adding column ${col.name} to members...`);
+          db.exec(`ALTER TABLE members ADD COLUMN ${col.name} ${col.sql}`);
+          console.log(`>> Added ${col.name} column to members`);
+        }
       }
     }
 

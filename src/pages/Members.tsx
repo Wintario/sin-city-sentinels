@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { MouseEvent, useState, useCallback, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import MemberCard from '@/components/MemberCard';
 import RainEffect from '@/components/RainEffect';
@@ -8,6 +8,7 @@ import heroRabbit from '@/assets/hero-rabbit.png';
 import { membersAPI, Member } from '@/lib/api';
 
 const Members = () => {
+  const navigate = useNavigate();
   const [rainIntensity, setRainIntensity] = useState(1);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +43,17 @@ const Members = () => {
     setRainIntensity(isHovering ? 2 : 1);
   }, []);
 
+  const handleLogoClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    navigate('/');
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    });
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }, 120);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       <div 
@@ -64,6 +76,7 @@ const Members = () => {
             <div className="flex items-center justify-between">
               <Link 
                 to="/" 
+                onClick={handleLogoClick}
                 className="font-display text-xl md:text-2xl tracking-wider hover:text-primary transition-colors"
               >
                 СВИРЕПЫЕ <span className="text-primary">КРОЛИКИ</span>

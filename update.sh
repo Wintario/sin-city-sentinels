@@ -65,6 +65,8 @@ fi
 
 PROJECT_DIR="/var/www/rabbits"
 PM2_APP_NAME="rabbits-backend"
+DB_PATH="/var/www/rabbits/backend/data/app.db"
+DB_BACKUP_DIR="/var/backups/rabbits-db"
 
 # ============================================================================
 # РЁРђР“ 1: РџР РћР’Р•Р РљРђ РЎРЈР©Р•РЎРўР’РћР’РђРќРРЇ РџР РћР•РљРўРђ
@@ -93,6 +95,29 @@ pm2 stop "$PM2_APP_NAME" 2>/dev/null || true
 sleep 2
 
 log_success "Р‘РµРєРµРЅРґ РѕСЃС‚Р°РЅРѕРІР»РµРЅ"
+
+# ============================================================================
+# STEP: BACKUP DATABASE (MANDATORY BEFORE DEPLOY)
+# ============================================================================
+log_step "Step 3/8: Backup backend database"
+
+mkdir -p "$DB_BACKUP_DIR"
+if [ ! -f "$DB_PATH" ]; then
+    log_error "Database not found: $DB_PATH"
+    exit 1
+fi
+
+BACKUP_TS=$(date '+%Y%m%d-%H%M%S')
+DB_BACKUP_FILE="$DB_BACKUP_DIR/app-$BACKUP_TS.db"
+cp -f "$DB_PATH" "$DB_BACKUP_FILE"
+
+if [ ! -s "$DB_BACKUP_FILE" ]; then
+    log_error "Database backup failed: $DB_BACKUP_FILE"
+    exit 1
+fi
+
+chmod 600 "$DB_BACKUP_FILE" 2>/dev/null || true
+log_success "Database backup created: $DB_BACKUP_FILE"
 
 # ============================================================================
 # РЁРђР“ 3: GIT PULL

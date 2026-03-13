@@ -177,7 +177,21 @@ export function updateUserRole(userId, role) {
 export function getAllUsersWithProfiles() {
   const db = getDatabase();
   const stmt = db.prepare(`
-    SELECT u.*, p.arena_nickname, p.character_url, p.email_verified
+    SELECT u.*,
+           p.arena_nickname,
+           p.character_url,
+           p.character_image,
+           p.character_level,
+           p.race_code,
+           p.race_class,
+           p.race_title,
+           p.race_style,
+           p.clan_name,
+           p.clan_url,
+           p.clan_icon,
+           p.is_target_clan_member,
+           p.clan_checked_at,
+           p.email_verified
     FROM users u
     LEFT JOIN user_profiles p ON u.id = p.user_id
     WHERE u.is_deleted = 0 OR u.is_deleted IS NULL

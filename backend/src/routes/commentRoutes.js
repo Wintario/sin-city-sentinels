@@ -40,6 +40,29 @@ router.get('/',
 );
 
 /**
+ * GET /api/comments/me - Комментарии текущего пользователя
+ * Query: page (default: 1), limit (default: 10)
+ */
+router.get('/me',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10 } = req.query;
+    const userId = req.user.id;
+
+    const result = commentModel.getByUserIdPaginated(
+      userId,
+      parseInt(page, 10),
+      parseInt(limit, 10)
+    );
+
+    res.json({
+      success: true,
+      ...result
+    });
+  })
+);
+
+/**
  * POST /api/comments - Создать комментарий
  * Требует авторизации
  * Body: newsId, content, parentId (optional)

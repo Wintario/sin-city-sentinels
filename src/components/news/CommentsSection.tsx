@@ -253,6 +253,14 @@ const CommentsSection = ({ newsId }: CommentsSectionProps) => {
               author_display_name,
               author_arena_nickname,
               author_character_url,
+              author_character_level,
+              author_race_code,
+              author_race_class,
+              author_race_title,
+              author_race_style,
+              author_clan_name,
+              author_clan_url,
+              author_clan_icon,
             } = rawComment;
 
             // Преобразуем числа в булевы значения для корректного рендеринга
@@ -276,6 +284,14 @@ const CommentsSection = ({ newsId }: CommentsSectionProps) => {
               author_display_name,
               author_arena_nickname,
               author_character_url,
+              author_character_level,
+              author_race_code,
+              author_race_class,
+              author_race_title,
+              author_race_style,
+              author_clan_name,
+              author_clan_url,
+              author_clan_icon,
             };
 
             return (

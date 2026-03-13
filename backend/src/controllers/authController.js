@@ -9,7 +9,7 @@ import {
   verifyTokenOnCharacterPage, 
   extractCharacterName,
   extractCharacterImage,
-  extractClanInfo,
+  parseCharacterInfo,
   fetchCharacterPage 
 } from '../services/characterVerificationService.js';
 
@@ -25,7 +25,15 @@ const mapAuthUser = (user, profile) => ({
   username: user.username,
   role: user.role,
   is_verified: profile?.email_verified ? true : false,
+  character_image: profile?.character_image || null,
+  character_level: profile?.character_level ?? null,
+  race_code: profile?.race_code || null,
+  race_class: profile?.race_class || null,
+  race_title: profile?.race_title || null,
+  race_style: profile?.race_style || null,
   clan_name: profile?.clan_name || null,
+  clan_url: profile?.clan_url || null,
+  clan_icon: profile?.clan_icon || null,
   is_target_clan_member: profile?.is_target_clan_member ? true : false,
   clan_checked_at: profile?.clan_checked_at || null
 });
@@ -219,14 +227,20 @@ export const login = asyncHandler(async (req, res) => {
   if (profile?.character_url) {
     try {
       const html = await fetchCharacterPage(profile.character_url);
-      const clanInfo = extractClanInfo(html, profile.character_url);
-      const normalizedClanName = normalizeClanName(clanInfo?.clanName);
+      const characterInfo = parseCharacterInfo(html, profile.character_url);
+      const normalizedClanName = normalizeClanName(characterInfo?.clanName);
       const isTargetClanMember = normalizedClanName === TARGET_CLAN_NAME_NORMALIZED;
 
       profile = updateProfile(user.id, {
-        clan_name: clanInfo?.clanName || null,
-        clan_url: clanInfo?.clanUrl || null,
-        clan_icon: clanInfo?.clanIcon || null,
+        character_image: characterInfo?.imageUrl || null,
+        character_level: characterInfo?.level ?? null,
+        race_code: characterInfo?.raceCode || null,
+        race_class: characterInfo?.raceClass || null,
+        race_title: characterInfo?.raceTitle || null,
+        race_style: characterInfo?.raceStyle || null,
+        clan_name: characterInfo?.clanName || null,
+        clan_url: characterInfo?.clanUrl || null,
+        clan_icon: characterInfo?.clanIcon || null,
         is_target_clan_member: isTargetClanMember,
         clan_checked_at: new Date().toISOString()
       });

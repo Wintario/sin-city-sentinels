@@ -7,7 +7,15 @@ export interface User {
   role: string;
   is_active?: number;
   is_verified?: boolean;
+  character_image?: string | null;
+  character_level?: number | null;
+  race_code?: string | null;
+  race_class?: string | null;
+  race_title?: string | null;
+  race_style?: string | null;
   clan_name?: string | null;
+  clan_url?: string | null;
+  clan_icon?: string | null;
   is_target_clan_member?: boolean;
   clan_checked_at?: string | null;
 }
@@ -48,9 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Проверяем валидность токена асинхронно
       // НЕ сбрасываем авторизацию при ошибке сети - даём пользователю работать
       authAPI.verifyToken()
-        .then(() => {
+        .then((response) => {
           console.log('[AuthContext] Token is valid');
-          // Токен валиден - всё ок
+          if (response?.user) {
+            setUser(response.user as User);
+            setStoredUser(response.user);
+          }
         })
         .catch((error) => {
           console.log('[AuthContext] Token verification error:', error.message);
