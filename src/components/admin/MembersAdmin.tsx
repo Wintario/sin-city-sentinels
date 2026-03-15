@@ -270,6 +270,23 @@ const MembersAdmin = () => {
     }
   };
 
+  const handleClanWidgetEnabledChange = async (checked: boolean) => {
+    const previous = clanWidget;
+    const next = { ...clanWidget, enabled: checked };
+    setClanWidget(next);
+    setIsSavingClanWidget(true);
+    try {
+      const saved = await settingsAPI.updateClanWidget(next);
+      setClanWidget(normalizeClanWidgetSettings(saved));
+      toast.success(checked ? 'Окно сокланов включено' : 'Окно сокланов отключено');
+    } catch (error) {
+      setClanWidget(previous);
+      toast.error('Не удалось сохранить переключатель окна сокланов');
+    } finally {
+      setIsSavingClanWidget(false);
+    }
+  };
+
   const parseFightsTable = (raw: string) => {
     const lines = raw
       .split(/\r?\n/)
@@ -519,7 +536,7 @@ const MembersAdmin = () => {
           </div>
           <Switch
             checked={clanWidget.enabled}
-            onCheckedChange={(checked) => setClanWidget((prev) => ({ ...prev, enabled: checked }))}
+            onCheckedChange={handleClanWidgetEnabledChange}
             disabled={isSavingClanWidget}
             aria-label="Включить окно сокланов"
           />
