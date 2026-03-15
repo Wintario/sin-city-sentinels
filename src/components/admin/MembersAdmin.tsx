@@ -6,6 +6,13 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { membersAPI, settingsAPI, Member, type ClanWidgetSettings } from '@/lib/api';
 import { Trash2, Edit, Plus, Star, Upload, CheckCircle, Sparkles, AlertCircle, Crown } from 'lucide-react';
@@ -17,6 +24,20 @@ interface ImportResult {
   created: number;
   processed: Array<{ name: string; action: string; error?: string }>;
 }
+
+const normalizeClanWidgetSettings = (settings: Partial<ClanWidgetSettings> | null | undefined): ClanWidgetSettings => ({
+  enabled: settings?.enabled ?? true,
+  title: settings?.title ?? 'Информация для сокланов',
+  body: settings?.body ?? '',
+  fights: Array.isArray(settings?.fights)
+    ? settings!.fights
+        .map((fight) => ({
+          date: typeof fight?.date === 'string' ? fight.date : '',
+          opponent: typeof fight?.opponent === 'string' ? fight.opponent : '',
+        }))
+        .filter((fight) => fight.date && fight.opponent)
+    : [],
+});
 
 const MembersAdmin = () => {
   const [members, setMembers] = useState<Member[]>([]);
@@ -30,9 +51,14 @@ const MembersAdmin = () => {
   const [clanWidget, setClanWidget] = useState<ClanWidgetSettings>({
     enabled: true,
     title: 'Информация для сокланов',
-    body: ''
+    body: '',
+    fights: []
   });
   const [isSavingClanWidget, setIsSavingClanWidget] = useState(false);
+  const [isFightsImportOpen, setIsFightsImportOpen] = useState(false);
+  const [fightRows, setFightRows] = useState<Array<{ date: string; opponent: string }>>([
+    { date: '', opponent: '' },
+  ]);
   
   // Массовая загрузка
   const [isImporting, setIsImporting] = useState(false);
@@ -89,7 +115,7 @@ const MembersAdmin = () => {
     const loadClanWidgetSettings = async () => {
       try {
         const settings = await settingsAPI.getClanWidget();
-        setClanWidget(settings);
+        setClanWidget(normalizeClanWidgetSettings(settings));
       } catch (error) {
         toast.error('Ошибка загрузки настроек окна сокланов');
       }
@@ -235,10 +261,99 @@ const MembersAdmin = () => {
     setIsSavingClanWidget(true);
     try {
       const saved = await settingsAPI.updateClanWidget(clanWidget);
-      setClanWidget(saved);
+      setClanWidget(normalizeClanWidgetSettings(saved));
       toast.success('Настройки окна сокланов сохранены');
     } catch (error) {
       toast.error('Не удалось сохранить настройки окна сокланов');
+    } finally {
+      setIsSavingClanWidget(false);
+    }
+  };
+
+  const parseFightsTable = (raw: string) => {
+    const lines = raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const parsed = lines
+      .map((line) => {
+        const cols = line.split(/\t|;|\|/).map((col) => col.trim()).filter(Boolean);
+        if (cols.length < 2) return null;
+        const date = cols[0];
+        const opponent = cols.slice(1).join(' ');
+        if (!date || !opponent) return null;
+        if (date.toLowerCase().includes('дата') && opponent.toLowerCase().includes('сопер')) {
+          return null;
+        }
+        return { date, opponent };
+      })
+      .filter((item): item is { date: string; opponent: string } => Boolean(item));
+
+    return parsed;
+  };
+
+  const parseFightsFromRows = (rows: Array<{ date: string; opponent: string }>) =>
+    rows
+      .map((row) => ({
+        date: (row.date || '').trim(),
+        opponent: (row.opponent || '').trim(),
+      }))
+      .filter((row) => row.date && row.opponent);
+
+  const handleFightRowChange = (index: number, field: 'date' | 'opponent', value: string) => {
+    setFightRows((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const addFightRow = () => {
+    setFightRows((prev) => [...prev, { date: '', opponent: '' }]);
+  };
+
+  const removeFightRow = (index: number) => {
+    setFightRows((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length > 0 ? next : [{ date: '', opponent: '' }];
+    });
+  };
+
+  const handleFightTablePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = event.clipboardData.getData('text/plain') || '';
+    if (!text.includes('\n') && !text.includes('\t')) return;
+    const fights = parseFightsTable(text);
+    if (fights.length === 0) return;
+
+    event.preventDefault();
+    setFightRows(fights);
+    toast.success(`Распознано строк: ${fights.length}`);
+  };
+
+  const openFightsImportDialog = () => {
+    const current = clanWidget.fights && clanWidget.fights.length > 0
+      ? clanWidget.fights
+      : [{ date: '', opponent: '' }];
+    setFightRows(current);
+    setIsFightsImportOpen(true);
+  };
+
+  const handleImportFights = async () => {
+    const fights = parseFightsFromRows(fightRows);
+    if (fights.length === 0) {
+      toast.error('Добавьте хотя бы один бой: дата + соперник');
+      return;
+    }
+
+    const nextSettings = { ...clanWidget, fights };
+    setClanWidget(nextSettings);
+    setIsSavingClanWidget(true);
+    try {
+      const saved = await settingsAPI.updateClanWidget(nextSettings);
+      setClanWidget(normalizeClanWidgetSettings(saved));
+      setIsFightsImportOpen(false);
+      toast.success(`Список боёв сохранён: ${fights.length}`);
+    } catch (error) {
+      toast.error('Не удалось сохранить список боёв');
     } finally {
       setIsSavingClanWidget(false);
     }
@@ -432,12 +547,106 @@ const MembersAdmin = () => {
           />
         </div>
 
+        <div className="space-y-2 rounded border border-border bg-background/40 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <Label className="text-sm font-medium">Ближайший бой</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openFightsImportDialog}
+              disabled={isSavingClanWidget}
+            >
+              Массовая загрузка
+            </Button>
+          </div>
+          {(clanWidget.fights || []).length > 0 ? (
+            <div className="space-y-1 text-xs">
+              {(clanWidget.fights || []).map((fight, index) => (
+                <div key={`${fight.date}-${fight.opponent}-${index}`} className="text-muted-foreground">
+                  {fight.date} Свирепые кролики - {fight.opponent}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Бои не добавлены</p>
+          )}
+        </div>
+
         <div className="flex justify-end">
           <Button type="button" onClick={handleClanWidgetSave} disabled={isSavingClanWidget}>
             {isSavingClanWidget ? 'Сохранение...' : 'Сохранить окно сокланов'}
           </Button>
         </div>
       </div>
+
+      <Dialog open={isFightsImportOpen} onOpenChange={setIsFightsImportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Массовая загрузка боёв</DialogTitle>
+            <DialogDescription>
+              Таблица с двумя колонками: дата и соперник. Можно вставить напрямую из Excel/Google Sheets в первое поле.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded border border-border overflow-hidden">
+              <div className="grid grid-cols-12 bg-muted/40 text-xs font-medium">
+                <div className="col-span-4 px-2 py-2 border-r border-border">Дата</div>
+                <div className="col-span-7 px-2 py-2 border-r border-border">Соперник</div>
+                <div className="col-span-1 px-2 py-2 text-center">-</div>
+              </div>
+              <div className="max-h-72 overflow-y-auto">
+                {fightRows.map((row, index) => (
+                  <div key={index} className="grid grid-cols-12 border-t border-border">
+                    <div className="col-span-4 border-r border-border">
+                      <Input
+                        value={row.date}
+                        onChange={(e) => handleFightRowChange(index, 'date', e.target.value)}
+                        onPaste={index === 0 ? handleFightTablePaste : undefined}
+                        placeholder={index === 0 ? '20.03.2026' : ''}
+                        className="h-9 rounded-none border-0"
+                      />
+                    </div>
+                    <div className="col-span-7 border-r border-border">
+                      <Input
+                        value={row.opponent}
+                        onChange={(e) => handleFightRowChange(index, 'opponent', e.target.value)}
+                        placeholder={index === 0 ? 'Клан соперника' : ''}
+                        className="h-9 rounded-none border-0"
+                      />
+                    </div>
+                    <div className="col-span-1 flex items-center justify-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFightRow(index)}
+                        className="h-7 w-7 p-0"
+                        title="Удалить строку"
+                      >
+                        x
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-start">
+              <Button type="button" variant="outline" size="sm" onClick={addFightRow}>
+                Добавить строку
+              </Button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsFightsImportOpen(false)}>
+                Отмена
+              </Button>
+              <Button type="button" onClick={handleImportFights} disabled={isSavingClanWidget}>
+                Загрузить
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <p className="text-muted-foreground">Загрузка...</p>

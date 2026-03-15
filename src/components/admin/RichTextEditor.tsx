@@ -16,6 +16,7 @@ import FontFamily from '@tiptap/extension-font-family';
 import { useEffect } from 'react';
 import { Toolbar } from './RichTextEditorToolbar';
 import { useImageResize } from './useImageResize';
+import LineHeight from './extensions/LineHeight';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {
@@ -53,6 +54,9 @@ const RichTextEditor = ({
       }),
       FontFamily.configure({
         types: ['textStyle'],
+      }),
+      LineHeight.configure({
+        types: ['paragraph', 'heading'],
       }),
       Link.configure({
         openOnClick: false,

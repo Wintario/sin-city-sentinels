@@ -357,6 +357,10 @@ export interface ClanWidgetSettings {
   enabled: boolean;
   title: string;
   body: string;
+  fights: Array<{
+    date: string;
+    opponent: string;
+  }>;
 }
 
 // Members API

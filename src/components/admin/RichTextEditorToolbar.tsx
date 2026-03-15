@@ -62,6 +62,7 @@ import {
   Expand,
   Smile,
   Palette,
+  Paintbrush,
   Maximize,
   User
 } from 'lucide-react';
@@ -69,6 +70,18 @@ import {
 interface ToolbarProps {
   editor: Editor;
   onImageUpload?: (file: File) => Promise<string>;
+}
+
+interface CopiedFormat {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strike: boolean;
+  color: string | null;
+  highlight: string | null;
+  fontFamily: string | null;
+  fontSize: string | null;
+  lineHeight: string | null;
 }
 
 interface TooltipButtonProps {
@@ -197,6 +210,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
   const [isVideoUploading, setIsVideoUploading] = useState(false);
   const [characterImageUrl, setCharacterImageUrl] = useState('');
   const [showCharacterImage, setShowCharacterImage] = useState(false);
+  const [copiedFormat, setCopiedFormat] = useState<CopiedFormat | null>(null);
 
   const ensureLocalImageUrl = async (sourceUrl: string): Promise<string> => {
     if (!sourceUrl || sourceUrl.startsWith('/api/uploads/') || sourceUrl.startsWith('/uploads/')) {
@@ -359,6 +373,63 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
 
   const clearFormatting = () => {
     editor.chain().focus().unsetAllMarks().run();
+  };
+
+  const copyCurrentFormat = () => {
+    const textStyle = editor.getAttributes('textStyle') as {
+      color?: string;
+      fontFamily?: string;
+      fontSize?: string;
+    };
+    const highlight = editor.getAttributes('highlight') as { color?: string };
+    const paragraph = editor.getAttributes('paragraph') as { lineHeight?: string };
+    const heading = editor.getAttributes('heading') as { lineHeight?: string };
+
+    setCopiedFormat({
+      bold: editor.isActive('bold'),
+      italic: editor.isActive('italic'),
+      underline: editor.isActive('underline'),
+      strike: editor.isActive('strike'),
+      color: textStyle?.color || null,
+      highlight: highlight?.color || null,
+      fontFamily: textStyle?.fontFamily || null,
+      fontSize: textStyle?.fontSize || null,
+      lineHeight: paragraph?.lineHeight || heading?.lineHeight || null,
+    });
+    toast.success('Формат скопирован');
+  };
+
+  const applyCopiedFormat = () => {
+    if (!copiedFormat) {
+      copyCurrentFormat();
+      return;
+    }
+
+    let chain = editor.chain().focus();
+
+    chain = copiedFormat.bold ? chain.setBold() : chain.unsetBold();
+    chain = copiedFormat.italic ? chain.setItalic() : chain.unsetItalic();
+    chain = copiedFormat.underline ? chain.setUnderline() : chain.unsetUnderline();
+    chain = copiedFormat.strike ? chain.setStrike() : chain.unsetStrike();
+
+    chain = copiedFormat.color ? chain.setColor(copiedFormat.color) : chain.unsetColor();
+    chain = copiedFormat.highlight
+      ? chain.setHighlight({ color: copiedFormat.highlight })
+      : chain.unsetHighlight();
+
+    if (copiedFormat.fontFamily) {
+      chain = chain.setFontFamily(copiedFormat.fontFamily);
+    } else {
+      chain = chain.setFontFamily('');
+    }
+
+    chain = copiedFormat.fontSize
+      ? chain.setMark('textStyle', { fontSize: copiedFormat.fontSize })
+      : chain.setMark('textStyle', { fontSize: null });
+
+    chain = chain.setLineHeight(copiedFormat.lineHeight || '');
+    chain.run();
+    toast.success('Формат применён');
   };
 
   const insertCharacterImage = async () => {
@@ -713,6 +784,14 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <TooltipButton
+        onClick={applyCopiedFormat}
+        content={copiedFormat ? 'Применить скопированный формат' : 'Скопировать формат'}
+        variant={copiedFormat ? 'default' : 'ghost'}
+      >
+        <Paintbrush className="h-4 w-4" />
+      </TooltipButton>
+
       <div className="w-px h-6 bg-border mx-1" />
 
       {/* Text formatting */}
@@ -786,7 +865,7 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
           <ImportCharacter
             onImport={async (data, iconUrl, characterUrl) => {
               // Build a single inline block for insertion.
-              let html = '<span style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">';
+              let html = '<span style="display: inline; white-space: nowrap; line-height: inherit; vertical-align: baseline;">';
               
               // Add clan icon if available.
               if (data.clanIcon) {
@@ -802,22 +881,22 @@ export const Toolbar = ({ editor, onImageUpload }: ToolbarProps) => {
                   console.warn('Failed to localize clan icon, using source URL:', e);
                 }
                 const clanTitle = data.clanName || 'Клан';
-                html += `<img src="${clanIconSrc}" alt="Логотип ${clanTitle}" title="${clanTitle}" style="width: 16px; height: 16px; display: inline;" /> `;
+                html += `<img src="${clanIconSrc}" alt="Логотип ${clanTitle}" title="${clanTitle}" style="width: 1em; height: 1em; display: inline; vertical-align: -0.12em; margin-right: 0.2em;" />`;
               }
 
               // Add race code with original styling from character page.
               if (data.raceCode) {
-                html += `<span title="${data.raceTitle || data.raceCode}" style="${data.raceStyle || 'font-weight: bold;'} font-family: Arial, Verdana;">${data.raceCode}</span> `;
+                html += `<span title="${data.raceTitle || data.raceCode}" style="${data.raceStyle || 'font-weight: bold;'} font-family: Arial, Verdana; line-height: inherit; vertical-align: baseline;">${data.raceCode}</span> `;
               }
               
               // Add nickname.
-              html += `<strong style="color: navy; font-family: Arial, Verdana;">${data.nickname}</strong> `;
+              html += `<strong style="color: navy; font-family: Arial, Verdana; line-height: inherit; vertical-align: baseline;">${data.nickname}</strong> `;
               
               // Add level.
-              html += `<strong>${data.level}</strong> `;
+              html += `<strong style="line-height: inherit; vertical-align: baseline;">${data.level}</strong> `;
               
               // Add info icon link.
-              html += `<a href="${characterUrl}" target="_blank" rel="noopener noreferrer"><img src="${iconUrl}" alt="info" style="width: 16px; height: 16px; display: inline;" /></a>`;
+              html += `<a href="${characterUrl}" target="_blank" rel="noopener noreferrer" style="line-height: inherit; vertical-align: baseline; margin-left: 0.2em;"><img src="${iconUrl}" alt="info" style="width: 1em; height: 1em; display: inline; vertical-align: -0.12em;" /></a>`;
               html += '</span>';
               
               // Insert all content in one operation.

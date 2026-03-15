@@ -355,8 +355,8 @@ const NewsForm = ({ news, onCancel, onSuccess }: NewsFormProps) => {
               className="prose prose-lg max-w-none"
             >
               <div
-                className="news-content"
-                style={{ background: '#ffffff', padding: '1rem' }}
+                className="news-content newspaper-bg"
+                style={{ padding: '1rem' }}
                 dangerouslySetInnerHTML={{ __html: formData.content }}
               />
             </div>

@@ -120,7 +120,7 @@ export async function getClanWidget(req, res, next) {
 
 export async function updateClanWidget(req, res, next) {
   try {
-    const { enabled, title, body } = req.body;
+    const { enabled, title, body, fights } = req.body;
 
     if (enabled !== undefined && typeof enabled !== 'boolean') {
       return res.status(400).json({ error: 'enabled must be a boolean' });
@@ -131,11 +131,26 @@ export async function updateClanWidget(req, res, next) {
     if (body !== undefined && typeof body !== 'string') {
       return res.status(400).json({ error: 'body must be a string' });
     }
+    if (fights !== undefined) {
+      if (!Array.isArray(fights)) {
+        return res.status(400).json({ error: 'fights must be an array' });
+      }
+
+      for (const fight of fights) {
+        if (!fight || typeof fight !== 'object') {
+          return res.status(400).json({ error: 'each fight must be an object' });
+        }
+        if (typeof fight.date !== 'string' || typeof fight.opponent !== 'string') {
+          return res.status(400).json({ error: 'fight.date and fight.opponent must be strings' });
+        }
+      }
+    }
 
     const settings = settingsModel.updateClanWidgetSettings({
       enabled,
       title,
-      body
+      body,
+      fights
     });
     res.json(settings);
   } catch (error) {

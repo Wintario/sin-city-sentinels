@@ -25,6 +25,32 @@ export function setSetting(key, value) {
   stmt.run(key, value);
 }
 
+function parseJsonSetting(key, fallback) {
+  const raw = getSetting(key);
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function parseFightDateToTimestamp(raw) {
+  const value = (raw || '').trim();
+  if (!value) return Number.NaN;
+
+  const dot = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  if (dot) {
+    const day = Number(dot[1]);
+    const month = Number(dot[2]);
+    let year = Number(dot[3]);
+    if (year < 100) year += 2000;
+    return new Date(year, month - 1, day).getTime();
+  }
+
+  return new Date(value).getTime();
+}
+
 /**
  * Получить все настройки фона
  */
@@ -67,10 +93,37 @@ export function updateMembersVisibilitySettings(data) {
 }
 
 export function getClanWidgetSettings() {
+  const fights = parseJsonSetting('clan_widget_fights', []);
+  const normalizedFights = Array.isArray(fights)
+    ? fights
+        .map((fight) => ({
+          date: typeof fight?.date === 'string' ? fight.date.trim() : '',
+          opponent: typeof fight?.opponent === 'string' ? fight.opponent.trim() : '',
+        }))
+        .filter((fight) => fight.date && fight.opponent)
+    : [];
+
+  // Автоочистка прошедших боёв, чтобы они не показывались снова в будущем.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayTs = startOfToday.getTime();
+
+  const upcomingFights = normalizedFights.filter((fight) => {
+    const ts = parseFightDateToTimestamp(fight.date);
+    // Невалидные даты оставляем, чтобы админ мог поправить вручную.
+    if (Number.isNaN(ts)) return true;
+    return ts >= todayTs;
+  });
+
+  if (upcomingFights.length !== normalizedFights.length) {
+    setSetting('clan_widget_fights', JSON.stringify(upcomingFights));
+  }
+
   return {
     enabled: getSetting('clan_widget_enabled') !== '0',
     title: getSetting('clan_widget_title') || 'Информация для сокланов',
-    body: getSetting('clan_widget_body') || ''
+    body: getSetting('clan_widget_body') || '',
+    fights: upcomingFights
   };
 }
 
@@ -83,6 +136,17 @@ export function updateClanWidgetSettings(data) {
   }
   if (data.body !== undefined) {
     setSetting('clan_widget_body', data.body);
+  }
+  if (data.fights !== undefined) {
+    const normalizedFights = Array.isArray(data.fights)
+      ? data.fights
+          .map((fight) => ({
+            date: typeof fight?.date === 'string' ? fight.date.trim() : '',
+            opponent: typeof fight?.opponent === 'string' ? fight.opponent.trim() : '',
+          }))
+          .filter((fight) => fight.date && fight.opponent)
+      : [];
+    setSetting('clan_widget_fights', JSON.stringify(normalizedFights));
   }
 
   return getClanWidgetSettings();

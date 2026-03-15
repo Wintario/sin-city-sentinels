@@ -259,7 +259,7 @@ const NewsDetail = () => {
           </button>
 
           {/* News Content */}
-          <article className="newspaper-bg p-8 md:p-12 shadow-noir cursor-default" style={{ background: '#ffffff' }}>
+          <article className="newspaper-bg p-8 md:p-12 shadow-noir cursor-default">
             <header className="border-b-2 border-noir-dark pb-6 mb-6">
               <h1 className="font-display text-3xl md:text-4xl lg:text-5xl text-noir-dark leading-tight mb-4">
                 {news.title}
@@ -299,7 +299,7 @@ const NewsDetail = () => {
               {/* Main content - render as HTML */}
               <div
                 className="font-body text-lg text-noir-dark leading-relaxed news-content"
-                style={{ background: '#ffffff', padding: '1rem' }}
+                style={{ padding: '1rem' }}
                 ref={contentRef}
                 dangerouslySetInnerHTML={{ __html: normalizedContent }}
               />
