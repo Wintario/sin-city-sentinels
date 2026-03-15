@@ -215,6 +215,12 @@
   display: inline-block;
 }
 
+/* Если в абзаце только картинка (без текста) — центрируем по умолчанию */
+.news-content p > img:only-child {
+  display: block;
+  margin: 0.5rem auto;
+}
+
 .news-content table {
   border-collapse: collapse;
   width: 100%;

@@ -182,6 +182,13 @@
   margin: 0.5rem 0 0.5rem auto;
 }
 
+/* Если в абзаце только картинка (без текста) — по умолчанию центрируем */
+.editor-content .ProseMirror p > img:only-child {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* Размер изображений */
 .editor-content .ProseMirror img[width="50%"] {
   width: 50%;
