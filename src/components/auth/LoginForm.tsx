@@ -17,8 +17,16 @@ import {
 } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
+const looksLikeUrl = (value: string) => {
+  const v = value.trim().toLowerCase();
+  return v.includes('://') || v.includes('apeha.ru/') || v.startsWith('www.');
+};
+
 const loginSchema = z.object({
-  username: z.string().min(1, 'Введите ник'),
+  username: z.string()
+    .trim()
+    .min(1, 'Введите ник')
+    .refine((value) => !looksLikeUrl(value), 'Введите ник, а не ссылку'),
   password: z.string().min(1, 'Введите пароль'),
 });
 
