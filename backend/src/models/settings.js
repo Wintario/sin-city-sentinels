@@ -51,6 +51,10 @@ function parseFightDateToTimestamp(raw) {
   return new Date(value).getTime();
 }
 
+function normalizeFightTime(raw) {
+  return String(raw || '').trim().replace(/^в\s+/i, '');
+}
+
 /**
  * Получить все настройки фона
  */
@@ -98,6 +102,7 @@ export function getClanWidgetSettings() {
     ? fights
         .map((fight) => ({
           date: typeof fight?.date === 'string' ? fight.date.trim() : '',
+          time: typeof fight?.time === 'string' ? normalizeFightTime(fight.time) : '',
           opponent: typeof fight?.opponent === 'string' ? fight.opponent.trim() : '',
         }))
         .filter((fight) => fight.date && fight.opponent)
@@ -142,6 +147,7 @@ export function updateClanWidgetSettings(data) {
       ? data.fights
           .map((fight) => ({
             date: typeof fight?.date === 'string' ? fight.date.trim() : '',
+            time: typeof fight?.time === 'string' ? normalizeFightTime(fight.time) : '',
             opponent: typeof fight?.opponent === 'string' ? fight.opponent.trim() : '',
           }))
           .filter((fight) => fight.date && fight.opponent)

@@ -359,6 +359,7 @@ export interface ClanWidgetSettings {
   body: string;
   fights: Array<{
     date: string;
+    time?: string;
     opponent: string;
   }>;
 }

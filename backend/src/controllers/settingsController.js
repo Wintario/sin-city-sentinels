@@ -143,6 +143,9 @@ export async function updateClanWidget(req, res, next) {
         if (typeof fight.date !== 'string' || typeof fight.opponent !== 'string') {
           return res.status(400).json({ error: 'fight.date and fight.opponent must be strings' });
         }
+        if (fight.time !== undefined && typeof fight.time !== 'string') {
+          return res.status(400).json({ error: 'fight.time must be a string' });
+        }
       }
     }
 

@@ -33,11 +33,37 @@ const normalizeClanWidgetSettings = (settings: Partial<ClanWidgetSettings> | nul
     ? settings!.fights
         .map((fight) => ({
           date: typeof fight?.date === 'string' ? fight.date : '',
+          time: typeof fight?.time === 'string' ? fight.time : '',
           opponent: typeof fight?.opponent === 'string' ? fight.opponent : '',
         }))
         .filter((fight) => fight.date && fight.opponent)
     : [],
 });
+
+const normalizeFightTime = (value: string): string => {
+  const normalized = (value || '').trim().replace(/^в\s+/i, '');
+  return normalized;
+};
+
+const extractTimeAndOpponent = (timeRaw: string, opponentRaw: string): { time: string; opponent: string } => {
+  const directTime = normalizeFightTime(timeRaw);
+  const directOpponent = (opponentRaw || '').trim();
+  const isDirectTimeOnly = /^\d{1,2}[:.]\d{2}$/.test(directTime);
+  if (isDirectTimeOnly) {
+    return { time: directTime, opponent: directOpponent };
+  }
+
+  const combined = [directTime, directOpponent].filter(Boolean).join(' ').trim() || directOpponent;
+  const match = combined.match(/^(\d{1,2}[:.]\d{2})\s+(.+)$/);
+  if (match) {
+    return {
+      time: normalizeFightTime(match[1].replace('.', ':')),
+      opponent: (match[2] || '').trim(),
+    };
+  }
+
+  return { time: '', opponent: directOpponent };
+};
 
 const MembersAdmin = () => {
   const [members, setMembers] = useState<Member[]>([]);
@@ -56,8 +82,8 @@ const MembersAdmin = () => {
   });
   const [isSavingClanWidget, setIsSavingClanWidget] = useState(false);
   const [isFightsImportOpen, setIsFightsImportOpen] = useState(false);
-  const [fightRows, setFightRows] = useState<Array<{ date: string; opponent: string }>>([
-    { date: '', opponent: '' },
+  const [fightRows, setFightRows] = useState<Array<{ date: string; time: string; opponent: string }>>([
+    { date: '', time: '', opponent: '' },
   ]);
   
   // Массовая загрузка
@@ -295,43 +321,61 @@ const MembersAdmin = () => {
 
     const parsed = lines
       .map((line) => {
-        const cols = line.split(/\t|;|\|/).map((col) => col.trim()).filter(Boolean);
+        let cols: string[] = [];
+        if (line.includes('\t')) {
+          cols = line.split('\t').map((col) => col.trim());
+        } else if (line.includes(';')) {
+          cols = line.split(';').map((col) => col.trim());
+        } else if (line.includes('|')) {
+          cols = line.split('|').map((col) => col.trim());
+        } else {
+          cols = line.split(/\s+/).map((col) => col.trim());
+        }
         if (cols.length < 2) return null;
-        const date = cols[0];
-        const opponent = cols.slice(1).join(' ');
-        if (!date || !opponent) return null;
-        if (date.toLowerCase().includes('дата') && opponent.toLowerCase().includes('сопер')) {
+        const date = (cols[0] || '').trim();
+        const second = (cols[1] || '').trim();
+        const rest = cols.slice(2).join(' ').trim();
+        const mergedOpponent = rest || second;
+        const extracted = extractTimeAndOpponent(second, rest ? rest : second);
+        const time = extracted.time;
+        const opponent = extracted.opponent || mergedOpponent;
+        if (!date || !time || !opponent) return null;
+        if (
+          date.toLowerCase().includes('дата') &&
+          time.toLowerCase().includes('врем') &&
+          opponent.toLowerCase().includes('сопер')
+        ) {
           return null;
         }
-        return { date, opponent };
+        return { date, time, opponent };
       })
-      .filter((item): item is { date: string; opponent: string } => Boolean(item));
+      .filter((item): item is { date: string; time: string; opponent: string } => Boolean(item));
 
     return parsed;
   };
 
-  const parseFightsFromRows = (rows: Array<{ date: string; opponent: string }>) =>
+  const parseFightsFromRows = (rows: Array<{ date: string; time: string; opponent: string }>) =>
     rows
       .map((row) => ({
         date: (row.date || '').trim(),
-        opponent: (row.opponent || '').trim(),
+        ...extractTimeAndOpponent(row.time || '', row.opponent || ''),
       }))
-      .filter((row) => row.date && row.opponent);
+      .filter((row) => row.date && row.time && row.opponent);
 
-  const handleFightRowChange = (index: number, field: 'date' | 'opponent', value: string) => {
+  const handleFightRowChange = (index: number, field: 'date' | 'time' | 'opponent', value: string) => {
     setFightRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
     );
   };
 
   const addFightRow = () => {
-    setFightRows((prev) => [...prev, { date: '', opponent: '' }]);
+    setFightRows((prev) => [...prev, { date: '', time: '', opponent: '' }]);
   };
 
   const removeFightRow = (index: number) => {
     setFightRows((prev) => {
       const next = prev.filter((_, i) => i !== index);
-      return next.length > 0 ? next : [{ date: '', opponent: '' }];
+      return next.length > 0 ? next : [{ date: '', time: '', opponent: '' }];
     });
   };
 
@@ -349,7 +393,7 @@ const MembersAdmin = () => {
   const openFightsImportDialog = () => {
     const current = clanWidget.fights && clanWidget.fights.length > 0
       ? clanWidget.fights
-      : [{ date: '', opponent: '' }];
+      : [{ date: '', time: '', opponent: '' }];
     setFightRows(current);
     setIsFightsImportOpen(true);
   };
@@ -357,7 +401,7 @@ const MembersAdmin = () => {
   const handleImportFights = async () => {
     const fights = parseFightsFromRows(fightRows);
     if (fights.length === 0) {
-      toast.error('Добавьте хотя бы один бой: дата + соперник');
+      toast.error('Добавьте хотя бы один бой: дата + время + соперник');
       return;
     }
 
@@ -580,8 +624,8 @@ const MembersAdmin = () => {
           {(clanWidget.fights || []).length > 0 ? (
             <div className="space-y-1 text-xs">
               {(clanWidget.fights || []).map((fight, index) => (
-                <div key={`${fight.date}-${fight.opponent}-${index}`} className="text-muted-foreground">
-                  {fight.date} Свирепые кролики - {fight.opponent}
+                <div key={`${fight.date}-${fight.time || ''}-${fight.opponent}-${index}`} className="text-muted-foreground">
+                  {fight.date} Свирепые кролики - {fight.opponent}{fight.time ? ` в ${fight.time}` : ''}
                 </div>
               ))}
             </div>
@@ -602,14 +646,15 @@ const MembersAdmin = () => {
           <DialogHeader>
             <DialogTitle>Массовая загрузка боёв</DialogTitle>
             <DialogDescription>
-              Таблица с двумя колонками: дата и соперник. Можно вставить напрямую из Excel/Google Sheets в первое поле.
+              Таблица с тремя колонками: дата, время, соперник. Можно вставить напрямую из Excel/Google Sheets в первое поле.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded border border-border overflow-hidden">
               <div className="grid grid-cols-12 bg-muted/40 text-xs font-medium">
                 <div className="col-span-4 px-2 py-2 border-r border-border">Дата</div>
-                <div className="col-span-7 px-2 py-2 border-r border-border">Соперник</div>
+                <div className="col-span-2 px-2 py-2 border-r border-border">Время</div>
+                <div className="col-span-5 px-2 py-2 border-r border-border">Соперник</div>
                 <div className="col-span-1 px-2 py-2 text-center">-</div>
               </div>
               <div className="max-h-72 overflow-y-auto">
@@ -624,7 +669,15 @@ const MembersAdmin = () => {
                         className="h-9 rounded-none border-0"
                       />
                     </div>
-                    <div className="col-span-7 border-r border-border">
+                    <div className="col-span-2 border-r border-border">
+                      <Input
+                        value={row.time}
+                        onChange={(e) => handleFightRowChange(index, 'time', e.target.value)}
+                        placeholder={index === 0 ? '13:10' : ''}
+                        className="h-9 rounded-none border-0"
+                      />
+                    </div>
+                    <div className="col-span-5 border-r border-border">
                       <Input
                         value={row.opponent}
                         onChange={(e) => handleFightRowChange(index, 'opponent', e.target.value)}

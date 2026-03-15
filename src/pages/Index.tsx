@@ -147,7 +147,7 @@ const Index = () => {
             <p className="text-[11px] uppercase tracking-wide text-primary font-semibold">Ближайший бой</p>
             <p className="text-xs text-black mt-1">
               {nearestFight
-                ? `${nearestFight.date} Свирепые кролики - ${nearestFight.opponent}`
+                ? `${nearestFight.date} Свирепые Кролики - ${nearestFight.opponent}${nearestFight.time ? ` в ${nearestFight.time}` : ''}`
                 : 'Не указан'}
             </p>
           </div>
