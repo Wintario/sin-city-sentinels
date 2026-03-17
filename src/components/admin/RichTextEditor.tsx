@@ -14,6 +14,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import CharacterCount from '@tiptap/extension-character-count';
 import FontFamily from '@tiptap/extension-font-family';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { Toolbar } from './RichTextEditorToolbar';
 import { useImageResize } from './useImageResize';
 import LineHeight from './extensions/LineHeight';
@@ -26,6 +27,52 @@ interface RichTextEditorProps {
   maxLength?: number;
   placeholder?: string;
 }
+
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/bmp': 'bmp',
+  'image/svg+xml': 'svg',
+};
+
+const extractFirstDataImageUri = (html: string): string | null => {
+  if (!html) return null;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const img = doc.querySelector('img[src^="data:image/"]');
+  return img?.getAttribute('src')?.trim() || null;
+};
+
+const dataUriToFile = (dataUri: string): File => {
+  const source = (dataUri || '').trim();
+  const match = source.match(/^data:(image\/[a-zA-Z0-9.+-]+)(;base64)?,(.*)$/i);
+  if (!match) {
+    throw new Error('Некорректный формат data:image');
+  }
+
+  const mimeType = (match[1] || 'image/png').toLowerCase();
+  const isBase64 = Boolean(match[2]);
+  const payload = match[3] || '';
+
+  let byteString: string;
+  if (isBase64) {
+    byteString = atob(payload);
+  } else {
+    byteString = decodeURIComponent(payload);
+  }
+
+  const bytes = new Uint8Array(byteString.length);
+  for (let i = 0; i < byteString.length; i += 1) {
+    bytes[i] = byteString.charCodeAt(i);
+  }
+
+  const ext = MIME_TO_EXT[mimeType] || 'png';
+  const filename = `clipboard-image-${Date.now()}.${ext}`;
+  return new File([bytes], filename, { type: mimeType });
+};
 
 const RichTextEditor = ({
   content,
@@ -89,24 +136,43 @@ const RichTextEditor = ({
     },
     editorProps: {
       handlePaste: (_view, event) => {
+        if (!onImageUpload) return false;
+
+        const clipboard = event.clipboardData;
+        if (!clipboard) return false;
+
         const items = Array.from(event.clipboardData?.items || []);
         const imageItem = items.find((item) => item.type.startsWith('image'));
+        const html = clipboard.getData('text/html');
 
-        if (imageItem && onImageUpload) {
-          event.preventDefault();
-          const file = imageItem.getAsFile();
-          if (file) {
-            onImageUpload(file)
-              .then((url) => {
-                editor?.chain().focus().setImage({ src: url }).run();
-              })
-              .catch((err) => {
-                console.error('Failed to upload image from clipboard:', err);
-              });
-          }
+        const fileFromClipboard = imageItem?.getAsFile() || null;
+        const dataImageUri = !fileFromClipboard ? extractFirstDataImageUri(html) : null;
+
+        if (!fileFromClipboard && !dataImageUri) {
+          return false;
+        }
+
+        event.preventDefault();
+
+        let fileToUpload: File;
+        try {
+          fileToUpload = fileFromClipboard || dataUriToFile(dataImageUri!);
+        } catch (err) {
+          console.error('Failed to parse image from clipboard:', err);
+          toast.error('Не удалось распознать изображение из буфера обмена');
           return true;
         }
-        return false;
+
+        onImageUpload(fileToUpload)
+          .then((url) => {
+            editor?.chain().focus().setImage({ src: url }).run();
+          })
+          .catch((err) => {
+            console.error('Failed to upload image from clipboard:', err);
+            toast.error(err instanceof Error ? err.message : 'Не удалось загрузить изображение из буфера обмена');
+          });
+
+        return true;
       },
     },
   });
