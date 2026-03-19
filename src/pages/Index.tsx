@@ -11,9 +11,11 @@ import heroRabbit from '@/assets/hero-rabbit.png';
 import { settingsAPI, type ClanWidgetSettings } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
-const parseFightDate = (dateRaw: string): number => {
+const MOSCOW_UTC_OFFSET_HOURS = 3;
+
+const parseFightDateParts = (dateRaw: string): { year: number; month: number; day: number } | null => {
   const value = (dateRaw || '').trim();
-  if (!value) return Number.NaN;
+  if (!value) return null;
 
   const dot = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
   if (dot) {
@@ -21,12 +23,53 @@ const parseFightDate = (dateRaw: string): number => {
     const month = Number(dot[2]);
     let year = Number(dot[3]);
     if (year < 100) year += 2000;
-    const ts = new Date(year, month - 1, day).getTime();
-    return Number.isNaN(ts) ? Number.NaN : ts;
+    if (!day || !month || !year) return null;
+    return { year, month, day };
   }
 
-  const ts = new Date(value).getTime();
-  return Number.isNaN(ts) ? Number.NaN : ts;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return {
+    year: parsed.getUTCFullYear(),
+    month: parsed.getUTCMonth() + 1,
+    day: parsed.getUTCDate(),
+  };
+};
+
+const parseFightTime = (timeRaw?: string): { hour: number; minute: number } | null => {
+  const value = (timeRaw || '').trim();
+  if (!value) return null;
+  const match = value.match(/^(\d{1,2})[:.](\d{2})$/);
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+
+  return { hour, minute };
+};
+
+const toMoscowTimestamp = (year: number, month: number, day: number, hour = 0, minute = 0): number => {
+  return Date.UTC(year, month - 1, day, hour - MOSCOW_UTC_OFFSET_HOURS, minute, 0, 0);
+};
+
+const parseFightSchedule = (dateRaw: string, timeRaw?: string): { eventAtTs: number; switchAtTs: number } => {
+  const date = parseFightDateParts(dateRaw);
+  if (!date) {
+    return { eventAtTs: Number.NaN, switchAtTs: Number.NaN };
+  }
+
+  const time = parseFightTime(timeRaw);
+  const eventAtTs = toMoscowTimestamp(date.year, date.month, date.day, time?.hour ?? 0, time?.minute ?? 0);
+
+  // Если время есть: меняем на следующий бой через 30 минут после старта (по Москве).
+  // Если времени нет: меняем только со следующего дня 00:00 по Москве.
+  const switchAtTs = time
+    ? eventAtTs + 30 * 60 * 1000
+    : toMoscowTimestamp(date.year, date.month, date.day + 1, 0, 0);
+
+  return { eventAtTs, switchAtTs };
 };
 
 const Index = () => {
@@ -95,22 +138,38 @@ const Index = () => {
 
     const now = Date.now();
     const mapped = fights
-      .map((fight) => ({
-        ...fight,
-        timestamp: parseFightDate(fight.date),
-      }))
+      .map((fight, index) => {
+        const schedule = parseFightSchedule(fight.date, fight.time);
+        return {
+          ...fight,
+          index,
+          eventAtTs: schedule.eventAtTs,
+          switchAtTs: schedule.switchAtTs,
+        };
+      })
       .filter((fight) => fight.date && fight.opponent);
 
-    const validFuture = mapped
-      .filter((fight) => !Number.isNaN(fight.timestamp) && fight.timestamp >= now)
-      .sort((a, b) => a.timestamp - b.timestamp);
-    if (validFuture.length > 0) {
-      return validFuture[0];
+    const activeOrUpcoming = mapped
+      .filter((fight) => Number.isNaN(fight.switchAtTs) || now < fight.switchAtTs)
+      .sort((a, b) => {
+        const aTs = Number.isNaN(a.eventAtTs) ? Number.POSITIVE_INFINITY : a.eventAtTs;
+        const bTs = Number.isNaN(b.eventAtTs) ? Number.POSITIVE_INFINITY : b.eventAtTs;
+        if (aTs !== bTs) return aTs - bTs;
+        return a.index - b.index;
+      });
+
+    if (activeOrUpcoming.length > 0) {
+      return activeOrUpcoming[0];
     }
 
     const validAny = mapped
-      .filter((fight) => !Number.isNaN(fight.timestamp))
-      .sort((a, b) => a.timestamp - b.timestamp);
+      .sort((a, b) => {
+        const aTs = Number.isNaN(a.eventAtTs) ? Number.POSITIVE_INFINITY : a.eventAtTs;
+        const bTs = Number.isNaN(b.eventAtTs) ? Number.POSITIVE_INFINITY : b.eventAtTs;
+        if (aTs !== bTs) return aTs - bTs;
+        return a.index - b.index;
+      });
+
     if (validAny.length > 0) {
       return validAny[0];
     }
