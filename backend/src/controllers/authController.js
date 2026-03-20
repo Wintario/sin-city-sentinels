@@ -47,6 +47,16 @@ const refreshCharacterMetadata = async ({
 }) => {
   const currentProfile = getProfileByUserId(userId);
   if (!characterUrl) {
+    if (currentProfile?.is_target_clan_member) {
+      logger.warn('Character URL is missing, disabling clan-only access', {
+        source,
+        userId,
+        username,
+      });
+      return updateProfile(userId, {
+        is_target_clan_member: false,
+      });
+    }
     return currentProfile;
   }
 
@@ -76,7 +86,15 @@ const refreshCharacterMetadata = async ({
       username,
       error: error.message,
     });
-    return currentProfile;
+
+    if (!currentProfile) {
+      return currentProfile;
+    }
+
+    // Security-first: without fresh clan confirmation, deny clan-only access.
+    return updateProfile(userId, {
+      is_target_clan_member: false,
+    });
   }
 };
 
@@ -273,11 +291,11 @@ export const login = asyncHandler(async (req, res) => {
   // РџРѕР»СѓС‡Р°РµРј РїСЂРѕС„РёР»СЊ РґР»СЏ is_verified Рё РєР»Р°РЅР°
   let profile = getProfileByUserId(user.id);
 
-  if (profile?.character_url) {
+  if (profile) {
     profile = await refreshCharacterMetadata({
       userId: user.id,
       username: user.username,
-      characterUrl: profile.character_url,
+      characterUrl: profile.character_url || null,
       fallbackCharacterImage: profile.character_image || null,
       source: 'login',
     });
