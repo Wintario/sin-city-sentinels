@@ -38,6 +38,48 @@ const mapAuthUser = (user, profile) => ({
   clan_checked_at: profile?.clan_checked_at || null
 });
 
+const refreshCharacterMetadata = async ({
+  userId,
+  username,
+  characterUrl,
+  fallbackCharacterImage = null,
+  source = 'unknown',
+}) => {
+  const currentProfile = getProfileByUserId(userId);
+  if (!characterUrl) {
+    return currentProfile;
+  }
+
+  try {
+    const html = await fetchCharacterPage(characterUrl);
+    const characterInfo = parseCharacterInfo(html, characterUrl);
+    const normalizedClanName = normalizeClanName(characterInfo?.clanName);
+    const isTargetClanMember = normalizedClanName === TARGET_CLAN_NAME_NORMALIZED;
+
+    return updateProfile(userId, {
+      character_image: characterInfo?.imageUrl || fallbackCharacterImage || null,
+      character_level: characterInfo?.level ?? null,
+      race_code: characterInfo?.raceCode || null,
+      race_class: characterInfo?.raceClass || null,
+      race_title: characterInfo?.raceTitle || null,
+      race_style: characterInfo?.raceStyle || null,
+      clan_name: characterInfo?.clanName || null,
+      clan_url: characterInfo?.clanUrl || null,
+      clan_icon: characterInfo?.clanIcon || null,
+      is_target_clan_member: isTargetClanMember,
+      clan_checked_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.warn('Failed to refresh character metadata, using cached values', {
+      source,
+      userId,
+      username,
+      error: error.message,
+    });
+    return currentProfile;
+  }
+};
+
 /**
  * POST /api/auth/register - Р РµРіРёСЃС‚СЂР°С†РёСЏ РЅРѕРІРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
  * РўСЂРµР±СѓРµС‚: password, characterUrl
@@ -135,6 +177,13 @@ export const verifyCharacter = asyncHandler(async (req, res) => {
     if (pending.character_image) {
       await updateProfile(user.id, { character_url: pending.character_url, character_image: pending.character_image });
     }
+    await refreshCharacterMetadata({
+      userId: user.id,
+      username: user.username,
+      characterUrl: pending.character_url,
+      fallbackCharacterImage: pending.character_image || null,
+      source: 'verify_character_pending',
+    });
 
     const { setVerified } = await import('../models/userProfile.js');
     setVerified(user.id, true);
@@ -225,32 +274,13 @@ export const login = asyncHandler(async (req, res) => {
   let profile = getProfileByUserId(user.id);
 
   if (profile?.character_url) {
-    try {
-      const html = await fetchCharacterPage(profile.character_url);
-      const characterInfo = parseCharacterInfo(html, profile.character_url);
-      const normalizedClanName = normalizeClanName(characterInfo?.clanName);
-      const isTargetClanMember = normalizedClanName === TARGET_CLAN_NAME_NORMALIZED;
-
-      profile = updateProfile(user.id, {
-        character_image: characterInfo?.imageUrl || null,
-        character_level: characterInfo?.level ?? null,
-        race_code: characterInfo?.raceCode || null,
-        race_class: characterInfo?.raceClass || null,
-        race_title: characterInfo?.raceTitle || null,
-        race_style: characterInfo?.raceStyle || null,
-        clan_name: characterInfo?.clanName || null,
-        clan_url: characterInfo?.clanUrl || null,
-        clan_icon: characterInfo?.clanIcon || null,
-        is_target_clan_member: isTargetClanMember,
-        clan_checked_at: new Date().toISOString()
-      });
-    } catch (error) {
-      logger.warn('Failed to check clan on login, using cached clan info', {
-        userId: user.id,
-        username: user.username,
-        error: error.message
-      });
-    }
+    profile = await refreshCharacterMetadata({
+      userId: user.id,
+      username: user.username,
+      characterUrl: profile.character_url,
+      fallbackCharacterImage: profile.character_image || null,
+      source: 'login',
+    });
   }
 
   // Р“РµРЅРµСЂР°С†РёСЏ JWT С‚РѕРєРµРЅР°
